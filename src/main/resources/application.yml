@@ -1,38 +1,36 @@
+server:
+  port: 8080
+
 spring:
   application:
-    name: guideon-be
+    name: guideon-backend
 
   # 1. 데이터베이스 설정
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:guideondb}
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/guideon}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
 
-  # 2. JPA 설정
+  # 2. JPA
   jpa:
+    open-in-view: false
     hibernate:
-      ddl-auto: update  #(운영은 validate)
+      ddl-auto: update
     properties:
       hibernate:
         format_sql: true
         show_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_batch_fetch_size: 100
 
   # 3. Redis 설정
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
 
-  # 4. 파일 업로드 설정
-  servlet:
-    multipart:
-      max-file-size: 50MB
-      max-request-size: 50MB
-
-# 로깅 레벨
+# 4. 로깅 레벨 설정
 logging:
   level:
     org.hibernate.SQL: debug
-    org.hibernate.type.descriptor.sql: trace
+    org.springframework.web: info
