@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 
 @Getter
+@RequiredArgsConstructor
 public enum ErrorCode {
     //common errors
     VALIDATION_ERROR(HttpStatus.BAD_REQUEST, "입력값 검증 실패"),
@@ -22,8 +23,10 @@ public enum ErrorCode {
     private final HttpStatus httpStatus;
     private final String message;
 
+    /*
     ErrorCode(HttpStatus httpStatus, String message) {
         this.httpStatus = httpStatus;
         this.message = message;
     }
+    */
 }
