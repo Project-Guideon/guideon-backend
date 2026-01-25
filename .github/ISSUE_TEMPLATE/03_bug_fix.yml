@@ -1,0 +1,42 @@
+name: 🐛 Bug Report (버그 제보)
+description: 서버 오류 및 장애 발생 시 사용하는 템플릿입니다.
+title: "[FIX] "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 🔥 Severity (심각도)
+      options:
+        - Critical (서비스 중단 / 데이터 유실)
+        - High (주요 기능 장애)
+        - Normal (일반 버그)
+        - Low (사소한 문제)
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 📝 Description & Logs
+      description: 발생한 에러 로그나 Trace ID를 첨부해주세요.
+      render: shell
+      placeholder: |
+        - 발생 시간: 2024-01-01 12:00
+        - Trace ID: 1234-5678-abcd
+        
+        [Error Log]
+        java.lang.NullPointerException: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 🔄 Steps to Reproduce
+      description: 어떻게 하면 에러가 재현되는지 알려주세요.
+      placeholder: |
+        1. 회원가입 API 호출 시 이메일에 공백 포함
+        2. 500 에러 발생
+    validations:
+      required: false
