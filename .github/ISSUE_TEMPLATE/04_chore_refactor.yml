@@ -1,0 +1,36 @@
+name: ♻️ Refactoring & Chore (개선 및 유지보수)
+description: 코드 리팩토링, 라이브러리 업데이트, 문서화 작업 등.
+title: "[REFACTOR] "
+labels: ["refactoring"]
+body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: 🎯 Type
+      options:
+        - Architecture (구조 개선)
+        - Performance (성능 튜닝)
+        - Clean Code (코드 정리)
+        - Library (라이브러리 업데이트)
+    validations:
+      required: true
+
+  - type: textarea
+    id: as-is
+    attributes:
+      label: ⚠️ AS-IS (현재 문제점)
+      placeholder: |
+        - 현재 N+1 문제가 발생하여 조회 속도가 느림.
+        - Spring Boot 3.1 버전을 사용 중임.
+    validations:
+      required: true
+
+  - type: textarea
+    id: to-be
+    attributes:
+      label: ✨ TO-BE (개선 방향)
+      placeholder: |
+        - Fetch Join을 사용하여 쿼리 최적화.
+        - Spring Boot 3.2.2로 버전 업그레이드.
+    validations:
+      required: true

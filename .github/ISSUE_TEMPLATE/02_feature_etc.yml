@@ -1,0 +1,26 @@
+name: 💡 General Feature (일반 기능)
+description: API 외의 기능(DB 설계, 스케줄러, 설정 등) 구현을 위한 템플릿입니다.
+title: "[FEAT] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 📝 Description
+      description: 어떤 기능을 구현하는지 설명해주세요.
+      placeholder: |
+        - 매일 자정 회원 통계를 집계하는 스케줄러 구현
+        - Redis 설정 도입
+    validations:
+      required: true
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: ✅ To-Do List
+      description: 세부 작업 목록
+      placeholder: |
+        - [ ] Entity 설계 및 연관관계 매핑
+        - [ ] 배치 작업 로직 구현
+    validations:
+      required: false

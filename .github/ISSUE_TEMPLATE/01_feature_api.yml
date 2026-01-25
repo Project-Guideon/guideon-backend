@@ -1,0 +1,67 @@
+name: 🚀 API Implementation (API 구현)
+description: API 설계 및 구현 작업을 위한 템플릿입니다.
+title: "[FEAT] "
+labels: ["enhancement", "api"]
+body:
+  - type: dropdown
+    id: method
+    attributes:
+      label: HTTP Method
+      options:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+    validations:
+      required: true
+
+  - type: input
+    id: uri
+    attributes:
+      label: Endpoint URI
+      placeholder: "/api/v1/users/signup"
+    validations:
+      required: true
+
+  - type: textarea
+    id: request
+    attributes:
+      label: Request Spec (Body/Params)
+      description: 요청으로 받을 데이터 형식 (JSON or Query Params)
+      render: json
+      placeholder: |
+        {
+          "email": "user@example.com",
+          "password": "secure_password",
+          "name": "홍길동"
+        }
+    validations:
+      required: true
+
+  - type: textarea
+    id: response
+    attributes:
+      label: Response Spec (Success)
+      description: 성공 시 반환할 데이터 형식 (200 OK)
+      render: json
+      placeholder: |
+        {
+          "userId": 1,
+          "email": "user@example.com"
+        }
+    validations:
+      required: true
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: ✅ To-Do List
+      description: 구현해야 할 세부 작업
+      placeholder: |
+        - [ ] Controller 매핑
+        - [ ] Service 비즈니스 로직 구현
+        - [ ] DTO 검증(Validation) 추가
+        - [ ] 테스트 코드 작성
+    validations:
+      required: false
