@@ -1,13 +1,10 @@
 package com.guideon.guideonbackend.global.exception;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 
 @Getter
-@RequiredArgsConstructor
 public enum ErrorCode {
-    //common errors
     VALIDATION_ERROR(HttpStatus.BAD_REQUEST, "입력값 검증 실패"),
     AUTH_REQUIRED(HttpStatus.UNAUTHORIZED, "인증 필요(토큰 없음)"),
     AUTH_INVALID(HttpStatus.UNAUTHORIZED, "인증 실패(토큰 불일치/만료)"),
@@ -23,4 +20,8 @@ public enum ErrorCode {
     private final HttpStatus httpStatus;
     private final String message;
 
+    ErrorCode(HttpStatus httpStatus, String message) {
+        this.httpStatus = httpStatus;
+        this.message = message;
+    }
 }
