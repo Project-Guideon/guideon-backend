@@ -1,4 +1,4 @@
-package com.guideon.guideonbackend.global.response;
+package com.guideon.guideonbackend.global.common;
 
 import jakarta.persistence.*;
 import org.springframework.data.annotation.CreatedDate;
