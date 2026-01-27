@@ -55,7 +55,6 @@ public class SecurityConfig {
                 // 경로별 인증 설정
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/v1/admin/auth/signup",
                                 "/api/v1/admin/auth/login",
                                 "/api/v1/admin/auth/refresh",
                                 "/health",

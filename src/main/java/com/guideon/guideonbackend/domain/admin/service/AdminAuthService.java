@@ -4,7 +4,6 @@ import com.guideon.guideonbackend.domain.admin.dto.AdminLoginRequest;
 import com.guideon.guideonbackend.domain.admin.dto.AdminLoginResponse;
 import com.guideon.guideonbackend.domain.admin.dto.AdminRefreshRequest;
 import com.guideon.guideonbackend.domain.admin.dto.AdminRefreshResponse;
-import com.guideon.guideonbackend.domain.admin.dto.AdminSignupRequest;
 import com.guideon.guideonbackend.domain.admin.entity.Admin;
 import com.guideon.guideonbackend.domain.admin.entity.AdminRole;
 import com.guideon.guideonbackend.domain.admin.entity.RefreshToken;
@@ -178,61 +177,6 @@ public class AdminAuthService {
         return AdminRefreshResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken)
-                .build();
-    }
-
-    /**
-     * 관리자 회원가입
-     * 테스트를 위한 임시 회원가입
-     */
-    @Transactional
-    public AdminLoginResponse signup(AdminSignupRequest request) {
-        // 이메일 중복 확인
-        if (adminRepository.existsByEmail(request.getEmail().toLowerCase())) {
-            throw new CustomException(
-                    ErrorCode.CONFLICT,
-                    "이미 사용 중인 이메일입니다"
-            );
-        }
-
-        // 비밀번호 암호화
-        String encodedPassword = passwordEncoder.encode(request.getPassword());
-
-        // 관리자 생성
-        Admin admin = Admin.builder()
-                .email(request.getEmail().toLowerCase())
-                .passwordHash(encodedPassword)
-                .role(AdminRole.PLATFORM_ADMIN)
-                .build();
-
-        // DB에 저장
-        adminRepository.save(admin);
-
-        // 자동 로그인 처리 (토큰 생성)
-        String accessToken = jwtProvider.createAccessToken(
-                admin.getAdminId(),
-                admin.getEmail(),
-                admin.getRole()
-        );
-        String refreshToken = jwtProvider.createRefreshToken(admin.getAdminId());
-
-        // Refresh Token 저장 (Redis)
-        RefreshToken refreshTokenEntity = RefreshToken.builder()
-                .token(refreshToken)
-                .adminId(admin.getAdminId())
-                .expiresAt(jwtProvider.calculateRefreshTokenExpiry())
-                .build();
-        refreshTokenRepository.save(refreshTokenEntity);
-
-        // 마지막 로그인 시각 갱신
-        admin.updateLastLoginAt();
-
-        return AdminLoginResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .adminId(admin.getAdminId())
-                .email(admin.getEmail())
-                .role(admin.getRole().name())
                 .build();
     }
 

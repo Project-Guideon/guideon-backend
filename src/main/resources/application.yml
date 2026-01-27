@@ -35,7 +35,13 @@ logging:
     org.hibernate.SQL: debug
     org.springframework.web: info
 
-# 5. JWT 설정
+# 5. 초기 관리자 설정
+app:
+  init:
+    admin-email: ${INIT_ADMIN_EMAIL:admin@guideon.com}
+    admin-password: ${INIT_ADMIN_PASSWORD:admin1234}
+
+# 6. JWT 설정
 jwt:
   secret: ${JWT_SECRET:guideon-jwt-secret-key-minimum-32-characters-required-for-hs256-algorithm}
   access-token-validity-ms: 900000  # 15분
