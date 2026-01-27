@@ -2,6 +2,7 @@ package com.guideon.guideonbackend.domain.admin.controller;
 
 import com.guideon.guideonbackend.domain.admin.dto.AdminLoginRequest;
 import com.guideon.guideonbackend.domain.admin.dto.AdminLoginResponse;
+import com.guideon.guideonbackend.domain.admin.dto.AdminMeResponse;
 import com.guideon.guideonbackend.domain.admin.dto.AdminRefreshRequest;
 import com.guideon.guideonbackend.domain.admin.dto.AdminRefreshResponse;
 import com.guideon.guideonbackend.domain.admin.service.AdminAuthService;
@@ -47,6 +48,17 @@ public class AdminAuthController {
             HttpServletRequest httpRequest
     ) {
         AdminRefreshResponse response = adminAuthService.refresh(request);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    //내 정보 조회
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<AdminMeResponse>> me(
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        AdminMeResponse response = adminAuthService.getMe(adminDetails.getAdminId());
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }

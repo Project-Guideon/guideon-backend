@@ -2,12 +2,14 @@ package com.guideon.guideonbackend.domain.admin.service;
 
 import com.guideon.guideonbackend.domain.admin.dto.AdminLoginRequest;
 import com.guideon.guideonbackend.domain.admin.dto.AdminLoginResponse;
+import com.guideon.guideonbackend.domain.admin.dto.AdminMeResponse;
 import com.guideon.guideonbackend.domain.admin.dto.AdminRefreshRequest;
 import com.guideon.guideonbackend.domain.admin.dto.AdminRefreshResponse;
 import com.guideon.guideonbackend.domain.admin.entity.Admin;
 import com.guideon.guideonbackend.domain.admin.entity.AdminRole;
 import com.guideon.guideonbackend.domain.admin.entity.RefreshToken;
 import com.guideon.guideonbackend.domain.admin.repository.AdminRepository;
+import com.guideon.guideonbackend.domain.admin.repository.AdminSiteRepository;
 import com.guideon.guideonbackend.domain.admin.repository.RefreshTokenRepository;
 import com.guideon.guideonbackend.global.exception.CustomException;
 import com.guideon.guideonbackend.global.exception.ErrorCode;
@@ -18,6 +20,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -27,6 +30,7 @@ import java.util.Map;
 public class AdminAuthService {
 
     private final AdminRepository adminRepository;
+    private final AdminSiteRepository adminSiteRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtProvider jwtProvider;
     private final PasswordEncoder passwordEncoder;
@@ -82,12 +86,18 @@ public class AdminAuthService {
         // 마지막 로그인 시각 갱신
         admin.updateLastLoginAt();
 
+        List<Long> siteIds = null;
+        if (admin.getRole() == AdminRole.SITE_ADMIN) {
+            siteIds = adminSiteRepository.findSiteIdsByAdminId(admin.getAdminId());
+        }
+
         return AdminLoginResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .adminId(admin.getAdminId())
                 .email(admin.getEmail())
                 .role(admin.getRole().name())
+                .siteIds(siteIds)
                 .build();
     }
 
@@ -177,6 +187,29 @@ public class AdminAuthService {
         return AdminRefreshResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken)
+                .build();
+    }
+
+    /**
+     * 내 정보 조회
+     */
+    public AdminMeResponse getMe(Long adminId) {
+        Admin admin = adminRepository.findById(adminId)
+                .orElseThrow(() -> new CustomException(
+                        ErrorCode.NOT_FOUND,
+                        "관리자를 찾을 수 없습니다"
+                ));
+
+        List<Long> siteIds = List.of();
+        if (admin.getRole() == AdminRole.SITE_ADMIN) {
+            siteIds = adminSiteRepository.findSiteIdsByAdminId(adminId);
+        }
+
+        return AdminMeResponse.builder()
+                .adminId(admin.getAdminId())
+                .email(admin.getEmail())
+                .role(admin.getRole().name())
+                .siteIds(siteIds)
                 .build();
     }
 
