@@ -40,6 +40,8 @@ app:
   init:
     admin-email: ${INIT_ADMIN_EMAIL:admin@guideon.com}
     admin-password: ${INIT_ADMIN_PASSWORD:admin1234}
+  invite:
+    expire-days: ${INVITE_EXPIRE_DAYS:7}
 
 # 6. JWT 설정
 jwt:

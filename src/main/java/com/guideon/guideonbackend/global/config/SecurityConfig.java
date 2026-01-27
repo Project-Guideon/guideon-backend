@@ -6,6 +6,7 @@ import com.guideon.guideonbackend.global.security.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -54,6 +55,7 @@ public class SecurityConfig {
 
                 // 경로별 인증 설정
                 .authorizeHttpRequests(auth -> auth
+                        // 공개 엔드포인트
                         .requestMatchers(
                                 "/api/v1/admin/auth/login",
                                 "/api/v1/admin/auth/refresh",
@@ -64,6 +66,12 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**"
                         ).permitAll()
+                        // 초대 수락은 비인증 접근 허용
+                        .requestMatchers(HttpMethod.POST, "/api/v1/admin/invites/*/accept").permitAll()
+                        // 초대 관리 API는 PLATFORM_ADMIN만 접근 가능
+                        .requestMatchers(HttpMethod.POST, "/api/v1/admin/invites").hasRole("PLATFORM_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/admin/invites").hasRole("PLATFORM_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/admin/invites/*/expire").hasRole("PLATFORM_ADMIN")
                         .anyRequest().authenticated()
                 )
 
