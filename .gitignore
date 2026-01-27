@@ -34,8 +34,11 @@ out/
 /.nb-gradle/
 
 ### VS Code ###
-.vscode/
+.vscode/git
 
 # Env
 docker/.env
 .env
+
+### AI ###
+CLAUDE.md
