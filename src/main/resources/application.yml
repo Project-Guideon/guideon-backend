@@ -35,7 +35,7 @@ logging:
     org.hibernate.SQL: debug
     org.springframework.web: info
 
-# 5. 초기 관리자 설정
+# 5. 초기 관리자 설정 (임시, 로켈에서만)
 app:
   init:
     admin-email: ${INIT_ADMIN_EMAIL:admin@guideon.com}
