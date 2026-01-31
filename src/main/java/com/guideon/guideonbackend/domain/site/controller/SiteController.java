@@ -78,4 +78,15 @@ public class SiteController {
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(null, traceId));
     }
+
+    @Operation(summary = "관광지 재활성화", description = "비활성화된 관광지를 다시 활성화합니다. PLATFORM_ADMIN 권한 필요")
+    @PostMapping("/{siteId}/activate")
+    public ResponseEntity<ApiResponse<Void>> activateSite(
+            @PathVariable Long siteId,
+            HttpServletRequest httpRequest
+    ) {
+        siteService.activateSite(siteId);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(null, traceId));
+    }
 }
