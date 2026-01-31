@@ -74,4 +74,19 @@ public class SiteService {
 
         return SiteResponse.from(site);
     }
+
+    /**
+     * 관광지 비활성화
+     */
+    @Transactional
+    public void deactivateSite(Long siteId) {
+        Site site = siteRepository.findById(siteId)
+                .orElseThrow(() -> new CustomException(
+                        ErrorCode.NOT_FOUND,
+                        "관광지를 찾을 수 없습니다"
+                ));
+
+        site.deactivate();
+        log.info("관광지 비활성화 완료: siteId={}", siteId);
+    }
 }
