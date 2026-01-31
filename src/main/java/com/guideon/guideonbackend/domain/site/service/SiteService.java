@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -30,5 +32,14 @@ public class SiteService {
         log.info("관광지 생성 완료: siteId={}, name={}", site.getSiteId(), site.getName());
 
         return SiteResponse.from(site);
+    }
+
+    /**
+     * 관광지 목록 조회
+     */
+    public List<SiteResponse> getAllSites() {
+        return siteRepository.findAllByOrderBySiteIdDesc().stream()
+                .map(SiteResponse::from)
+                .toList();
     }
 }

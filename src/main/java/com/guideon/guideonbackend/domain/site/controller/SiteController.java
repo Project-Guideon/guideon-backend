@@ -13,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "관광지 관리", description = "관광지(Site) CRUD API - PLATFORM_ADMIN 전용")
 @RestController
 @RequestMapping("/api/v1/admin/sites")
@@ -28,6 +30,16 @@ public class SiteController {
             HttpServletRequest httpRequest
     ) {
         SiteResponse response = siteService.createSite(request);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    @Operation(summary = "관광지 목록 조회", description = "모든 관광지 목록을 조회합니다. PLATFORM_ADMIN 권한 필요")
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<SiteResponse>>> getAllSites(
+            HttpServletRequest httpRequest
+    ) {
+        List<SiteResponse> response = siteService.getAllSites();
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
