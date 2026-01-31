@@ -13,9 +13,10 @@ reviews:
     enabled: true
     drafts: false
 
-    branches:
+    base_branches:
       include:
         - "main"
+        - "develope"
 
 chat:
   auto_reply: true

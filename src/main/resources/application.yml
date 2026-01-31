@@ -5,14 +5,14 @@ spring:
   application:
     name: guideon-backend
 
-  # 1. 데이터베이스 설정
+  # Database
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/guideon}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
 
-  # 2. JPA
+  # JPA
   jpa:
     open-in-view: false
     hibernate:
@@ -23,28 +23,28 @@ spring:
         show_sql: true
         default_batch_fetch_size: 100
 
-  # 3. Redis 설정
+  # Redis
   data:
     redis:
-      host: ${SPRING_DATA_REDIS_HOST:localhost}
-      port: ${SPRING_DATA_REDIS_PORT:6379}
+      host: ${SPRING_DATA_REDIS_HOST}
+      port: ${SPRING_DATA_REDIS_PORT}
 
-# 4. 로깅 레벨 설정
+# Logging
 logging:
   level:
     org.hibernate.SQL: debug
     org.springframework.web: info
 
-# 5. 초기 관리자 설정 (임시, 로켈에서만)
+# Application
 app:
   init:
-    admin-email: ${INIT_ADMIN_EMAIL:admin@guideon.com}
-    admin-password: ${INIT_ADMIN_PASSWORD:admin1234}
+    admin-email: ${INIT_ADMIN_EMAIL}
+    admin-password: ${INIT_ADMIN_PASSWORD}
   invite:
-    expire-days: ${INVITE_EXPIRE_DAYS:7}
+    expire-days: ${INVITE_EXPIRE_DAYS}
 
-# 6. JWT 설정
+# JWT
 jwt:
-  secret: ${JWT_SECRET:guideon-jwt-secret-key-minimum-32-characters-required-for-hs256-algorithm}
-  access-token-validity-ms: 900000  # 15분
-  refresh-token-validity-ms: 2592000000  # 30일
+  secret: ${JWT_SECRET}
+  access-token-validity-ms: 900000      # 15분
+  refresh-token-validity-ms: 2592000000 # 30일
