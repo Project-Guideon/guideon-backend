@@ -72,6 +72,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/admin/invites").hasRole("PLATFORM_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/admin/invites").hasRole("PLATFORM_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/admin/invites/*/expire").hasRole("PLATFORM_ADMIN")
+                        // Site 관리 API는 PLATFORM_ADMIN만 접근 가능
+                        .requestMatchers("/api/v1/admin/sites/**").hasRole("PLATFORM_ADMIN")
                         .anyRequest().authenticated()
                 )
 
