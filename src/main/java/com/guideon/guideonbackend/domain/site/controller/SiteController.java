@@ -2,6 +2,7 @@ package com.guideon.guideonbackend.domain.site.controller;
 
 import com.guideon.guideonbackend.domain.site.dto.CreateSiteRequest;
 import com.guideon.guideonbackend.domain.site.dto.SiteResponse;
+import com.guideon.guideonbackend.domain.site.dto.UpdateSiteRequest;
 import com.guideon.guideonbackend.domain.site.service.SiteService;
 import com.guideon.guideonbackend.global.response.ApiResponse;
 import com.guideon.guideonbackend.global.trace.TraceIdUtil;
@@ -51,6 +52,18 @@ public class SiteController {
             HttpServletRequest httpRequest
     ) {
         SiteResponse response = siteService.getSite(siteId);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    @Operation(summary = "관광지 수정", description = "관광지 정보를 수정합니다. PLATFORM_ADMIN 권한 필요")
+    @PatchMapping("/{siteId}")
+    public ResponseEntity<ApiResponse<SiteResponse>> updateSite(
+            @PathVariable Long siteId,
+            @Valid @RequestBody UpdateSiteRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        SiteResponse response = siteService.updateSite(siteId, request);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }

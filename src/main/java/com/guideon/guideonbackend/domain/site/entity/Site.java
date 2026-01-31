@@ -37,4 +37,8 @@ public class Site extends BaseEntity {
     public void activate() {
         this.isActive = true;
     }
+
+    public void updateName(String name) {
+        this.name = name;
+    }
 }

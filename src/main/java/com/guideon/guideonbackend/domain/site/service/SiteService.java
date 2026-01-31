@@ -2,6 +2,7 @@ package com.guideon.guideonbackend.domain.site.service;
 
 import com.guideon.guideonbackend.domain.site.dto.CreateSiteRequest;
 import com.guideon.guideonbackend.domain.site.dto.SiteResponse;
+import com.guideon.guideonbackend.domain.site.dto.UpdateSiteRequest;
 import com.guideon.guideonbackend.domain.site.entity.Site;
 import com.guideon.guideonbackend.domain.site.repository.SiteRepository;
 import com.guideon.guideonbackend.global.exception.CustomException;
@@ -54,6 +55,23 @@ public class SiteService {
                         ErrorCode.NOT_FOUND,
                         "관광지를 찾을 수 없습니다"
                 ));
+        return SiteResponse.from(site);
+    }
+
+    /**
+     * 관광지 수정
+     */
+    @Transactional
+    public SiteResponse updateSite(Long siteId, UpdateSiteRequest request) {
+        Site site = siteRepository.findById(siteId)
+                .orElseThrow(() -> new CustomException(
+                        ErrorCode.NOT_FOUND,
+                        "관광지를 찾을 수 없습니다"
+                ));
+
+        site.updateName(request.getName());
+        log.info("관광지 수정 완료: siteId={}, name={}", site.getSiteId(), site.getName());
+
         return SiteResponse.from(site);
     }
 }
