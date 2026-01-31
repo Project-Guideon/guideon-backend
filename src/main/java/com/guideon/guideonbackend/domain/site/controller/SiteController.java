@@ -43,4 +43,15 @@ public class SiteController {
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
+
+    @Operation(summary = "관광지 상세 조회", description = "특정 관광지의 상세 정보를 조회합니다. PLATFORM_ADMIN 권한 필요")
+    @GetMapping("/{siteId}")
+    public ResponseEntity<ApiResponse<SiteResponse>> getSite(
+            @PathVariable Long siteId,
+            HttpServletRequest httpRequest
+    ) {
+        SiteResponse response = siteService.getSite(siteId);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
 }

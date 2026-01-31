@@ -4,6 +4,8 @@ import com.guideon.guideonbackend.domain.site.dto.CreateSiteRequest;
 import com.guideon.guideonbackend.domain.site.dto.SiteResponse;
 import com.guideon.guideonbackend.domain.site.entity.Site;
 import com.guideon.guideonbackend.domain.site.repository.SiteRepository;
+import com.guideon.guideonbackend.global.exception.CustomException;
+import com.guideon.guideonbackend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -41,5 +43,17 @@ public class SiteService {
         return siteRepository.findAllByOrderBySiteIdDesc().stream()
                 .map(SiteResponse::from)
                 .toList();
+    }
+
+    /**
+     * 관광지 상세 조회
+     */
+    public SiteResponse getSite(Long siteId) {
+        Site site = siteRepository.findById(siteId)
+                .orElseThrow(() -> new CustomException(
+                        ErrorCode.NOT_FOUND,
+                        "관광지를 찾을 수 없습니다"
+                ));
+        return SiteResponse.from(site);
     }
 }
