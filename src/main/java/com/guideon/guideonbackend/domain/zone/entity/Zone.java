@@ -45,6 +45,9 @@ public class Zone extends BaseEntity {
 
     /**
      * DB Generated Column: zone_type 기반 자동 계산 (INNER=1, SUB=2)
+     * SQL 마이그레이션으로 관리 (ddl-auto로 생성/변경 불가)
+     * @Column(name = "level", insertable = false, updatable = false)
+     * 첫 생성 후 위에껄로 변경(왜 인식이 안되는지 모르겠는데, 얘가 못알아먹어서 오류 띄움)
      */
     @Generated(event = EventType.INSERT)
     @Column(
@@ -53,7 +56,7 @@ public class Zone extends BaseEntity {
             updatable = false,
             columnDefinition = "SMALLINT GENERATED ALWAYS AS (CASE zone_type WHEN 'INNER' THEN 1 WHEN 'SUB' THEN 2 END) STORED"
     )
-    private Integer level;
+    private Short level;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_zone_id")
