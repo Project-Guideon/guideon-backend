@@ -13,8 +13,11 @@ import com.guideon.guideonbackend.global.exception.CustomException;
 import com.guideon.guideonbackend.global.exception.ErrorCode;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import com.guideon.guideonbackend.global.util.GeoJsonUtil;
+import com.guideon.guideonbackend.global.response.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.Geometry;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -78,6 +81,49 @@ public class ZoneService {
 
         Zone saved = zoneRepository.save(zone);
         return ZoneResponse.from(saved);
+    }
+
+    /**
+     * 구역 목록 조회 (zone_type, parent_zone_id 필터, 페이지네이션)
+     * zone_type과 parent_zone_id로 추가 필터 검색 가능
+     * 두 정보 비워둘 시 site에 해당하는 모든 zone 출력
+     */
+    public PageResponse<ZoneResponse> getZones(Long siteId, String zoneTypeStr, Long parentZoneId,
+                                                Pageable pageable, CustomAdminDetails adminDetails) {
+        validateSiteAccess(adminDetails, siteId);
+
+        if (!siteRepository.existsById(siteId)) {
+            throw new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 관광지입니다: " + siteId);
+        }
+
+        Page<Zone> zonePage;
+        if (zoneTypeStr != null) {
+            ZoneType zoneType;
+            try {
+                zoneType = ZoneType.valueOf(zoneTypeStr);
+            } catch (IllegalArgumentException e) {
+                throw new CustomException(ErrorCode.VALIDATION_ERROR, "유효하지 않은 구역 타입입니다: " + zoneTypeStr);
+            }
+            zonePage = zoneRepository.findBySite_SiteIdAndZoneType(siteId, zoneType, pageable);
+        } else if (parentZoneId != null) {
+            zonePage = zoneRepository.findBySite_SiteIdAndParentZone_ZoneId(siteId, parentZoneId, pageable);
+        } else {
+            zonePage = zoneRepository.findBySite_SiteId(siteId, pageable);
+        }
+
+        return PageResponse.from(zonePage.map(ZoneResponse::from));
+    }
+
+    /**
+     * 구역 상세 조회
+     */
+    public ZoneResponse getZone(Long siteId, Long zoneId, CustomAdminDetails adminDetails) {
+        validateSiteAccess(adminDetails, siteId);
+
+        Zone zone = zoneRepository.findByZoneIdAndSite_SiteId(zoneId, siteId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 구역입니다: " + zoneId));
+
+        return ZoneResponse.from(zone);
     }
 
     /**
