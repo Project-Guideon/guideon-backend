@@ -1,13 +1,26 @@
 package com.guideon.guideonbackend.domain.zone.repository;
 
 import com.guideon.guideonbackend.domain.zone.entity.Zone;
+import com.guideon.guideonbackend.domain.zone.entity.ZoneType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
+
 public interface ZoneRepository extends JpaRepository<Zone, Long> {
 
     boolean existsBySite_SiteIdAndCode(Long siteId, String code);
+
+    Page<Zone> findBySite_SiteId(Long siteId, Pageable pageable);
+
+    Page<Zone> findBySite_SiteIdAndZoneType(Long siteId, ZoneType zoneType, Pageable pageable);
+
+    Page<Zone> findBySite_SiteIdAndParentZone_ZoneId(Long siteId, Long parentZoneId, Pageable pageable);
+
+    Optional<Zone> findByZoneIdAndSite_SiteId(Long zoneId, Long siteId);
 
     /**
      * SUB 폴리곤이 부모 INNER 영역 안에 포함되는지 검증
