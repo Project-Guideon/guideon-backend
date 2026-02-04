@@ -14,6 +14,6 @@ public class GeoJsonPolygonSchema {
     @Schema(description = "GeoJSON 타입", example = "Polygon")
     public String type;
 
-    @Schema(description = "폴리곤 좌표 배열 [[[lng, lat], ...]],", example = "[[126.9765, 37.5791]]")
+    @Schema(description = "폴리곤 좌표 배열 [[[lng, lat], ...]]", example = "[[[126.9765, 37.5791], [126.9770, 37.5791], [126.9770, 37.5795], [126.9765, 37.5795], [126.9765, 37.5791]]]")
     public List<List<List<Double>>> coordinates;
 }
