@@ -108,6 +108,9 @@ public class ZoneService {
             }
             zonePage = zoneRepository.findBySite_SiteIdAndZoneType(siteId, zoneType, pageable);
         } else if (parentZoneId != null) {
+            zoneRepository.findByZoneIdAndSite_SiteId(parentZoneId, siteId)
+                    .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND,
+                            "존재하지 않는 부모 구역입니다: " + parentZoneId));
             zonePage = zoneRepository.findBySite_SiteIdAndParentZone_ZoneId(siteId, parentZoneId, pageable);
         } else {
             zonePage = zoneRepository.findBySite_SiteId(siteId, pageable);
