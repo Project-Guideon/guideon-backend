@@ -1,5 +1,7 @@
 package com.guideon.guideonbackend.domain.zone.service;
 
+import com.guideon.guideonbackend.domain.admin.entity.AdminRole;
+import com.guideon.guideonbackend.domain.admin.repository.AdminSiteRepository;
 import com.guideon.guideonbackend.domain.site.entity.Site;
 import com.guideon.guideonbackend.domain.site.repository.SiteRepository;
 import com.guideon.guideonbackend.domain.zone.dto.CreateZoneRequest;
@@ -9,6 +11,7 @@ import com.guideon.guideonbackend.domain.zone.entity.ZoneType;
 import com.guideon.guideonbackend.domain.zone.repository.ZoneRepository;
 import com.guideon.guideonbackend.global.exception.CustomException;
 import com.guideon.guideonbackend.global.exception.ErrorCode;
+import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import com.guideon.guideonbackend.global.util.GeoJsonUtil;
 import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.Geometry;
@@ -22,9 +25,13 @@ public class ZoneService {
 
     private final ZoneRepository zoneRepository;
     private final SiteRepository siteRepository;
+    private final AdminSiteRepository adminSiteRepository;
 
     @Transactional
-    public ZoneResponse createZone(Long siteId, CreateZoneRequest request) {
+    public ZoneResponse createZone(Long siteId, CreateZoneRequest request, CustomAdminDetails adminDetails) {
+        // SITE_ADMIN 사이트 스코프 검증
+        validateSiteAccess(adminDetails, siteId);
+
         // Site 조회
         Site site = siteRepository.findById(siteId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 관광지입니다: " + siteId));
@@ -44,7 +51,7 @@ public class ZoneService {
         }
 
         // zone_type에 따른 parent 검증
-        Zone parentZone = validateAndGetParent(zoneType, request.getParentZoneId());
+        Zone parentZone = validateAndGetParent(zoneType, siteId, request.getParentZoneId());
 
         // GeoJSON → JTS Geometry 변환
         Geometry areaGeometry;
@@ -74,17 +81,37 @@ public class ZoneService {
     }
 
     /**
-     * zone_type에 따른 부모 구역 검증
+     * SITE_ADMIN의 사이트 접근 권한 검증
+     * PLATFORM_ADMIN은 모든 사이트 접근 가능
      */
-    private Zone validateAndGetParent(ZoneType zoneType, Long parentZoneId) {
+    private void validateSiteAccess(CustomAdminDetails adminDetails, Long siteId) {
+        if (AdminRole.SITE_ADMIN.name().equals(adminDetails.getRole())) {
+            if (!adminSiteRepository.existsById_AdminIdAndId_SiteId(adminDetails.getAdminId(), siteId)) {
+                throw new CustomException(ErrorCode.ADMIN_SITE_FORBIDDEN);
+            }
+        }
+    }
+
+    /**
+     * zone_type에 따른 부모 구역 검증
+     * - SUB: parent 필수 + 동일 site 소속 확인
+     * - INNER: parent 금지
+     */
+    private Zone validateAndGetParent(ZoneType zoneType, Long siteId, Long parentZoneId) {
         if (zoneType == ZoneType.SUB) {
             if (parentZoneId == null) {
                 throw new CustomException(ErrorCode.ZONE_PARENT_REQUIRED);
             }
-            return zoneRepository.findById(parentZoneId)
+            Zone parent = zoneRepository.findById(parentZoneId)
                     .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "부모 구역이 존재하지 않습니다: " + parentZoneId));
+            if (!parent.getSite().getSiteId().equals(siteId)) {
+                throw new CustomException(ErrorCode.VALIDATION_ERROR, "부모 구역은 동일 관광지 내에 있어야 합니다");
+            }
+            return parent;
         } else {
-            // INNER는 parent 없음
+            if (parentZoneId != null) {
+                throw new CustomException(ErrorCode.VALIDATION_ERROR, "INNER 구역은 부모를 가질 수 없습니다");
+            }
             return null;
         }
     }
