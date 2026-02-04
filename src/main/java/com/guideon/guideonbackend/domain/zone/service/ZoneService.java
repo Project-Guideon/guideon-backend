@@ -97,7 +97,9 @@ public class ZoneService {
         }
 
         Page<Zone> zonePage;
-        if (zoneTypeStr != null) {
+        if (zoneTypeStr != null && parentZoneId != null) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "zone_type과 parent_zone_id는 동시에 사용할 수 없습니다");
+        } else if (zoneTypeStr != null) {
             ZoneType zoneType;
             try {
                 zoneType = ZoneType.valueOf(zoneTypeStr);
