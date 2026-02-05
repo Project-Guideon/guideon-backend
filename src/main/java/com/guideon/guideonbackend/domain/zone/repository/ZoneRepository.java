@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface ZoneRepository extends JpaRepository<Zone, Long> {
@@ -21,6 +22,11 @@ public interface ZoneRepository extends JpaRepository<Zone, Long> {
     Page<Zone> findBySite_SiteIdAndParentZone_ZoneId(Long siteId, Long parentZoneId, Pageable pageable);
 
     Optional<Zone> findByZoneIdAndSite_SiteId(Long zoneId, Long siteId);
+
+    /**
+     * 특정 Zone의 자식 SUB 구역 목록 조회 (삭제 시 사용)
+     */
+    List<Zone> findByParentZone_ZoneId(Long parentZoneId);
 
     /**
      * SUB 폴리곤이 부모 INNER 영역 안에 포함되는지 검증
