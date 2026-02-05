@@ -1,6 +1,7 @@
 package com.guideon.guideonbackend.domain.zone.controller;
 
 import com.guideon.guideonbackend.domain.zone.dto.CreateZoneRequest;
+import com.guideon.guideonbackend.domain.zone.dto.DeleteZoneResponse;
 import com.guideon.guideonbackend.domain.zone.dto.ZoneResponse;
 import com.guideon.guideonbackend.domain.zone.service.ZoneService;
 import com.guideon.guideonbackend.global.response.ApiResponse;
@@ -63,6 +64,19 @@ public class ZoneController {
             HttpServletRequest httpRequest
     ) {
         ZoneResponse response = zoneService.createZone(siteId, request, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    @Operation(summary = "구역 삭제", description = "구역을 삭제합니다. INNER 삭제 시 자식 SUB도 함께 삭제됩니다.")
+    @DeleteMapping("/{zoneId}")
+    public ResponseEntity<ApiResponse<DeleteZoneResponse>> deleteZone(
+            @PathVariable Long siteId,
+            @PathVariable Long zoneId,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        DeleteZoneResponse response = zoneService.deleteZone(siteId, zoneId, adminDetails);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
