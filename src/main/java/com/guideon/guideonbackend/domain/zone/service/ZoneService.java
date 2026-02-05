@@ -5,6 +5,7 @@ import com.guideon.guideonbackend.domain.admin.repository.AdminSiteRepository;
 import com.guideon.guideonbackend.domain.site.entity.Site;
 import com.guideon.guideonbackend.domain.site.repository.SiteRepository;
 import com.guideon.guideonbackend.domain.zone.dto.CreateZoneRequest;
+import com.guideon.guideonbackend.domain.zone.dto.DeleteZoneResponse;
 import com.guideon.guideonbackend.domain.zone.dto.ZoneResponse;
 import com.guideon.guideonbackend.domain.zone.entity.Zone;
 import com.guideon.guideonbackend.domain.zone.entity.ZoneType;
@@ -20,6 +21,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -129,6 +132,39 @@ public class ZoneService {
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 구역입니다: " + zoneId));
 
         return ZoneResponse.from(zone);
+    }
+
+    /**
+     * 구역 삭제
+     * - INNER 삭제 시 자식 SUB도 함께 삭제 (경고 메시지 보내줌)
+     * - SUB는 단독 삭제 가능
+     * - 삭제 후 place/device의 zone_id는 NULL(OUTER)로 변경됨 (FK ON DELETE SET NULL)
+     */
+    @Transactional
+    public DeleteZoneResponse deleteZone(Long siteId, Long zoneId, CustomAdminDetails adminDetails) {
+        validateSiteAccess(adminDetails, siteId);
+
+        // Zone 존재 여부 확인
+        Zone zone = zoneRepository.findByZoneIdAndSite_SiteId(zoneId, siteId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 구역입니다: " + zoneId));
+        //프론트에서 보내줄거면
+        String warning = null;
+
+        // INNER 삭제 시 자식 SUB 함께 삭제
+        if (zone.getZoneType() == ZoneType.INNER) {
+            List<Zone> childZones = zoneRepository.findByParentZone_ZoneId(zoneId);
+            if (!childZones.isEmpty()) {
+                int childCount = childZones.size();
+                // 자식 SUB 먼저 삭제
+                zoneRepository.deleteAll(childZones);
+                warning = String.format("INNER 구역 삭제로 인해 %d개의 하위 SUB 구역도 함께 삭제되었습니다.", childCount);
+            }
+        }
+
+        // Zone 삭제 (place/device의 zone_id는 FK ON DELETE SET NULL로 자동 NULL 처리)
+        zoneRepository.delete(zone);
+
+        return DeleteZoneResponse.of(zoneId, warning);
     }
 
     /**
