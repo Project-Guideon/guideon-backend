@@ -1,0 +1,14 @@
+// guideon-common: 공통 라이브러리 모듈
+// Spring Boot 플러그인 없이 순수 자바 라이브러리로 구성
+
+dependencies {
+    // Spring Web (ApiResponse, ApiError에서 HttpStatus 사용)
+    implementation 'org.springframework:spring-web'
+
+    // Spring Data Commons (PageResponse에서 Page 인터페이스 사용)
+    implementation 'org.springframework.data:spring-data-commons'
+
+    // Jackson (JSON 직렬화)
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+}
