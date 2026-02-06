@@ -5,7 +5,7 @@ import com.guideon.guideonbackend.domain.admin.dto.AdminLoginResponse;
 import com.guideon.guideonbackend.domain.admin.dto.CreateInviteRequest;
 import com.guideon.guideonbackend.domain.admin.dto.InviteResponse;
 import com.guideon.guideonbackend.domain.admin.service.AdminInviteService;
-import com.guideon.guideonbackend.global.response.ApiResponse;
+import com.guideon.common.response.ApiResponse;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import com.guideon.guideonbackend.global.trace.TraceIdUtil;
 import io.swagger.v3.oas.annotations.tags.Tag;

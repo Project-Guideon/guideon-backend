@@ -1,7 +1,9 @@
 package com.guideon.guideonbackend.global.exception;
 
-import com.guideon.guideonbackend.global.response.ApiError;
-import com.guideon.guideonbackend.global.response.ApiResponse;
+import com.guideon.common.exception.CustomException;
+import com.guideon.common.exception.ErrorCode;
+import com.guideon.common.response.ApiError;
+import com.guideon.common.response.ApiResponse;
 import com.guideon.guideonbackend.global.trace.TraceIdUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;

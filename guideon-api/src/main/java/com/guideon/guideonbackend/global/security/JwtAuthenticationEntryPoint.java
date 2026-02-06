@@ -1,9 +1,9 @@
 package com.guideon.guideonbackend.global.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.guideon.guideonbackend.global.exception.ErrorCode;
-import com.guideon.guideonbackend.global.response.ApiError;
-import com.guideon.guideonbackend.global.response.ApiResponse;
+import com.guideon.common.exception.ErrorCode;
+import com.guideon.common.response.ApiError;
+import com.guideon.common.response.ApiResponse;
 import com.guideon.guideonbackend.global.trace.TraceIdUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

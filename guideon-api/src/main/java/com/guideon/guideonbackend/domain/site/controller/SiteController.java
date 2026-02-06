@@ -4,7 +4,7 @@ import com.guideon.guideonbackend.domain.site.dto.CreateSiteRequest;
 import com.guideon.guideonbackend.domain.site.dto.SiteResponse;
 import com.guideon.guideonbackend.domain.site.dto.UpdateSiteRequest;
 import com.guideon.guideonbackend.domain.site.service.SiteService;
-import com.guideon.guideonbackend.global.response.ApiResponse;
+import com.guideon.common.response.ApiResponse;
 import com.guideon.guideonbackend.global.trace.TraceIdUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

@@ -6,7 +6,7 @@ import com.guideon.guideonbackend.domain.admin.dto.AdminMeResponse;
 import com.guideon.guideonbackend.domain.admin.dto.AdminRefreshRequest;
 import com.guideon.guideonbackend.domain.admin.dto.AdminRefreshResponse;
 import com.guideon.guideonbackend.domain.admin.service.AdminAuthService;
-import com.guideon.guideonbackend.global.response.ApiResponse;
+import com.guideon.common.response.ApiResponse;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import com.guideon.guideonbackend.global.trace.TraceIdUtil;
 import io.swagger.v3.oas.annotations.Operation;
