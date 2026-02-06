@@ -1,0 +1,47 @@
+// guideon-admin-bff: Admin Web용 BFF 모듈
+// 관리자 인증, Zone/Place/Device/Document 관리 API 제공
+
+plugins {
+    id 'org.springframework.boot'
+}
+
+dependencies {
+    // 공통 모듈 의존성
+    implementation project(':guideon-common')
+
+    // Core 모듈 의존성 (Entity, Repository)
+    implementation project(':guideon-core')
+
+    // Spring Boot Starters
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    // JWT
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    // Swagger (OpenAPI 3)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+
+    // PostGIS / Hibernate Spatial
+    implementation 'org.hibernate.orm:hibernate-spatial'
+
+    // dotenv
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+
+    // Database
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // Development
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
+}
+
+bootJar {
+    archiveFileName = 'guideon-admin-bff.jar'
+}
