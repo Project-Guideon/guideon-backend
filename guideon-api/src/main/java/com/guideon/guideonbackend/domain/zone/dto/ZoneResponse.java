@@ -1,8 +1,8 @@
 package com.guideon.guideonbackend.domain.zone.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.guideon.guideonbackend.domain.zone.entity.Zone;
-import com.guideon.guideonbackend.global.util.GeoJsonUtil;
+import com.guideon.core.domain.zone.entity.Zone;
+import com.guideon.core.global.util.GeoJsonUtil;
 import lombok.Builder;
 import lombok.Getter;
 

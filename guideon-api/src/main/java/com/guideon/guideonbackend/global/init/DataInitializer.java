@@ -1,8 +1,8 @@
 package com.guideon.guideonbackend.global.init;
 
-import com.guideon.guideonbackend.domain.admin.entity.Admin;
-import com.guideon.guideonbackend.domain.admin.entity.AdminRole;
-import com.guideon.guideonbackend.domain.admin.repository.AdminRepository;
+import com.guideon.core.domain.admin.entity.Admin;
+import com.guideon.core.domain.admin.entity.AdminRole;
+import com.guideon.core.domain.admin.repository.AdminRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

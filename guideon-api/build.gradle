@@ -9,6 +9,9 @@ dependencies {
     // 공통 모듈 의존성
     implementation project(':guideon-common')
 
+    // Core 모듈 의존성 (Entity, Repository)
+    implementation project(':guideon-core')
+
     // Spring Boot Starters
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'

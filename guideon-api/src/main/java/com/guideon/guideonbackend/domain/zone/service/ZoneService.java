@@ -1,19 +1,19 @@
 package com.guideon.guideonbackend.domain.zone.service;
 
-import com.guideon.guideonbackend.domain.admin.entity.AdminRole;
-import com.guideon.guideonbackend.domain.admin.repository.AdminSiteRepository;
-import com.guideon.guideonbackend.domain.site.entity.Site;
-import com.guideon.guideonbackend.domain.site.repository.SiteRepository;
+import com.guideon.core.domain.admin.entity.AdminRole;
+import com.guideon.core.domain.admin.repository.AdminSiteRepository;
+import com.guideon.core.domain.site.entity.Site;
+import com.guideon.core.domain.site.repository.SiteRepository;
 import com.guideon.guideonbackend.domain.zone.dto.CreateZoneRequest;
 import com.guideon.guideonbackend.domain.zone.dto.DeleteZoneResponse;
 import com.guideon.guideonbackend.domain.zone.dto.ZoneResponse;
-import com.guideon.guideonbackend.domain.zone.entity.Zone;
-import com.guideon.guideonbackend.domain.zone.entity.ZoneType;
-import com.guideon.guideonbackend.domain.zone.repository.ZoneRepository;
+import com.guideon.core.domain.zone.entity.Zone;
+import com.guideon.core.domain.zone.entity.ZoneType;
+import com.guideon.core.domain.zone.repository.ZoneRepository;
 import com.guideon.common.exception.CustomException;
 import com.guideon.common.exception.ErrorCode;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
-import com.guideon.guideonbackend.global.util.GeoJsonUtil;
+import com.guideon.core.global.util.GeoJsonUtil;
 import com.guideon.common.response.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.Geometry;

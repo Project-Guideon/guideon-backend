@@ -1,4 +1,5 @@
 rootProject.name = 'guideon'
 
 include 'guideon-common'
+include 'guideon-core'
 include 'guideon-api'
