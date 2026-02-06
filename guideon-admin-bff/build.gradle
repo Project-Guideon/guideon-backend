@@ -1,5 +1,5 @@
-// guideon-api: Admin BFF 모듈 (현재 메인 애플리케이션)
-// 향후 guideon-admin-bff로 리네이밍 예정
+// guideon-admin-bff: Admin Web용 BFF 모듈
+// 관리자 인증, Zone/Place/Device/Document 관리 API 제공
 
 plugins {
     id 'org.springframework.boot'
@@ -43,5 +43,5 @@ dependencies {
 }
 
 bootJar {
-    archiveFileName = 'guideon-api.jar'
+    archiveFileName = 'guideon-admin-bff.jar'
 }
