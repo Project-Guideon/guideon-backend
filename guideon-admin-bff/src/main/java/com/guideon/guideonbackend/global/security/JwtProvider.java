@@ -48,13 +48,25 @@ public class JwtProvider {
      * @return JWT Access Token
      */
     public String createAccessToken(Long adminId, String email, AdminRole role) {
+        return createAccessToken(adminId, email, role.name());
+    }
+
+    /**
+     * Access Token 생성 (역할을 문자열로 받는 오버로드)
+     *
+     * @param adminId 관리자 ID
+     * @param email 관리자 이메일
+     * @param role 관리자 역할 (문자열)
+     * @return JWT Access Token
+     */
+    public String createAccessToken(Long adminId, String email, String role) {
         Date now = new Date();
         Date validity = new Date(now.getTime() + accessTokenValidityMs);
 
         return Jwts.builder()
                 .setSubject(adminId.toString())
                 .claim("email", email)
-                .claim("role", role.name())
+                .claim("role", role)
                 .claim("type", "access")
                 .setIssuedAt(now)
                 .setExpiration(validity)
