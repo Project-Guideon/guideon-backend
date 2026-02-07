@@ -16,6 +16,11 @@ services:
     networks:
       - guideon-net
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # 2. Redis
   redis:
@@ -23,6 +28,59 @@ services:
     container_name: guideon-redis
     ports:
       - "6379:6379"
+    networks:
+      - guideon-net
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 3. Core Service (Internal API - 내부망 전용)
+  core-service:
+    build:
+      context: .
+      dockerfile: guideon-core/Dockerfile
+    container_name: guideon-core
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - guideon-net
+    restart: always
+
+  # 4. Admin BFF (외부 노출)
+  admin-bff:
+    build:
+      context: .
+      dockerfile: guideon-admin-bff/Dockerfile
+    container_name: guideon-admin-bff
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      CORE_SERVICE_URL: http://core-service:8080
+      JWT_SECRET: ${JWT_SECRET}
+      INIT_ADMIN_EMAIL: ${INIT_ADMIN_EMAIL}
+      INIT_ADMIN_PASSWORD: ${INIT_ADMIN_PASSWORD}
+      INVITE_EXPIRE_DAYS: ${INVITE_EXPIRE_DAYS}
+    depends_on:
+      - core-service
     networks:
       - guideon-net
     restart: always

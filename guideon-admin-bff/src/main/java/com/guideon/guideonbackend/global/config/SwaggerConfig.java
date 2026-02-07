@@ -29,8 +29,8 @@ public class SwaggerConfig {
                 // 서버 정보
                 .servers(List.of(
                         new Server()
-                                .url("http://localhost:8080")
-                                .description("로컬 개발 서버")
+                                .url("http://localhost:8081")
+                                .description("로컬 개발 서버 (Admin BFF)")
                 ))
                 // JWT 보안 스키마 정의
                 .components(new Components()

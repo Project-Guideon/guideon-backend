@@ -1,9 +1,9 @@
 server:
-  port: 8081
+  port: 8080
 
 spring:
   application:
-    name: guideon-admin-bff
+    name: guideon-core
 
   # Database
   datasource:
@@ -34,22 +34,4 @@ logging:
   level:
     org.hibernate.SQL: debug
     org.springframework.web: info
-
-# Application
-app:
-  init:
-    admin-email: ${INIT_ADMIN_EMAIL}
-    admin-password: ${INIT_ADMIN_PASSWORD}
-  invite:
-    expire-days: ${INVITE_EXPIRE_DAYS}
-
-# JWT
-jwt:
-  secret: ${JWT_SECRET}
-  access-token-validity-ms: 900000      # 15분
-  refresh-token-validity-ms: 2592000000 # 30일
-
-# Core Service (Internal API)
-core:
-  service:
-    url: ${CORE_SERVICE_URL:http://localhost:8080}
+    com.guideon.core: debug

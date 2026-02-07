@@ -1,8 +1,7 @@
 package com.guideon.guideonbackend.domain.zone.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.guideon.core.domain.zone.entity.Zone;
-import com.guideon.core.global.util.GeoJsonUtil;
+import com.guideon.core.dto.ZoneDto;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -40,18 +39,18 @@ public class ZoneResponse {
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
 
-    public static ZoneResponse from(Zone zone) {
+    public static ZoneResponse from(ZoneDto dto) {
         return ZoneResponse.builder()
-                .zoneId(zone.getZoneId())
-                .siteId(zone.getSite().getSiteId())
-                .name(zone.getName())
-                .code(zone.getCode())
-                .zoneType(zone.getZoneType().name())
-                .level(zone.getLevel())
-                .parentZoneId(zone.getParentZone() != null ? zone.getParentZone().getZoneId() : null)
-                .areaGeojson(GeoJsonUtil.toGeoJson(zone.getAreaGeometry()))
-                .createdAt(zone.getCreatedAt())
-                .updatedAt(zone.getUpdatedAt())
+                .zoneId(dto.getZoneId())
+                .siteId(dto.getSiteId())
+                .name(dto.getName())
+                .code(dto.getCode())
+                .zoneType(dto.getZoneType())
+                .level(dto.getLevel())
+                .parentZoneId(dto.getParentZoneId())
+                .areaGeojson(dto.getAreaGeojson())
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
                 .build();
     }
 }
