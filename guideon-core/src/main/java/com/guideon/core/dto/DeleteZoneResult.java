@@ -1,0 +1,19 @@
+package com.guideon.core.dto;
+
+import lombok.Builder;
+import lombok.Getter;
+
+/**
+ * Zone 삭제 결과
+ */
+@Getter
+@Builder
+public class DeleteZoneResult {
+    private Long deletedZoneId;
+
+    public static DeleteZoneResult of(Long zoneId) {
+        return DeleteZoneResult.builder()
+                .deletedZoneId(zoneId)
+                .build();
+    }
+}
