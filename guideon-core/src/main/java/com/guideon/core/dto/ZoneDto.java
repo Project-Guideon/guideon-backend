@@ -20,7 +20,7 @@ public class ZoneDto {
     private String name;
     private String code;
     private String zoneType;
-    private Integer level;
+    private Short level;
     private Long parentZoneId;
     private Map<String, Object> areaGeojson;
     private LocalDateTime createdAt;
@@ -35,7 +35,7 @@ public class ZoneDto {
                 .zoneType(zone.getZoneType().name())
                 .level(zone.getLevel())
                 .parentZoneId(zone.getParentZone() != null ? zone.getParentZone().getZoneId() : null)
-                .areaGeojson(GeoJsonUtil.fromGeometry(zone.getAreaGeometry()))
+                .areaGeojson(GeoJsonUtil.toGeoJson(zone.getAreaGeometry()))
                 .createdAt(zone.getCreatedAt())
                 .updatedAt(zone.getUpdatedAt())
                 .build();

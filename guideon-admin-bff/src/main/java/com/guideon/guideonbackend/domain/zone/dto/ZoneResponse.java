@@ -25,7 +25,7 @@ public class ZoneResponse {
     @JsonProperty("zone_type")
     private String zoneType;
 
-    private Integer level;
+    private Short level;
 
     @JsonProperty("parent_zone_id")
     private Long parentZoneId;

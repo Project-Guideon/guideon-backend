@@ -19,7 +19,7 @@ import java.util.List;
  * 인증/인가 로직 없음 (BFF에서 처리)
  */
 @Slf4j
-@Service
+@Service("coreSiteService")
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class SiteService {
