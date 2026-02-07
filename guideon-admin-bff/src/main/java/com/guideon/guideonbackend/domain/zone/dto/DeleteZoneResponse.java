@@ -1,6 +1,7 @@
 package com.guideon.guideonbackend.domain.zone.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.guideon.core.dto.DeleteZoneResult;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
@@ -17,10 +18,10 @@ public class DeleteZoneResponse {
     @Schema(description = "삭제된 Zone ID", example = "12")
     private Long zoneId;
 
-    public static DeleteZoneResponse of(Long zoneId) {
+    public static DeleteZoneResponse from(DeleteZoneResult result) {
         return DeleteZoneResponse.builder()
                 .deleted(true)
-                .zoneId(zoneId)
+                .zoneId(result.getDeletedZoneId())
                 .build();
     }
 }
