@@ -1,6 +1,6 @@
 package com.guideon.guideonbackend.domain.site.dto;
 
-import com.guideon.core.domain.site.entity.Site;
+import com.guideon.core.dto.SiteDto;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -16,13 +16,13 @@ public class SiteResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public static SiteResponse from(Site site) {
+    public static SiteResponse from(SiteDto dto) {
         return SiteResponse.builder()
-                .siteId(site.getSiteId())
-                .name(site.getName())
-                .isActive(site.getIsActive())
-                .createdAt(site.getCreatedAt())
-                .updatedAt(site.getUpdatedAt())
+                .siteId(dto.getSiteId())
+                .name(dto.getName())
+                .isActive(dto.getIsActive())
+                .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
                 .build();
     }
 }
