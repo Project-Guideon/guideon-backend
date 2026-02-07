@@ -7,14 +7,12 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Generated;
-import org.hibernate.generator.EventType;
 import org.locationtech.jts.geom.Geometry;
 
 @Entity
 @Table(
         name = "tb_zone",
-        //우니크 설정
+        //유니크 설정
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_zone_code", columnNames = {"site_id", "code"}),
                 @UniqueConstraint(name = "uk_zone_id_site", columnNames = {"zone_id", "site_id"})
@@ -45,17 +43,9 @@ public class Zone extends BaseEntity {
 
     /**
      * DB Generated Column: zone_type 기반 자동 계산 (INNER=1, SUB=2)
-     * SQL 마이그레이션으로 관리 (ddl-auto로 생성/변경 불가)
-     * @Column(name = "level", insertable = false, updatable = false)
-     * 첫 생성 후 위에껄로 변경(왜 인식이 안되는지 모르겠는데, 얘가 못알아먹어서 오류 띄움)
+     * DB에서 자동 생성되므로 읽기 전용
      */
-    @Generated(event = EventType.INSERT)
-    @Column(
-            nullable = false,
-            insertable = false,
-            updatable = false,
-            columnDefinition = "SMALLINT GENERATED ALWAYS AS (CASE zone_type WHEN 'INNER' THEN 1 WHEN 'SUB' THEN 2 END) STORED"
-    )
+    @Column(name = "level", insertable = false, updatable = false)
     private Short level;
 
     @ManyToOne(fetch = FetchType.LAZY)

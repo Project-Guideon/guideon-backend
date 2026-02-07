@@ -10,7 +10,7 @@ import org.springframework.data.redis.repository.configuration.EnableRedisReposi
 
 @SpringBootApplication(scanBasePackages = {
         "com.guideon.guideonbackend",
-        "com.guideon.core"
+        "com.guideon.core.domain"
 })
 @EntityScan(basePackages = "com.guideon.core.domain")
 @EnableJpaRepositories(basePackages = "com.guideon.core.domain")

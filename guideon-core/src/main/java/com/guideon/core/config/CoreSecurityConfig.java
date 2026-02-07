@@ -1,5 +1,6 @@
 package com.guideon.core.config;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -13,9 +14,12 @@ import org.springframework.security.web.SecurityFilterChain;
 /**
  * Core Service Security 설정
  * 내부망 전용 서비스이므로 인증 없이 접근 허용
+ *
+ * Core가 독립 실행될 때만 활성화 (BFF에서 의존성으로 포함 시 비활성화)
  */
 @Configuration
 @EnableWebSecurity
+@ConditionalOnProperty(name = "spring.application.name", havingValue = "guideon-core")
 public class CoreSecurityConfig {
 
     @Bean
