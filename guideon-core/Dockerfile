@@ -1,7 +1,7 @@
 # guideon-core Dockerfile
 # Core Service (Internal API - 내부망 전용)
 
-FROM eclipse-temurin:17-jdk-alpine AS builder
+FROM eclipse-temurin:21-jdk-alpine AS builder
 
 WORKDIR /app
 
@@ -27,7 +27,7 @@ COPY guideon-core guideon-core
 RUN ./gradlew :guideon-core:bootJar --no-daemon -x test
 
 # 런타임 이미지
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
