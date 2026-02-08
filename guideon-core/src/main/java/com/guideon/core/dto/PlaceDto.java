@@ -1,8 +1,10 @@
 package com.guideon.core.dto;
 
 import com.guideon.core.domain.place.entity.Place;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -12,6 +14,8 @@ import java.util.Map;
  */
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class PlaceDto {
 
     private Long placeId;
