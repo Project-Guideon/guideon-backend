@@ -74,6 +74,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/admin/invites/*/expire").hasRole("PLATFORM_ADMIN")
                         // Zone 관리 API는 PLATFORM_ADMIN + SITE_ADMIN 접근 가능
                         .requestMatchers("/api/v1/admin/sites/*/zones/**").hasAnyRole("PLATFORM_ADMIN", "SITE_ADMIN")
+                        // Place 관리 API는 PLATFORM_ADMIN + SITE_ADMIN 접근 가능
+                        .requestMatchers("/api/v1/admin/sites/*/places/**").hasAnyRole("PLATFORM_ADMIN", "SITE_ADMIN")
                         // Site 관리 API는 PLATFORM_ADMIN만 접근 가능
                         .requestMatchers("/api/v1/admin/sites/**").hasRole("PLATFORM_ADMIN")
                         .anyRequest().authenticated()
