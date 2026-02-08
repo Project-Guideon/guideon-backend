@@ -7,11 +7,14 @@ import com.guideon.core.domain.admin.repository.AdminSiteRepository;
 import com.guideon.core.dto.CreatePlaceCommand;
 import com.guideon.core.dto.PlaceDto;
 import com.guideon.guideonbackend.client.CorePlaceClient;
+import com.guideon.common.response.PageResponse;
 import com.guideon.guideonbackend.domain.place.dto.CreatePlaceRequest;
 import com.guideon.guideonbackend.domain.place.dto.PlaceResponse;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 /**
@@ -48,6 +51,32 @@ public class PlaceService {
         PlaceDto placeDto = corePlaceClient.createPlace(siteId, command);
         log.info("장소 생성 완료: placeId={}, siteId={}, name={}", placeDto.getPlaceId(), siteId, placeDto.getName());
 
+        return PlaceResponse.from(placeDto);
+    }
+
+    /**
+     * 장소 목록 조회 (필터 + 페이지네이션)
+     */
+    public PageResponse<PlaceResponse> getPlaces(Long siteId, String keyword, String category,
+                                                   Long zoneId, Boolean isActive,
+                                                   Pageable pageable, CustomAdminDetails adminDetails) {
+        validateSiteAccess(adminDetails, siteId);
+
+        Page<PlaceDto> placePage = corePlaceClient.getPlaces(
+                siteId, keyword, category, zoneId, isActive,
+                pageable.getPageNumber(), pageable.getPageSize()
+        );
+
+        return PageResponse.from(placePage.map(PlaceResponse::from));
+    }
+
+    /**
+     * 장소 상세 조회
+     */
+    public PlaceResponse getPlace(Long siteId, Long placeId, CustomAdminDetails adminDetails) {
+        validateSiteAccess(adminDetails, siteId);
+
+        PlaceDto placeDto = corePlaceClient.getPlace(siteId, placeId);
         return PlaceResponse.from(placeDto);
     }
 
