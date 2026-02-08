@@ -17,6 +17,8 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -86,6 +88,28 @@ public class PlaceService {
                 saved.getPlaceId(), siteId, zone != null ? zone.getZoneId() : null, command.getName());
 
         return PlaceDto.from(saved);
+    }
+
+    /**
+     * 장소 목록 조회 (필터 + 페이지네이션)
+     */
+    public Page<PlaceDto> getPlaces(Long siteId, String keyword, String category,
+                                     Long zoneId, Boolean isActive, Pageable pageable) {
+        if (!siteRepository.existsById(siteId)) {
+            throw new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 관광지입니다: " + siteId);
+        }
+        return placeRepository.findByFilters(siteId, keyword, category, zoneId, isActive, pageable)
+                .map(PlaceDto::from);
+    }
+
+    /**
+     * 장소 상세 조회
+     */
+    public PlaceDto getPlace(Long siteId, Long placeId) {
+        Place place = placeRepository.findByPlaceIdAndSite_SiteId(placeId, siteId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND,
+                        "존재하지 않는 장소입니다: " + placeId));
+        return PlaceDto.from(place);
     }
 
     private Site findSiteById(Long siteId) {
