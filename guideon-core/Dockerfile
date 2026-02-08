@@ -29,10 +29,16 @@ RUN ./gradlew :guideon-core:bootJar --no-daemon -x test
 # 런타임 이미지
 FROM eclipse-temurin:21-jre-alpine
 
+# non-root user 생성
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 WORKDIR /app
 
-# 빌드된 JAR 복사
-COPY --from=builder /app/guideon-core/build/libs/guideon-core.jar app.jar
+# 빌드된 JAR 복사 및 권한 설정
+COPY --from=builder --chown=appuser:appgroup /app/guideon-core/build/libs/guideon-core.jar app.jar
+
+# non-root user로 전환
+USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
