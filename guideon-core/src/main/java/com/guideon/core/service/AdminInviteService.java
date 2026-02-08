@@ -71,7 +71,7 @@ public class AdminInviteService {
                 .build();
 
         adminInviteRepository.save(invite);
-        log.info("초대 생성 완료: inviteId={}, siteId={}, email={}", invite.getInviteId(), site.getSiteId(), email);
+        log.info("초대 생성 완료: inviteId={}, siteId={}", invite.getInviteId(), site.getSiteId());
 
         return InviteDto.fromWithToken(invite, rawToken);
     }
@@ -146,8 +146,8 @@ public class AdminInviteService {
         // 마지막 로그인 시간 업데이트
         admin.updateLastLoginAt();
 
-        log.info("초대 수락 완료: adminId={}, siteId={}, email={}",
-                admin.getAdminId(), invite.getSite().getSiteId(), admin.getEmail());
+        log.info("초대 수락 완료: adminId={}, siteId={}",
+                admin.getAdminId(), invite.getSite().getSiteId());
 
         return AcceptInviteResult.builder()
                 .adminId(admin.getAdminId())
