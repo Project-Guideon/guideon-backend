@@ -24,7 +24,8 @@ public interface CoreZoneClient {
             @RequestParam(value = "zoneType", required = false) String zoneType,
             @RequestParam(value = "parentZoneId", required = false) Long parentZoneId,
             @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "20") int size);
+            @RequestParam(value = "size", defaultValue = "20") int size,
+            @RequestParam(value = "sort", required = false) String sort);
 
     @GetMapping("/internal/v1/sites/{siteId}/zones/{zoneId}")
     ZoneDto getZone(
