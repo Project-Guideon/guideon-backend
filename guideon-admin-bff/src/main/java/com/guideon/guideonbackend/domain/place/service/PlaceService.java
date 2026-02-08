@@ -1,0 +1,65 @@
+package com.guideon.guideonbackend.domain.place.service;
+
+import com.guideon.common.exception.CustomException;
+import com.guideon.common.exception.ErrorCode;
+import com.guideon.core.domain.admin.entity.AdminRole;
+import com.guideon.core.domain.admin.repository.AdminSiteRepository;
+import com.guideon.core.dto.CreatePlaceCommand;
+import com.guideon.core.dto.PlaceDto;
+import com.guideon.guideonbackend.client.CorePlaceClient;
+import com.guideon.guideonbackend.domain.place.dto.CreatePlaceRequest;
+import com.guideon.guideonbackend.domain.place.dto.PlaceResponse;
+import com.guideon.guideonbackend.global.security.CustomAdminDetails;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+/**
+ * Admin BFF Place Service
+ * Core Service를 Feign Client로 호출하여 Place 관련 기능 제공
+ * 인증/인가(Site Scope 검증) 처리
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class PlaceService {
+
+    private final CorePlaceClient corePlaceClient;
+    private final AdminSiteRepository adminSiteRepository;
+
+    /**
+     * 장소 생성
+     */
+    public PlaceResponse createPlace(Long siteId, CreatePlaceRequest request, CustomAdminDetails adminDetails) {
+        validateSiteAccess(adminDetails, siteId);
+
+        CreatePlaceCommand command = CreatePlaceCommand.builder()
+                .name(request.getName())
+                .nameJson(request.getNameJson())
+                .category(request.getCategory())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
+                .description(request.getDescription())
+                .imageUrl(request.getImageUrl())
+                .isActive(request.getIsActive())
+                .zoneSource(request.getZoneSource())
+                .build();
+
+        PlaceDto placeDto = corePlaceClient.createPlace(siteId, command);
+        log.info("장소 생성 완료: placeId={}, siteId={}, name={}", placeDto.getPlaceId(), siteId, placeDto.getName());
+
+        return PlaceResponse.from(placeDto);
+    }
+
+    /**
+     * SITE_ADMIN의 사이트 접근 권한 검증
+     * PLATFORM_ADMIN은 모든 사이트 접근 가능
+     */
+    private void validateSiteAccess(CustomAdminDetails adminDetails, Long siteId) {
+        if (AdminRole.SITE_ADMIN.name().equals(adminDetails.getRole())) {
+            if (!adminSiteRepository.existsById_AdminIdAndId_SiteId(adminDetails.getAdminId(), siteId)) {
+                throw new CustomException(ErrorCode.ADMIN_SITE_FORBIDDEN);
+            }
+        }
+    }
+}
