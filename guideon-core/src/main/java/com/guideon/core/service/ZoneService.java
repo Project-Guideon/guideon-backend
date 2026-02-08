@@ -59,7 +59,13 @@ public class ZoneService {
         } catch (IllegalArgumentException e) {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, e.getMessage());
         }
-        String geoJsonStr = GeoJsonUtil.toJsonString(command.getAreaGeojson());
+
+        String geoJsonStr;
+        try {
+            geoJsonStr = GeoJsonUtil.toJsonString(command.getAreaGeojson());
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "GeoJSON 직렬화 실패: " + e.getMessage());
+        }
 
         // SUB 공간 검증
         if (zoneType == ZoneType.SUB) {
