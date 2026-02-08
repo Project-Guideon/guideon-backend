@@ -47,8 +47,8 @@ public class AdminInviteService {
                 .build();
 
         InviteDto inviteDto = coreAdminClient.createInvite(command);
-        log.info("초대 생성 완료: inviteId={}, siteId={}, email={}",
-                inviteDto.getInviteId(), inviteDto.getSiteId(), inviteDto.getEmail());
+        log.info("초대 생성 완료: inviteId={}, siteId={}",
+                inviteDto.getInviteId(), inviteDto.getSiteId());
 
         return InviteResponse.from(inviteDto);
     }
@@ -98,7 +98,7 @@ public class AdminInviteService {
                 .build();
         refreshTokenRepository.save(refreshTokenEntity);
 
-        log.info("초대 수락 완료: adminId={}, email={}", result.getAdminId(), result.getEmail());
+        log.info("초대 수락 완료: adminId={}", result.getAdminId());
 
         return AdminLoginResponse.builder()
                 .accessToken(accessToken)

@@ -293,7 +293,7 @@ CREATE TABLE IF NOT EXISTS tb_daily_info (
   site_id     BIGINT NOT NULL,
   place_id    BIGINT NOT NULL,
   target_date DATE NOT NULL,
-  info_type   VARCHAR(50) NOT NULL,
+  info_type   info_type_enum NOT NULL,
   content     TEXT NOT NULL,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),

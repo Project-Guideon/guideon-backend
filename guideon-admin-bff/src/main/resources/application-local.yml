@@ -1,0 +1,16 @@
+# Local Development Profile
+# 사용법: --spring.profiles.active=local
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    com.guideon.guideonbackend: debug

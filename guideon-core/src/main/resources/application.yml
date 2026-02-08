@@ -16,11 +16,9 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
-        format_sql: true
-        show_sql: true
         default_batch_fetch_size: 100
 
   # Redis
@@ -29,9 +27,8 @@ spring:
       host: ${SPRING_DATA_REDIS_HOST}
       port: ${SPRING_DATA_REDIS_PORT}
 
-# Logging
+# Logging (production default)
 logging:
   level:
-    org.hibernate.SQL: debug
     org.springframework.web: info
-    com.guideon.core: debug
+    com.guideon.core: info

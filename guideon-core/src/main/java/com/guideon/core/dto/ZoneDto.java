@@ -2,8 +2,10 @@ package com.guideon.core.dto;
 
 import com.guideon.core.domain.zone.entity.Zone;
 import com.guideon.core.global.util.GeoJsonUtil;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -13,6 +15,8 @@ import java.util.Map;
  */
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ZoneDto {
 
     private Long zoneId;

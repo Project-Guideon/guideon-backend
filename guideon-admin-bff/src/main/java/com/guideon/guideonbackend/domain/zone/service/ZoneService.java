@@ -17,7 +17,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+
+import java.util.stream.Collectors;
 
 /**
  * Admin BFF Zone Service
@@ -59,15 +62,31 @@ public class ZoneService {
                                                 Pageable pageable, CustomAdminDetails adminDetails) {
         validateSiteAccess(adminDetails, siteId);
 
+        String sortParam = convertSortToString(pageable.getSort());
+
         Page<ZoneDto> zonePage = coreZoneClient.getZones(
                 siteId,
                 zoneType,
                 parentZoneId,
                 pageable.getPageNumber(),
-                pageable.getPageSize()
+                pageable.getPageSize(),
+                sortParam
         );
 
         return PageResponse.from(zonePage.map(ZoneResponse::from));
+    }
+
+    /**
+     * Spring Sort 객체를 쿼리 파라미터 문자열로 변환
+     * 예: "zoneId,desc" 또는 "name,asc"
+     */
+    private String convertSortToString(Sort sort) {
+        if (sort.isUnsorted()) {
+            return "zoneId,asc"; // 기본 정렬
+        }
+        return sort.stream()
+                .map(order -> order.getProperty() + "," + order.getDirection().name().toLowerCase())
+                .collect(Collectors.joining(","));
     }
 
     /**
