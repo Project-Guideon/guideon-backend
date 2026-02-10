@@ -6,10 +6,12 @@ import com.guideon.core.domain.admin.entity.AdminRole;
 import com.guideon.core.domain.admin.repository.AdminSiteRepository;
 import com.guideon.core.dto.CreatePlaceCommand;
 import com.guideon.core.dto.PlaceDto;
+import com.guideon.core.dto.UpdatePlaceCommand;
 import com.guideon.guideonbackend.client.CorePlaceClient;
 import com.guideon.common.response.PageResponse;
 import com.guideon.guideonbackend.domain.place.dto.CreatePlaceRequest;
 import com.guideon.guideonbackend.domain.place.dto.PlaceResponse;
+import com.guideon.guideonbackend.domain.place.dto.UpdatePlaceRequest;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -77,6 +79,30 @@ public class PlaceService {
         validateSiteAccess(adminDetails, siteId);
 
         PlaceDto placeDto = corePlaceClient.getPlace(siteId, placeId);
+        return PlaceResponse.from(placeDto);
+    }
+
+    /**
+     * 장소 수정
+     */
+    public PlaceResponse updatePlace(Long siteId, Long placeId, UpdatePlaceRequest request, CustomAdminDetails adminDetails) {
+        validateSiteAccess(adminDetails, siteId);
+
+        UpdatePlaceCommand command = UpdatePlaceCommand.builder()
+                .name(request.getName())
+                .category(request.getCategory())
+                .description(request.getDescription())
+                .imageUrl(request.getImageUrl())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
+                .isActive(request.getIsActive())
+                .zoneSource(request.getZoneSource())
+                .zoneId(request.getZoneId())
+                .build();
+
+        PlaceDto placeDto = corePlaceClient.updatePlace(siteId, placeId, command);
+        log.info("장소 수정 완료: placeId={}, siteId={}", placeId, siteId);
+
         return PlaceResponse.from(placeDto);
     }
 

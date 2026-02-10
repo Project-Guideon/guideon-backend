@@ -2,6 +2,7 @@ package com.guideon.guideonbackend.client;
 
 import com.guideon.core.dto.CreatePlaceCommand;
 import com.guideon.core.dto.PlaceDto;
+import com.guideon.core.dto.UpdatePlaceCommand;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
@@ -31,4 +32,10 @@ public interface CorePlaceClient {
     PlaceDto getPlace(
             @PathVariable("siteId") Long siteId,
             @PathVariable("placeId") Long placeId);
+
+    @PatchMapping("/internal/v1/sites/{siteId}/places/{placeId}")
+    PlaceDto updatePlace(
+            @PathVariable("siteId") Long siteId,
+            @PathVariable("placeId") Long placeId,
+            @RequestBody UpdatePlaceCommand command);
 }
