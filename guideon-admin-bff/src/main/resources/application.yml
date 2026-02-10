@@ -46,6 +46,9 @@ jwt:
   access-token-validity-ms: 900000      # 15분
   refresh-token-validity-ms: 2592000000 # 30일
 
+# Feign
+spring.cloud.openfeign.okhttp.enabled: true
+
 # Core Service (Internal API)
 core:
   service:
