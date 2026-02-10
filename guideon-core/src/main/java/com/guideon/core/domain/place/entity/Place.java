@@ -83,4 +83,19 @@ public class Place extends BaseEntity {
     public void assignZone(Zone zone) {
         this.zone = zone;
     }
+
+    public void update(String name, String category, String description,
+                       String imageUrl, Boolean isActive, Point location) {
+        if (name != null) this.name = name;
+        if (category != null) this.category = category;
+        if (description != null) this.description = description;
+        if (imageUrl != null) this.imageUrl = imageUrl;
+        if (isActive != null) this.isActive = isActive;
+        if (location != null) this.location = location;
+    }
+
+    public void changeZone(Zone zone, ZoneSource zoneSource) {
+        this.zone = zone;
+        this.zoneSource = zoneSource;
+    }
 }
