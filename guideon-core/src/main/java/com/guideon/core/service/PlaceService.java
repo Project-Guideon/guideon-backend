@@ -11,6 +11,7 @@ import com.guideon.core.domain.zone.entity.Zone;
 import com.guideon.core.domain.zone.repository.ZoneRepository;
 import com.guideon.core.dto.CreatePlaceCommand;
 import com.guideon.core.dto.PlaceDto;
+import com.guideon.core.dto.UpdatePlaceCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Coordinate;
@@ -109,6 +110,50 @@ public class PlaceService {
         Place place = placeRepository.findByPlaceIdAndSite_SiteId(placeId, siteId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND,
                         "존재하지 않는 장소입니다: " + placeId));
+        return PlaceDto.from(place);
+    }
+
+    /**
+     * 장소 수정
+     * MANUAL + zoneId로 구역 고정 가능
+     */
+    @Transactional
+    public PlaceDto updatePlace(Long siteId, Long placeId, UpdatePlaceCommand command) {
+        Place place = placeRepository.findByPlaceIdAndSite_SiteId(placeId, siteId)
+                .orElseThrow(() -> new CustomException(ErrorCode.PLACE_NOT_FOUND));
+
+        // 좌표 변경 시 검증 + Point 생성
+        Point newLocation = null;
+        if (command.getLatitude() != null && command.getLongitude() != null) {
+            validateCoordinates(command.getLatitude(), command.getLongitude());
+            newLocation = createPoint(command.getLongitude(), command.getLatitude());
+        }
+
+        // 기본 필드 업데이트 (null이 아닌 필드만)
+        place.update(command.getName(), command.getCategory(), command.getDescription(),
+                command.getImageUrl(), command.getIsActive(), newLocation);
+
+        // zone 변경 처리
+        if (command.getZoneSource() != null) {
+            ZoneSource zoneSource = parseZoneSource(command.getZoneSource());
+            if (zoneSource == ZoneSource.MANUAL) {
+                Zone zone = null;
+                if (command.getZoneId() != null) {
+                    zone = zoneRepository.findByZoneIdAndSite_SiteId(command.getZoneId(), siteId)
+                            .orElseThrow(() -> new CustomException(ErrorCode.ZONE_NOT_FOUND));
+                }
+                place.changeZone(zone, ZoneSource.MANUAL);
+            } else if (zoneSource == ZoneSource.AUTO) {
+                // AUTO로 변경 시 좌표 기반 재할당
+                Double lat = command.getLatitude() != null ? command.getLatitude() : place.getLocation().getY();
+                Double lng = command.getLongitude() != null ? command.getLongitude() : place.getLocation().getX();
+                Long autoZoneId = placeRepository.findZoneIdByCoordinates(siteId, lat, lng);
+                Zone zone = autoZoneId != null ? zoneRepository.findById(autoZoneId).orElse(null) : null;
+                place.changeZone(zone, ZoneSource.AUTO);
+            }
+        }
+
+        log.info("장소 수정 완료: placeId={}, siteId={}", placeId, siteId);
         return PlaceDto.from(place);
     }
 
