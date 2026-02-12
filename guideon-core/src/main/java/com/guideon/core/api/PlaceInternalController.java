@@ -59,4 +59,12 @@ public class PlaceInternalController {
         PlaceDto place = placeService.updatePlace(siteId, placeId, command);
         return ResponseEntity.ok(place);
     }
+
+    @DeleteMapping("/{placeId}")
+    public ResponseEntity<Void> deletePlace(
+            @PathVariable Long siteId,
+            @PathVariable Long placeId) {
+        placeService.deletePlace(siteId, placeId);
+        return ResponseEntity.noContent().build();
+    }
 }
