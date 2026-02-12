@@ -38,4 +38,9 @@ public interface CorePlaceClient {
             @PathVariable("siteId") Long siteId,
             @PathVariable("placeId") Long placeId,
             @RequestBody UpdatePlaceCommand command);
+
+    @DeleteMapping("/internal/v1/sites/{siteId}/places/{placeId}")
+    void deletePlace(
+            @PathVariable("siteId") Long siteId,
+            @PathVariable("placeId") Long placeId);
 }
