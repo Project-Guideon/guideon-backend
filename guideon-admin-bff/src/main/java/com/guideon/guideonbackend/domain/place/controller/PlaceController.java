@@ -71,6 +71,19 @@ public class PlaceController {
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
 
+    @Operation(summary = "장소 삭제", description = "장소를 삭제합니다.")
+    @DeleteMapping("/{placeId}")
+    public ResponseEntity<ApiResponse<Void>> deletePlace(
+            @PathVariable Long siteId,
+            @PathVariable Long placeId,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        placeService.deletePlace(siteId, placeId, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(null, traceId));
+    }
+
     @Operation(summary = "장소 생성", description = "관광지 내 새로운 장소를 생성합니다. zone_source가 AUTO면 좌표 기반으로 Zone이 자동 할당됩니다.")
     @PostMapping
     public ResponseEntity<ApiResponse<PlaceResponse>> createPlace(

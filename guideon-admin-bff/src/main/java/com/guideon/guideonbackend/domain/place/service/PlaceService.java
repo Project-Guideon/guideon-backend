@@ -107,6 +107,16 @@ public class PlaceService {
     }
 
     /**
+     * 장소 삭제
+     */
+    public void deletePlace(Long siteId, Long placeId, CustomAdminDetails adminDetails) {
+        validateSiteAccess(adminDetails, siteId);
+
+        corePlaceClient.deletePlace(siteId, placeId);
+        log.info("장소 삭제 완료: placeId={}, siteId={}", placeId, siteId);
+    }
+
+    /**
      * SITE_ADMIN의 사이트 접근 권한 검증
      * PLATFORM_ADMIN은 모든 사이트 접근 가능
      */
