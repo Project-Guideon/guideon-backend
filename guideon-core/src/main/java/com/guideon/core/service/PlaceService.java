@@ -157,6 +157,18 @@ public class PlaceService {
         return PlaceDto.from(place);
     }
 
+    /**
+     * 장소 삭제
+     */
+    @Transactional
+    public void deletePlace(Long siteId, Long placeId) {
+        Place place = placeRepository.findByPlaceIdAndSite_SiteId(placeId, siteId)
+                .orElseThrow(() -> new CustomException(ErrorCode.PLACE_NOT_FOUND));
+
+        placeRepository.delete(place);
+        log.info("장소 삭제 완료: placeId={}, siteId={}", placeId, siteId);
+    }
+
     private Site findSiteById(Long siteId) {
         return siteRepository.findById(siteId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 관광지입니다: " + siteId));
