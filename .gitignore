@@ -43,3 +43,6 @@ docker/.env
 ### AI ###
 CLAUDE.md
 ARCHITECTURE.md
+
+### Internal Docs ###
+docs/internal/
