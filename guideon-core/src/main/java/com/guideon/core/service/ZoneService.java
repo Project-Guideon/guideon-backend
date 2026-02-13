@@ -9,6 +9,7 @@ import com.guideon.core.domain.zone.entity.ZoneType;
 import com.guideon.core.domain.zone.repository.ZoneRepository;
 import com.guideon.core.dto.CreateZoneCommand;
 import com.guideon.core.dto.DeleteZoneResult;
+import com.guideon.core.dto.UpdateZoneCommand;
 import com.guideon.core.dto.ZoneDto;
 import com.guideon.core.global.util.GeoJsonUtil;
 import lombok.RequiredArgsConstructor;
@@ -112,6 +113,50 @@ public class ZoneService {
     }
 
     /**
+     * 구역 수정
+     * name, code, area_geojson만 변경 가능
+     * zone_type, parent_zone_id는 구조적 제약으로 변경 불가
+     */
+    @Transactional
+    public ZoneDto updateZone(Long siteId, Long zoneId, UpdateZoneCommand command) {
+        Zone zone = findZoneBySiteAndId(siteId, zoneId);
+
+        // code 변경 시 중복 검증 (자기 자신 제외)
+        if (command.getCode() != null && !command.getCode().equals(zone.getCode())) {
+            if (zoneRepository.existsBySite_SiteIdAndCodeAndZoneIdNot(siteId, command.getCode(), zoneId)) {
+                throw new CustomException(ErrorCode.ZONE_CODE_DUPLICATE,
+                        "이미 사용 중인 구역 코드입니다: " + command.getCode());
+            }
+        }
+
+        // area_geojson 변경 시 Geometry 변환 + 공간 검증
+        Geometry newGeometry = null;
+        if (command.getAreaGeojson() != null) {
+            try {
+                newGeometry = GeoJsonUtil.toGeometry(command.getAreaGeojson());
+            } catch (IllegalArgumentException e) {
+                throw new CustomException(ErrorCode.VALIDATION_ERROR, e.getMessage());
+            }
+
+            // SUB인 경우 부모 포함·형제 겹침 재검증
+            if (zone.getZoneType() == ZoneType.SUB && zone.getParentZone() != null) {
+                String geoJsonStr;
+                try {
+                    geoJsonStr = GeoJsonUtil.toJsonString(command.getAreaGeojson());
+                } catch (Exception e) {
+                    throw new CustomException(ErrorCode.VALIDATION_ERROR, "GeoJSON 직렬화 실패: " + e.getMessage());
+                }
+                validateSubZoneSpatialExcluding(zone.getParentZone().getZoneId(), geoJsonStr, zoneId);
+            }
+        }
+
+        zone.update(command.getName(), command.getCode(), newGeometry);
+        log.info("구역 수정 완료: zoneId={}, siteId={}", zoneId, siteId);
+
+        return ZoneDto.from(zone);
+    }
+
+    /**
      * 구역 상세 조회
      */
     public ZoneDto getZone(Long siteId, Long zoneId) {
@@ -182,6 +227,15 @@ public class ZoneService {
                 throw new CustomException(ErrorCode.VALIDATION_ERROR, "INNER 구역은 부모를 가질 수 없습니다");
             }
             return null;
+        }
+    }
+
+    private void validateSubZoneSpatialExcluding(Long parentId, String geoJsonStr, Long excludeZoneId) {
+        if (!zoneRepository.isContainedByParent(parentId, geoJsonStr)) {
+            throw new CustomException(ErrorCode.ZONE_SUB_OUTSIDE_PARENT);
+        }
+        if (zoneRepository.hasOverlappingSiblingsExcluding(parentId, geoJsonStr, excludeZoneId)) {
+            throw new CustomException(ErrorCode.ZONE_SUB_OVERLAP_FORBIDDEN);
         }
     }
 

@@ -2,6 +2,7 @@ package com.guideon.core.api;
 
 import com.guideon.core.dto.CreateZoneCommand;
 import com.guideon.core.dto.DeleteZoneResult;
+import com.guideon.core.dto.UpdateZoneCommand;
 import com.guideon.core.dto.ZoneDto;
 import com.guideon.core.service.ZoneService;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,15 @@ public class ZoneInternalController {
             @PathVariable Long siteId,
             @PathVariable Long zoneId) {
         ZoneDto zone = zoneService.getZone(siteId, zoneId);
+        return ResponseEntity.ok(zone);
+    }
+
+    @PatchMapping("/{zoneId}")
+    public ResponseEntity<ZoneDto> updateZone(
+            @PathVariable Long siteId,
+            @PathVariable Long zoneId,
+            @RequestBody UpdateZoneCommand command) {
+        ZoneDto zone = zoneService.updateZone(siteId, zoneId, command);
         return ResponseEntity.ok(zone);
     }
 
