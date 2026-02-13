@@ -1,12 +1,15 @@
 package com.guideon.guideonbackend.global.exception;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guideon.common.exception.CustomException;
 import com.guideon.common.exception.ErrorCode;
 import com.guideon.common.response.ApiError;
 import com.guideon.common.response.ApiResponse;
 import com.guideon.guideonbackend.global.trace.TraceIdUtil;
+import feign.FeignException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -85,6 +88,48 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(ErrorCode.VALIDATION_ERROR.getHttpStatus())
+                .body(ApiResponse.fail(apiError, traceId(req)));
+    }
+
+    /**
+     * Core Service Feign 호출 에러 처리
+     * Core에서 반환한 에러 응답(ApiError)을 파싱하여 클라이언트에 전달
+     */
+    @ExceptionHandler(FeignException.class)
+    public ResponseEntity<ApiResponse<Void>> handleFeignException(
+            FeignException e,
+            HttpServletRequest req
+    ) {
+        log.warn("[{}] FeignException: status={}, message={}",
+                traceId(req), e.status(), e.getMessage());
+
+        // Core 응답 바디에서 ApiError 파싱 시도
+        String body = e.contentUTF8();
+        if (body != null && !body.isBlank()) {
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                ApiError coreError = mapper.readValue(body, ApiError.class);
+                return ResponseEntity
+                        .status(e.status())
+                        .body(ApiResponse.fail(coreError, traceId(req)));
+            } catch (Exception parseEx) {
+                log.warn("[{}] Core 에러 응답 파싱 실패: {}", traceId(req), parseEx.getMessage());
+            }
+        }
+
+        // 파싱 실패 시 상태코드 기반 기본 에러 반환
+        HttpStatus status = HttpStatus.resolve(e.status());
+        if (status == null) {
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+
+        ApiError apiError = ApiError.builder()
+                .code(status.is4xxClientError() ? "CORE_CLIENT_ERROR" : "CORE_SERVER_ERROR")
+                .message("Core 서비스 호출 중 오류가 발생했습니다")
+                .build();
+
+        return ResponseEntity
+                .status(status)
                 .body(ApiResponse.fail(apiError, traceId(req)));
     }
 

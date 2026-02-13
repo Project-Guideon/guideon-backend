@@ -2,6 +2,7 @@ package com.guideon.core.api;
 
 import com.guideon.core.dto.CreatePlaceCommand;
 import com.guideon.core.dto.PlaceDto;
+import com.guideon.core.dto.UpdatePlaceCommand;
 import com.guideon.core.service.PlaceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -48,5 +49,22 @@ public class PlaceInternalController {
             @PathVariable Long placeId) {
         PlaceDto place = placeService.getPlace(siteId, placeId);
         return ResponseEntity.ok(place);
+    }
+
+    @PatchMapping("/{placeId}")
+    public ResponseEntity<PlaceDto> updatePlace(
+            @PathVariable Long siteId,
+            @PathVariable Long placeId,
+            @RequestBody UpdatePlaceCommand command) {
+        PlaceDto place = placeService.updatePlace(siteId, placeId, command);
+        return ResponseEntity.ok(place);
+    }
+
+    @DeleteMapping("/{placeId}")
+    public ResponseEntity<Void> deletePlace(
+            @PathVariable Long siteId,
+            @PathVariable Long placeId) {
+        placeService.deletePlace(siteId, placeId);
+        return ResponseEntity.noContent().build();
     }
 }

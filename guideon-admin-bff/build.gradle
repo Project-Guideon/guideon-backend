@@ -30,6 +30,7 @@ dependencies {
 
     // OpenFeign (Core Service 호출)
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+    implementation 'io.github.openfeign:feign-okhttp'
 
     // PostGIS / Hibernate Spatial
     implementation 'org.hibernate.orm:hibernate-spatial'

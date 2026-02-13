@@ -29,7 +29,11 @@ public enum ErrorCode {
     ZONE_CODE_DUPLICATE(HttpStatus.CONFLICT, "구역 코드 중복"),
     ZONE_PARENT_REQUIRED(HttpStatus.BAD_REQUEST, "SUB 구역은 부모 구역이 필수입니다"),
     ZONE_SUB_OUTSIDE_PARENT(HttpStatus.UNPROCESSABLE_ENTITY, "SUB 폴리곤이 부모 INNER 영역 밖에 있습니다"),
-    ZONE_SUB_OVERLAP_FORBIDDEN(HttpStatus.UNPROCESSABLE_ENTITY, "SUB 구역이 동일 부모 내 다른 SUB와 겹칩니다");
+    ZONE_SUB_OVERLAP_FORBIDDEN(HttpStatus.UNPROCESSABLE_ENTITY, "SUB 구역이 동일 부모 내 다른 SUB와 겹칩니다"),
+
+    // ── Place ──
+    PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "장소를 찾을 수 없습니다"),
+    ZONE_NOT_FOUND(HttpStatus.NOT_FOUND, "구역을 찾을 수 없습니다");
 
     private final HttpStatus httpStatus;
     private final String message;

@@ -13,11 +13,24 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
 
     Optional<Place> findByPlaceIdAndSite_SiteId(Long placeId, Long siteId);
 
-    @Query("SELECT p FROM Place p WHERE p.site.siteId = :siteId " +
-            "AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
-            "AND (:category IS NULL OR p.category = :category) " +
-            "AND (:zoneId IS NULL OR p.zone.zoneId = :zoneId) " +
-            "AND (:isActive IS NULL OR p.isActive = :isActive)")
+    @Query(value = """
+            SELECT p.* FROM tb_place p
+            LEFT JOIN tb_zone z ON z.zone_id = p.zone_id
+            WHERE p.site_id = :siteId
+            AND (CAST(:keyword AS TEXT) IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            AND (CAST(:category AS TEXT) IS NULL OR p.category = :category)
+            AND (CAST(:zoneId AS BIGINT) IS NULL OR p.zone_id = :zoneId)
+            AND (CAST(:isActive AS BOOLEAN) IS NULL OR p.is_active = :isActive)
+            """,
+            countQuery = """
+            SELECT COUNT(*) FROM tb_place p
+            WHERE p.site_id = :siteId
+            AND (CAST(:keyword AS TEXT) IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            AND (CAST(:category AS TEXT) IS NULL OR p.category = :category)
+            AND (CAST(:zoneId AS BIGINT) IS NULL OR p.zone_id = :zoneId)
+            AND (CAST(:isActive AS BOOLEAN) IS NULL OR p.is_active = :isActive)
+            """,
+            nativeQuery = true)
     Page<Place> findByFilters(@Param("siteId") Long siteId,
                               @Param("keyword") String keyword,
                               @Param("category") String category,

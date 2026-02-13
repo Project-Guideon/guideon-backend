@@ -3,6 +3,7 @@ package com.guideon.guideonbackend.domain.place.controller;
 import com.guideon.common.response.PageResponse;
 import com.guideon.guideonbackend.domain.place.dto.CreatePlaceRequest;
 import com.guideon.guideonbackend.domain.place.dto.PlaceResponse;
+import com.guideon.guideonbackend.domain.place.dto.UpdatePlaceRequest;
 import com.guideon.guideonbackend.domain.place.service.PlaceService;
 import com.guideon.common.response.ApiResponse;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
@@ -54,6 +55,33 @@ public class PlaceController {
         PlaceResponse response = placeService.getPlace(siteId, placeId, adminDetails);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    @Operation(summary = "장소 수정", description = "장소 정보를 수정합니다. zone_source를 MANUAL로 설정하고 zone_id를 지정하면 구역을 고정할 수 있습니다.")
+    @PatchMapping("/{placeId}")
+    public ResponseEntity<ApiResponse<PlaceResponse>> updatePlace(
+            @PathVariable Long siteId,
+            @PathVariable Long placeId,
+            @Valid @RequestBody UpdatePlaceRequest request,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        PlaceResponse response = placeService.updatePlace(siteId, placeId, request, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    @Operation(summary = "장소 삭제", description = "장소를 삭제합니다.")
+    @DeleteMapping("/{placeId}")
+    public ResponseEntity<ApiResponse<Void>> deletePlace(
+            @PathVariable Long siteId,
+            @PathVariable Long placeId,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        placeService.deletePlace(siteId, placeId, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(null, traceId));
     }
 
     @Operation(summary = "장소 생성", description = "관광지 내 새로운 장소를 생성합니다. zone_source가 AUTO면 좌표 기반으로 Zone이 자동 할당됩니다.")
