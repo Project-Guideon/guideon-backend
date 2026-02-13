@@ -2,6 +2,7 @@ package com.guideon.guideonbackend.domain.zone.controller;
 
 import com.guideon.guideonbackend.domain.zone.dto.CreateZoneRequest;
 import com.guideon.guideonbackend.domain.zone.dto.DeleteZoneResponse;
+import com.guideon.guideonbackend.domain.zone.dto.UpdateZoneRequest;
 import com.guideon.guideonbackend.domain.zone.dto.ZoneResponse;
 import com.guideon.guideonbackend.domain.zone.service.ZoneService;
 import com.guideon.common.response.ApiResponse;
@@ -64,6 +65,20 @@ public class ZoneController {
             HttpServletRequest httpRequest
     ) {
         ZoneResponse response = zoneService.createZone(siteId, request, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    @Operation(summary = "구역 수정", description = "구역 정보를 수정합니다. name, code, area_geojson만 변경 가능합니다.")
+    @PatchMapping("/{zoneId}")
+    public ResponseEntity<ApiResponse<ZoneResponse>> updateZone(
+            @PathVariable Long siteId,
+            @PathVariable Long zoneId,
+            @Valid @RequestBody UpdateZoneRequest request,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        ZoneResponse response = zoneService.updateZone(siteId, zoneId, request, adminDetails);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }

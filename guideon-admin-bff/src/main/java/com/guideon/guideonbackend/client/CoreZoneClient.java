@@ -2,6 +2,7 @@ package com.guideon.guideonbackend.client;
 
 import com.guideon.core.dto.CreateZoneCommand;
 import com.guideon.core.dto.DeleteZoneResult;
+import com.guideon.core.dto.UpdateZoneCommand;
 import com.guideon.core.dto.ZoneDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.data.domain.Page;
@@ -31,6 +32,12 @@ public interface CoreZoneClient {
     ZoneDto getZone(
             @PathVariable("siteId") Long siteId,
             @PathVariable("zoneId") Long zoneId);
+
+    @PatchMapping("/internal/v1/sites/{siteId}/zones/{zoneId}")
+    ZoneDto updateZone(
+            @PathVariable("siteId") Long siteId,
+            @PathVariable("zoneId") Long zoneId,
+            @RequestBody UpdateZoneCommand command);
 
     @DeleteMapping("/internal/v1/sites/{siteId}/zones/{zoneId}")
     DeleteZoneResult deleteZone(
