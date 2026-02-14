@@ -33,7 +33,12 @@ public enum ErrorCode {
 
     // ── Place ──
     PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "장소를 찾을 수 없습니다"),
-    ZONE_NOT_FOUND(HttpStatus.NOT_FOUND, "구역을 찾을 수 없습니다");
+    ZONE_NOT_FOUND(HttpStatus.NOT_FOUND, "구역을 찾을 수 없습니다"),
+
+    // ── Document ──
+    DOC_HASH_DUPLICATE(HttpStatus.CONFLICT, "동일한 파일이 이미 업로드되어 있습니다"),
+    DOC_NOT_FOUND(HttpStatus.NOT_FOUND, "문서를 찾을 수 없습니다"),
+    DOC_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다");
 
     private final HttpStatus httpStatus;
     private final String message;
