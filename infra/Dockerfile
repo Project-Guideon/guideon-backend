@@ -14,3 +14,5 @@ RUN cd /tmp && \
     cd pgvector && \
     make && \
     make install
+
+COPY init.sql /docker-entrypoint-initdb.d/20_init.sql
