@@ -15,6 +15,8 @@ public interface ZoneRepository extends JpaRepository<Zone, Long> {
 
     boolean existsBySite_SiteIdAndCode(Long siteId, String code);
 
+    boolean existsBySite_SiteIdAndCodeAndZoneIdNot(Long siteId, String code, Long zoneId);
+
     Page<Zone> findBySite_SiteId(Long siteId, Pageable pageable);
 
     Page<Zone> findBySite_SiteIdAndZoneType(Long siteId, ZoneType zoneType, Pageable pageable);
@@ -55,4 +57,19 @@ public interface ZoneRepository extends JpaRepository<Zone, Long> {
             """, nativeQuery = true)
     boolean hasOverlappingSiblings(@Param("parentId") Long parentId,
                                    @Param("geoJson") String geoJson);
+
+    /**
+     * 동일 부모 아래 다른 SUB와 면적 겹침 여부 검증 (자기 자신 제외, 수정 시 사용)
+     */
+    @Query(value = """
+            SELECT CASE WHEN COUNT(*) > 0 THEN true ELSE false END
+            FROM tb_zone z
+            WHERE z.parent_zone_id = :parentId
+              AND z.zone_id != :excludeZoneId
+              AND ST_Intersects(z.area_geometry, ST_SetSRID(ST_GeomFromGeoJSON(:geoJson), 4326))
+              AND NOT ST_Touches(z.area_geometry, ST_SetSRID(ST_GeomFromGeoJSON(:geoJson), 4326))
+            """, nativeQuery = true)
+    boolean hasOverlappingSiblingsExcluding(@Param("parentId") Long parentId,
+                                            @Param("geoJson") String geoJson,
+                                            @Param("excludeZoneId") Long excludeZoneId);
 }

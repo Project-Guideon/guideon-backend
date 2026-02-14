@@ -7,10 +7,12 @@ import com.guideon.core.domain.admin.entity.AdminRole;
 import com.guideon.core.domain.admin.repository.AdminSiteRepository;
 import com.guideon.core.dto.CreateZoneCommand;
 import com.guideon.core.dto.DeleteZoneResult;
+import com.guideon.core.dto.UpdateZoneCommand;
 import com.guideon.core.dto.ZoneDto;
 import com.guideon.guideonbackend.client.CoreZoneClient;
 import com.guideon.guideonbackend.domain.zone.dto.CreateZoneRequest;
 import com.guideon.guideonbackend.domain.zone.dto.DeleteZoneResponse;
+import com.guideon.guideonbackend.domain.zone.dto.UpdateZoneRequest;
 import com.guideon.guideonbackend.domain.zone.dto.ZoneResponse;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import lombok.RequiredArgsConstructor;
@@ -87,6 +89,24 @@ public class ZoneService {
         return sort.stream()
                 .map(order -> order.getProperty() + "," + order.getDirection().name().toLowerCase())
                 .collect(Collectors.joining(","));
+    }
+
+    /**
+     * 구역 수정
+     */
+    public ZoneResponse updateZone(Long siteId, Long zoneId, UpdateZoneRequest request, CustomAdminDetails adminDetails) {
+        validateSiteAccess(adminDetails, siteId);
+
+        UpdateZoneCommand command = UpdateZoneCommand.builder()
+                .name(request.getName())
+                .code(request.getCode())
+                .areaGeojson(request.getAreaGeojson())
+                .build();
+
+        ZoneDto zoneDto = coreZoneClient.updateZone(siteId, zoneId, command);
+        log.info("구역 수정 완료: zoneId={}, siteId={}", zoneId, siteId);
+
+        return ZoneResponse.from(zoneDto);
     }
 
     /**

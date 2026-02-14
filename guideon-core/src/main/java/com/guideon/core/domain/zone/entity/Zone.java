@@ -64,4 +64,14 @@ public class Zone extends BaseEntity {
         this.parentZone = parentZone;
         this.areaGeometry = areaGeometry;
     }
+
+    /**
+     * 구역 정보 수정 (null이 아닌 필드만 반영)
+     * zone_type과 parent_zone_id는 구조적 제약으로 변경 불가
+     */
+    public void update(String name, String code, Geometry areaGeometry) {
+        if (name != null) this.name = name;
+        if (code != null) this.code = code;
+        if (areaGeometry != null) this.areaGeometry = areaGeometry;
+    }
 }
