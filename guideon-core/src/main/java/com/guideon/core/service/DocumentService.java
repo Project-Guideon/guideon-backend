@@ -48,7 +48,12 @@ public class DocumentService {
                 .embeddingModel(command.getEmbeddingModel())
                 .build();
 
-        Document saved = documentRepository.save(document);
+        Document saved;
+        try {
+            saved = documentRepository.save(document);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new CustomException(ErrorCode.DOC_HASH_DUPLICATE);
+        }
         log.info("문서 메타데이터 저장 완료: docId={}, siteId={}, originalName={}",
                 saved.getDocId(), siteId, command.getOriginalName());
 
