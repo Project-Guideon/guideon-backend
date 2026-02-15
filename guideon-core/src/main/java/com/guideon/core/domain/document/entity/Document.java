@@ -53,7 +53,7 @@ public class Document extends BaseEntity {
     private String embeddingModel;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, columnDefinition = "doc_status_enum")
+    @Column(name = "status", nullable = false, length = 20)
     private DocStatus status;
 
     @Column(name = "failed_reason", columnDefinition = "TEXT")
