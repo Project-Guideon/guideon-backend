@@ -39,6 +39,7 @@ public class DocumentService {
                                            String embeddingModel,
                                            CustomAdminDetails adminDetails) {
         validateSiteAccess(adminDetails, siteId);
+        validateFileType(file);
 
         String fileHash = computeFileHash(file);
         String storageUrl = fileStorageService.store(siteId, fileHash, file);
@@ -114,6 +115,17 @@ public class DocumentService {
         } catch (NoSuchAlgorithmException e) {
             throw new CustomException(ErrorCode.DOC_UPLOAD_FAILED,
                     "파일 해시 계산에 실패했습니다: " + e.getMessage());
+        }
+    }
+
+    private void validateFileType(MultipartFile file) {
+        String contentType = file.getContentType();
+        String originalName = file.getOriginalFilename();
+        if (contentType == null || !contentType.equals("application/pdf")) {
+            throw new CustomException(ErrorCode.DOC_UPLOAD_FAILED, "PDF 파일만 업로드 가능합니다.");
+        }
+        if (originalName == null || !originalName.toLowerCase().endsWith(".pdf")) {
+            throw new CustomException(ErrorCode.DOC_UPLOAD_FAILED, "PDF 파일만 업로드 가능합니다.");
         }
     }
 
