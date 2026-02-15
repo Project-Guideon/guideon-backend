@@ -12,6 +12,12 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
 
+  # Multipart
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
   # JPA
   jpa:
     open-in-view: false
@@ -48,6 +54,10 @@ jwt:
 
 # Feign
 spring.cloud.openfeign.okhttp.enabled: true
+
+# File Storage
+file:
+  upload-dir: ${FILE_UPLOAD_DIR:./uploads}
 
 # Core Service (Internal API)
 core:
