@@ -40,6 +40,9 @@ out/
 docker/.env
 .env
 
+# Uploads
+uploads/
+
 ### AI ###
 CLAUDE.md
 ARCHITECTURE.md
