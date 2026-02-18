@@ -22,8 +22,29 @@ public class DocumentResponse {
     @JsonProperty("file_hash")
     private String fileHash;
 
+    @JsonProperty("file_size")
+    private Long fileSize;
+
+    @JsonProperty("chunk_size")
+    private Integer chunkSize;
+
+    @JsonProperty("chunk_overlap")
+    private Integer chunkOverlap;
+
+    @JsonProperty("embedding_model")
+    private String embeddingModel;
+
+    @JsonProperty("failed_reason")
+    private String failedReason;
+
+    @JsonProperty("processed_at")
+    private LocalDateTime processedAt;
+
     @JsonProperty("created_at")
     private LocalDateTime createdAt;
+
+    @JsonProperty("updated_at")
+    private LocalDateTime updatedAt;
 
     public static DocumentResponse from(DocumentDto dto) {
         return DocumentResponse.builder()
@@ -31,7 +52,14 @@ public class DocumentResponse {
                 .status(dto.getStatus())
                 .originalName(dto.getOriginalName())
                 .fileHash(dto.getFileHash())
+                .fileSize(dto.getFileSize())
+                .chunkSize(dto.getChunkSize())
+                .chunkOverlap(dto.getChunkOverlap())
+                .embeddingModel(dto.getEmbeddingModel())
+                .failedReason(dto.getFailedReason())
+                .processedAt(dto.getProcessedAt())
                 .createdAt(dto.getCreatedAt())
+                .updatedAt(dto.getUpdatedAt())
                 .build();
     }
 }
