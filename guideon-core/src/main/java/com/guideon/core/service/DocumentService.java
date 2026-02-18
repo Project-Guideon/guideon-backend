@@ -10,6 +10,8 @@ import com.guideon.core.dto.CreateDocumentCommand;
 import com.guideon.core.dto.DocumentDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,5 +60,16 @@ public class DocumentService {
                 saved.getDocId(), siteId, command.getOriginalName());
 
         return DocumentDto.from(saved);
+    }
+
+    public Page<DocumentDto> getDocuments(Long siteId, String keyword, String status, Pageable pageable) {
+        return documentRepository.findByFilters(siteId, keyword, status, pageable)
+                .map(DocumentDto::from);
+    }
+
+    public DocumentDto getDocument(Long siteId, Long docId) {
+        Document document = documentRepository.findByDocIdAndSite_SiteId(docId, siteId)
+                .orElseThrow(() -> new CustomException(ErrorCode.DOC_NOT_FOUND));
+        return DocumentDto.from(document);
     }
 }
