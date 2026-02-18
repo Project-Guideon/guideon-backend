@@ -10,8 +10,11 @@ import com.guideon.guideonbackend.client.CoreDocumentClient;
 import com.guideon.guideonbackend.domain.document.dto.DocumentResponse;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import com.guideon.guideonbackend.global.storage.FileStorageService;
+import com.guideon.common.response.PageResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -92,13 +95,30 @@ public class DocumentService {
         return DocumentResponse.from(documentDto);
     }
 
+    public PageResponse<DocumentResponse> getDocuments(Long siteId, String keyword, String status,
+                                                       Pageable pageable, CustomAdminDetails adminDetails) {
+        validateSiteAccess(adminDetails, siteId);
+
+        Page<DocumentDto> documentPage = coreDocumentClient.getDocuments(
+                siteId, keyword, status,
+                pageable.getPageNumber(), pageable.getPageSize());
+
+        return PageResponse.from(documentPage.map(DocumentResponse::from));
+    }
+
+    public DocumentResponse getDocument(Long siteId, Long docId, CustomAdminDetails adminDetails) {
+        validateSiteAccess(adminDetails, siteId);
+        DocumentDto documentDto = coreDocumentClient.getDocument(siteId, docId);
+        return DocumentResponse.from(documentDto);
+    }
+
     private String computeFileHash(MultipartFile file) {
         try (InputStream is = file.getInputStream()) {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] buffer = new byte[8192];
+            byte[] buffer = new byte[8192]; // 8KB 버퍼
             int bytesRead;
-            while ((bytesRead = is.read(buffer)) != -1) {
-                digest.update(buffer, 0, bytesRead);
+            while ((bytesRead = is.read(buffer)) != -1) { // 8KB씩 읽기
+                digest.update(buffer, 0, bytesRead); // 읽은 만큼만 해시에 추가
             }
             return HexFormat.of().formatHex(digest.digest());
         } catch (IOException | NoSuchAlgorithmException e) {
