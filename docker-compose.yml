@@ -79,6 +79,8 @@ services:
       INIT_ADMIN_EMAIL: ${INIT_ADMIN_EMAIL}
       INIT_ADMIN_PASSWORD: ${INIT_ADMIN_PASSWORD}
       INVITE_EXPIRE_DAYS: ${INVITE_EXPIRE_DAYS}
+    volumes:
+      - ./uploads:/app/uploads
     depends_on:
       - core-service
     networks:
