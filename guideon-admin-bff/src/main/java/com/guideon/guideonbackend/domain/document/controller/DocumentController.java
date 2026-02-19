@@ -91,4 +91,17 @@ public class DocumentController {
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
+
+    @Operation(summary = "문서 삭제", description = "업로드된 문서를 삭제합니다.")
+    @DeleteMapping("/{docId}")
+    public ResponseEntity<ApiResponse<Void>> deleteDocument(
+            @PathVariable Long siteId,
+            @PathVariable Long docId,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        documentService.deleteDocument(siteId, docId, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(null, traceId));
+    }
 }
