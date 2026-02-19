@@ -42,4 +42,12 @@ public class DocumentInternalController {
         DocumentDto document = documentService.getDocument(siteId, docId);
         return ResponseEntity.ok(document);
     }
+
+    @DeleteMapping("/{docId}")
+    public ResponseEntity<Void> deleteDocument(
+            @PathVariable Long siteId,
+            @PathVariable Long docId) {
+        documentService.deleteDocument(siteId, docId);
+        return ResponseEntity.noContent().build();
+    }
 }
