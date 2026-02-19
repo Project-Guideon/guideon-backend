@@ -72,4 +72,12 @@ public class DocumentService {
                 .orElseThrow(() -> new CustomException(ErrorCode.DOC_NOT_FOUND));
         return DocumentDto.from(document);
     }
+
+    @Transactional
+    public void deleteDocument(Long siteId, Long docId) {
+        Document document = documentRepository.findByDocIdAndSite_SiteId(docId, siteId)
+                .orElseThrow(() -> new CustomException(ErrorCode.DOC_NOT_FOUND));
+        documentRepository.delete(document);
+        log.info("문서 삭제 완료: docId={}, siteId={}", docId, siteId);
+    }
 }
