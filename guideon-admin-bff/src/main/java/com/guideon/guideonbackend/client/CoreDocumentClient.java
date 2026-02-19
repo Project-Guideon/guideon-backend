@@ -26,4 +26,9 @@ public interface CoreDocumentClient {
     DocumentDto getDocument(
             @PathVariable("siteId") Long siteId,
             @PathVariable("docId") Long docId);
+
+    @DeleteMapping("/internal/v1/sites/{siteId}/documents/{docId}")
+    void deleteDocument(
+            @PathVariable("siteId") Long siteId,
+            @PathVariable("docId") Long docId);
 }
