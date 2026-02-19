@@ -112,6 +112,12 @@ public class DocumentService {
         return DocumentResponse.from(documentDto);
     }
 
+    public void deleteDocument(Long siteId, Long docId, CustomAdminDetails adminDetails) {
+        validateSiteAccess(adminDetails, siteId);
+        coreDocumentClient.deleteDocument(siteId, docId);
+        log.info("문서 삭제 완료: docId={}, siteId={}", docId, siteId);
+    }
+
     private String computeFileHash(MultipartFile file) {
         try (InputStream is = file.getInputStream()) {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
