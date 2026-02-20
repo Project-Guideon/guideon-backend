@@ -11,4 +11,6 @@ public interface FileStorageService {
     String store(Long siteId, String fileHash, MultipartFile file);
 
     String store(Long siteId, String fileHash, byte[] fileBytes, String originalName);
+
+    void delete(String storageUrl);
 }

@@ -132,7 +132,9 @@ public class DocumentService {
 
     public void deleteDocument(Long siteId, Long docId, CustomAdminDetails adminDetails) {
         validateSiteAccess(adminDetails, siteId);
+        DocumentDto documentDto = coreDocumentClient.getDocument(siteId, docId);
         coreDocumentClient.deleteDocument(siteId, docId);
+        fileStorageService.delete(documentDto.getStorageUrl());
         log.info("문서 삭제 완료: docId={}, siteId={}", docId, siteId);
     }
 
