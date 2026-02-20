@@ -4,6 +4,7 @@ import com.guideon.common.response.ApiResponse;
 import com.guideon.common.response.PageResponse;
 import com.guideon.guideonbackend.domain.document.dto.DocumentResponse;
 import com.guideon.guideonbackend.domain.document.dto.DocumentUploadJsonRequest;
+import com.guideon.guideonbackend.domain.document.dto.ReprocessDocumentRequest;
 import com.guideon.guideonbackend.domain.document.service.DocumentService;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import com.guideon.guideonbackend.global.trace.TraceIdUtil;
@@ -88,6 +89,20 @@ public class DocumentController {
             HttpServletRequest httpRequest
     ) {
         DocumentResponse response = documentService.getDocument(siteId, docId, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    @Operation(summary = "문서 재처리", description = "문서의 청킹/임베딩 파라미터를 변경하고 재처리를 요청합니다.")
+    @PostMapping("/{docId}/reprocess")
+    public ResponseEntity<ApiResponse<DocumentResponse>> reprocessDocument(
+            @PathVariable Long siteId,
+            @PathVariable Long docId,
+            @RequestBody ReprocessDocumentRequest request,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        DocumentResponse response = documentService.reprocessDocument(siteId, docId, request, adminDetails);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
