@@ -6,8 +6,10 @@ import com.guideon.core.domain.admin.entity.AdminRole;
 import com.guideon.core.domain.admin.repository.AdminSiteRepository;
 import com.guideon.core.dto.CreateDocumentCommand;
 import com.guideon.core.dto.DocumentDto;
+import com.guideon.core.dto.ReprocessDocumentCommand;
 import com.guideon.guideonbackend.client.CoreDocumentClient;
 import com.guideon.guideonbackend.domain.document.dto.DocumentResponse;
+import com.guideon.guideonbackend.domain.document.dto.ReprocessDocumentRequest;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import com.guideon.guideonbackend.global.storage.FileStorageService;
 import com.guideon.common.response.PageResponse;
@@ -109,6 +111,22 @@ public class DocumentService {
     public DocumentResponse getDocument(Long siteId, Long docId, CustomAdminDetails adminDetails) {
         validateSiteAccess(adminDetails, siteId);
         DocumentDto documentDto = coreDocumentClient.getDocument(siteId, docId);
+        return DocumentResponse.from(documentDto);
+    }
+
+    public DocumentResponse reprocessDocument(Long siteId, Long docId,
+                                               ReprocessDocumentRequest request,
+                                               CustomAdminDetails adminDetails) {
+        validateSiteAccess(adminDetails, siteId);
+
+        ReprocessDocumentCommand command = ReprocessDocumentCommand.builder()
+                .chunkSize(request.getChunkSize())
+                .chunkOverlap(request.getChunkOverlap())
+                .embeddingModel(request.getEmbeddingModel())
+                .build();
+
+        DocumentDto documentDto = coreDocumentClient.reprocessDocument(siteId, docId, command);
+        log.info("문서 재처리 요청 완료: docId={}, siteId={}", docId, siteId);
         return DocumentResponse.from(documentDto);
     }
 
