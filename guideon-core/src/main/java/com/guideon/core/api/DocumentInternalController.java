@@ -2,6 +2,7 @@ package com.guideon.core.api;
 
 import com.guideon.core.dto.CreateDocumentCommand;
 import com.guideon.core.dto.DocumentDto;
+import com.guideon.core.dto.ReprocessDocumentCommand;
 import com.guideon.core.service.DocumentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -40,6 +41,15 @@ public class DocumentInternalController {
             @PathVariable Long siteId,
             @PathVariable Long docId) {
         DocumentDto document = documentService.getDocument(siteId, docId);
+        return ResponseEntity.ok(document);
+    }
+
+    @PostMapping("/{docId}/reprocess")
+    public ResponseEntity<DocumentDto> reprocessDocument(
+            @PathVariable Long siteId,
+            @PathVariable Long docId,
+            @RequestBody ReprocessDocumentCommand command) {
+        DocumentDto document = documentService.reprocessDocument(siteId, docId, command);
         return ResponseEntity.ok(document);
     }
 
