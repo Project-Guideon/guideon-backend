@@ -8,6 +8,7 @@ import com.guideon.core.domain.site.entity.Site;
 import com.guideon.core.domain.site.repository.SiteRepository;
 import com.guideon.core.dto.CreateDocumentCommand;
 import com.guideon.core.dto.DocumentDto;
+import com.guideon.core.dto.ReprocessDocumentCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -70,6 +71,18 @@ public class DocumentService {
     public DocumentDto getDocument(Long siteId, Long docId) {
         Document document = documentRepository.findByDocIdAndSite_SiteId(docId, siteId)
                 .orElseThrow(() -> new CustomException(ErrorCode.DOC_NOT_FOUND));
+        return DocumentDto.from(document);
+    }
+
+    @Transactional
+    public DocumentDto reprocessDocument(Long siteId, Long docId, ReprocessDocumentCommand command) {
+        Document document = documentRepository.findByDocIdAndSite_SiteId(docId, siteId)
+                .orElseThrow(() -> new CustomException(ErrorCode.DOC_NOT_FOUND));
+
+        document.reprocess(command.getChunkSize(), command.getChunkOverlap(),
+                command.getEmbeddingModel());
+
+        log.info("문서 재처리 요청: docId={}, siteId={}", docId, siteId);
         return DocumentDto.from(document);
     }
 
