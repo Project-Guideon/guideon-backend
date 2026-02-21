@@ -1,11 +1,11 @@
 package com.guideon.core.api;
 
+import com.guideon.common.response.PageResponse;
 import com.guideon.core.dto.CreatePlaceCommand;
 import com.guideon.core.dto.PlaceDto;
 import com.guideon.core.dto.UpdatePlaceCommand;
 import com.guideon.core.service.PlaceService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
@@ -32,15 +32,15 @@ public class PlaceInternalController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<PlaceDto>> getPlaces(
+    public ResponseEntity<PageResponse<PlaceDto>> getPlaces(
             @PathVariable Long siteId,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) Long zoneId,
             @RequestParam(required = false) Boolean isActive,
             @PageableDefault(size = 20) Pageable pageable) {
-        Page<PlaceDto> places = placeService.getPlaces(siteId, keyword, category, zoneId, isActive, pageable);
-        return ResponseEntity.ok(places);
+        return ResponseEntity.ok(PageResponse.from(
+                placeService.getPlaces(siteId, keyword, category, zoneId, isActive, pageable)));
     }
 
     @GetMapping("/{placeId}")

@@ -15,7 +15,6 @@ import com.guideon.guideonbackend.domain.place.dto.UpdatePlaceRequest;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -64,12 +63,15 @@ public class PlaceService {
                                                    Pageable pageable, CustomAdminDetails adminDetails) {
         validateSiteAccess(adminDetails, siteId);
 
-        Page<PlaceDto> placePage = corePlaceClient.getPlaces(
+        PageResponse<PlaceDto> placePage = corePlaceClient.getPlaces(
                 siteId, keyword, category, zoneId, isActive,
                 pageable.getPageNumber(), pageable.getPageSize()
         );
 
-        return PageResponse.from(placePage.map(PlaceResponse::from));
+        return PageResponse.<PlaceResponse>builder()
+                .items(placePage.getItems().stream().map(PlaceResponse::from).toList())
+                .page(placePage.getPage())
+                .build();
     }
 
     /**
