@@ -20,6 +20,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -104,7 +105,7 @@ public class DocumentService {
                                                        Pageable pageable, CustomAdminDetails adminDetails) {
         validateSiteAccess(adminDetails, siteId);
 
-        String sortParam = convertSortToString(pageable.getSort());
+        List<String> sortParam = convertSortToList(pageable.getSort());
 
         PageResponse<DocumentDto> documentPage = coreDocumentClient.getDocuments(
                 siteId, keyword, status,
@@ -142,7 +143,12 @@ public class DocumentService {
         validateSiteAccess(adminDetails, siteId);
         DocumentDto documentDto = coreDocumentClient.getDocument(siteId, docId);
         coreDocumentClient.deleteDocument(siteId, docId);
-        fileStorageService.delete(documentDto.getStorageUrl());
+        try {
+            fileStorageService.delete(documentDto.getStorageUrl());
+        } catch (Exception e) {
+            log.error("문서 파일 삭제 실패 (DB는 삭제됨): docId={}, storageUrl={}, error={}",
+                    docId, documentDto.getStorageUrl(), e.getMessage());
+        }
         log.info("문서 삭제 완료: docId={}, siteId={}", docId, siteId);
     }
 
@@ -150,16 +156,17 @@ public class DocumentService {
             Set.of("doc_id", "original_name", "status", "created_at", "updated_at");
 
     /**
-     * Spring Sort 객체를 쿼리 파라미터 문자열로 변환 (native query용 컬럼명 기준)
+     * Spring Sort 객체를 ["doc_id,desc", "original_name,asc"] 형태의 List로 변환 (native query용 컬럼명 기준)
+     * Feign이 ?sort=doc_id,desc&sort=original_name,asc 으로 직렬화함
      * 유효하지 않은 필드명은 무시
      */
-    private String convertSortToString(Sort sort) {
+    private List<String> convertSortToList(Sort sort) {
         if (sort.isUnsorted()) return null;
 
-        String result = sort.stream()
+        List<String> result = sort.stream()
                 .filter(order -> VALID_DOCUMENT_SORT_FIELDS.contains(order.getProperty()))
                 .map(order -> order.getProperty() + "," + order.getDirection().name().toLowerCase())
-                .collect(Collectors.joining(","));
+                .collect(Collectors.toList());
 
         return result.isEmpty() ? null : result;
     }
