@@ -17,11 +17,11 @@ import com.guideon.guideonbackend.domain.zone.dto.ZoneResponse;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -66,7 +66,7 @@ public class ZoneService {
 
         String sortParam = convertSortToString(pageable.getSort());
 
-        Page<ZoneDto> zonePage = coreZoneClient.getZones(
+        PageResponse<ZoneDto> zonePage = coreZoneClient.getZones(
                 siteId,
                 zoneType,
                 parentZoneId,
@@ -75,20 +75,29 @@ public class ZoneService {
                 sortParam
         );
 
-        return PageResponse.from(zonePage.map(ZoneResponse::from));
+        return PageResponse.<ZoneResponse>builder()
+                .items(zonePage.getItems().stream().map(ZoneResponse::from).toList())
+                .page(zonePage.getPage())
+                .build();
     }
+
+    private static final Set<String> VALID_ZONE_SORT_FIELDS =
+            Set.of("zoneId", "name", "code", "zoneType", "level");
 
     /**
      * Spring Sort 객체를 쿼리 파라미터 문자열로 변환
+     * 유효하지 않은 필드명(예: Swagger 플레이스홀더 "string")은 무시
      * 예: "zoneId,desc" 또는 "name,asc"
      */
     private String convertSortToString(Sort sort) {
-        if (sort.isUnsorted()) {
-            return "zoneId,asc"; // 기본 정렬
-        }
-        return sort.stream()
+        if (sort.isUnsorted()) return null;
+
+        String result = sort.stream()
+                .filter(order -> VALID_ZONE_SORT_FIELDS.contains(order.getProperty()))
                 .map(order -> order.getProperty() + "," + order.getDirection().name().toLowerCase())
                 .collect(Collectors.joining(","));
+
+        return result.isEmpty() ? null : result;
     }
 
     /**
