@@ -1,11 +1,11 @@
 package com.guideon.guideonbackend.client;
 
+import com.guideon.common.response.PageResponse;
 import com.guideon.core.dto.CreateZoneCommand;
 import com.guideon.core.dto.DeleteZoneResult;
 import com.guideon.core.dto.UpdateZoneCommand;
 import com.guideon.core.dto.ZoneDto;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -20,7 +20,7 @@ public interface CoreZoneClient {
             @RequestBody CreateZoneCommand command);
 
     @GetMapping("/internal/v1/sites/{siteId}/zones")
-    Page<ZoneDto> getZones(
+    PageResponse<ZoneDto> getZones(
             @PathVariable("siteId") Long siteId,
             @RequestParam(value = "zoneType", required = false) String zoneType,
             @RequestParam(value = "parentZoneId", required = false) Long parentZoneId,

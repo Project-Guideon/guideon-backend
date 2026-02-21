@@ -1,12 +1,12 @@
 package com.guideon.core.api;
 
+import com.guideon.common.response.PageResponse;
 import com.guideon.core.dto.CreateZoneCommand;
 import com.guideon.core.dto.DeleteZoneResult;
 import com.guideon.core.dto.UpdateZoneCommand;
 import com.guideon.core.dto.ZoneDto;
 import com.guideon.core.service.ZoneService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
@@ -33,13 +33,13 @@ public class ZoneInternalController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<ZoneDto>> getZones(
+    public ResponseEntity<PageResponse<ZoneDto>> getZones(
             @PathVariable Long siteId,
             @RequestParam(required = false) String zoneType,
             @RequestParam(required = false) Long parentZoneId,
             @PageableDefault(size = 20) Pageable pageable) {
-        Page<ZoneDto> zones = zoneService.getZones(siteId, zoneType, parentZoneId, pageable);
-        return ResponseEntity.ok(zones);
+        return ResponseEntity.ok(PageResponse.from(
+                zoneService.getZones(siteId, zoneType, parentZoneId, pageable)));
     }
 
     @GetMapping("/{zoneId}")
