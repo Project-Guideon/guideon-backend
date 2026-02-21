@@ -21,7 +21,8 @@ public interface CoreDocumentClient {
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "20") int size);
+            @RequestParam(value = "size", defaultValue = "20") int size,
+            @RequestParam(value = "sort", required = false) String sort);
 
     @GetMapping("/internal/v1/sites/{siteId}/documents/{docId}")
     DocumentDto getDocument(

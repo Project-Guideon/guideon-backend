@@ -26,7 +26,8 @@ public interface CorePlaceClient {
             @RequestParam(value = "zoneId", required = false) Long zoneId,
             @RequestParam(value = "isActive", required = false) Boolean isActive,
             @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "20") int size);
+            @RequestParam(value = "size", defaultValue = "20") int size,
+            @RequestParam(value = "sort", required = false) String sort);
 
     @GetMapping("/internal/v1/sites/{siteId}/places/{placeId}")
     PlaceDto getPlace(

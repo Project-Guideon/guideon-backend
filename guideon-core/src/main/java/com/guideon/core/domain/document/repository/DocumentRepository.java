@@ -20,7 +20,6 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
             WHERE d.site_id = :siteId
             AND (CAST(:keyword AS TEXT) IS NULL OR LOWER(d.original_name) LIKE LOWER(CONCAT('%', :keyword, '%')))
             AND (CAST(:status AS TEXT) IS NULL OR d.status = :status)
-            ORDER BY d.doc_id DESC
             """,
             countQuery = """
             SELECT COUNT(*) FROM tb_document d

@@ -16,7 +16,11 @@ import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Admin BFF Place Service
@@ -63,9 +67,11 @@ public class PlaceService {
                                                    Pageable pageable, CustomAdminDetails adminDetails) {
         validateSiteAccess(adminDetails, siteId);
 
+        String sortParam = convertSortToString(pageable.getSort());
+
         PageResponse<PlaceDto> placePage = corePlaceClient.getPlaces(
                 siteId, keyword, category, zoneId, isActive,
-                pageable.getPageNumber(), pageable.getPageSize()
+                pageable.getPageNumber(), pageable.getPageSize(), sortParam
         );
 
         return PageResponse.<PlaceResponse>builder()
@@ -116,6 +122,24 @@ public class PlaceService {
 
         corePlaceClient.deletePlace(siteId, placeId);
         log.info("장소 삭제 완료: placeId={}, siteId={}", placeId, siteId);
+    }
+
+    private static final Set<String> VALID_PLACE_SORT_FIELDS =
+            Set.of("place_id", "name", "category", "is_active", "created_at", "updated_at");
+
+    /**
+     * Spring Sort 객체를 쿼리 파라미터 문자열로 변환 (native query용 컬럼명 기준)
+     * 유효하지 않은 필드명은 무시
+     */
+    private String convertSortToString(Sort sort) {
+        if (sort.isUnsorted()) return null;
+
+        String result = sort.stream()
+                .filter(order -> VALID_PLACE_SORT_FIELDS.contains(order.getProperty()))
+                .map(order -> order.getProperty() + "," + order.getDirection().name().toLowerCase())
+                .collect(Collectors.joining(","));
+
+        return result.isEmpty() ? null : result;
     }
 
     /**

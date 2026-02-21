@@ -16,8 +16,12 @@ import com.guideon.guideonbackend.global.storage.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -100,9 +104,11 @@ public class DocumentService {
                                                        Pageable pageable, CustomAdminDetails adminDetails) {
         validateSiteAccess(adminDetails, siteId);
 
+        String sortParam = convertSortToString(pageable.getSort());
+
         PageResponse<DocumentDto> documentPage = coreDocumentClient.getDocuments(
                 siteId, keyword, status,
-                pageable.getPageNumber(), pageable.getPageSize());
+                pageable.getPageNumber(), pageable.getPageSize(), sortParam);
 
         return PageResponse.<DocumentResponse>builder()
                 .items(documentPage.getItems().stream().map(DocumentResponse::from).toList())
@@ -138,6 +144,24 @@ public class DocumentService {
         coreDocumentClient.deleteDocument(siteId, docId);
         fileStorageService.delete(documentDto.getStorageUrl());
         log.info("문서 삭제 완료: docId={}, siteId={}", docId, siteId);
+    }
+
+    private static final Set<String> VALID_DOCUMENT_SORT_FIELDS =
+            Set.of("doc_id", "original_name", "status", "created_at", "updated_at");
+
+    /**
+     * Spring Sort 객체를 쿼리 파라미터 문자열로 변환 (native query용 컬럼명 기준)
+     * 유효하지 않은 필드명은 무시
+     */
+    private String convertSortToString(Sort sort) {
+        if (sort.isUnsorted()) return null;
+
+        String result = sort.stream()
+                .filter(order -> VALID_DOCUMENT_SORT_FIELDS.contains(order.getProperty()))
+                .map(order -> order.getProperty() + "," + order.getDirection().name().toLowerCase())
+                .collect(Collectors.joining(","));
+
+        return result.isEmpty() ? null : result;
     }
 
     private String computeFileHash(MultipartFile file) {
