@@ -7,6 +7,8 @@ import com.guideon.core.dto.UpdatePlaceCommand;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * Core Service Place API 호출용 Feign Client
  */
@@ -27,7 +29,7 @@ public interface CorePlaceClient {
             @RequestParam(value = "isActive", required = false) Boolean isActive,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "20") int size,
-            @RequestParam(value = "sort", required = false) String sort);
+            @RequestParam(value = "sort", required = false) List<String> sort);
 
     @GetMapping("/internal/v1/sites/{siteId}/places/{placeId}")
     PlaceDto getPlace(

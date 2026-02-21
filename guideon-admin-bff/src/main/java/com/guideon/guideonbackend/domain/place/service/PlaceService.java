@@ -19,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -67,7 +68,7 @@ public class PlaceService {
                                                    Pageable pageable, CustomAdminDetails adminDetails) {
         validateSiteAccess(adminDetails, siteId);
 
-        String sortParam = convertSortToString(pageable.getSort());
+        List<String> sortParam = convertSortToList(pageable.getSort());
 
         PageResponse<PlaceDto> placePage = corePlaceClient.getPlaces(
                 siteId, keyword, category, zoneId, isActive,
@@ -128,16 +129,17 @@ public class PlaceService {
             Set.of("place_id", "name", "category", "is_active", "created_at", "updated_at");
 
     /**
-     * Spring Sort 객체를 쿼리 파라미터 문자열로 변환 (native query용 컬럼명 기준)
+     * Spring Sort 객체를 ["place_id,desc", "name,asc"] 형태의 List로 변환 (native query용 컬럼명 기준)
+     * Feign이 ?sort=place_id,desc&sort=name,asc 으로 직렬화함
      * 유효하지 않은 필드명은 무시
      */
-    private String convertSortToString(Sort sort) {
+    private List<String> convertSortToList(Sort sort) {
         if (sort.isUnsorted()) return null;
 
-        String result = sort.stream()
+        List<String> result = sort.stream()
                 .filter(order -> VALID_PLACE_SORT_FIELDS.contains(order.getProperty()))
                 .map(order -> order.getProperty() + "," + order.getDirection().name().toLowerCase())
-                .collect(Collectors.joining(","));
+                .collect(Collectors.toList());
 
         return result.isEmpty() ? null : result;
     }
