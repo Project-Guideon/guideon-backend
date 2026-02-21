@@ -4,6 +4,7 @@ import com.guideon.common.exception.CustomException;
 import com.guideon.common.exception.ErrorCode;
 import com.guideon.core.domain.admin.entity.AdminRole;
 import com.guideon.core.domain.admin.repository.AdminSiteRepository;
+import com.guideon.common.response.PageResponse;
 import com.guideon.core.dto.CreateDocumentCommand;
 import com.guideon.core.dto.DocumentDto;
 import com.guideon.core.dto.ReprocessDocumentCommand;
@@ -12,10 +13,8 @@ import com.guideon.guideonbackend.domain.document.dto.DocumentResponse;
 import com.guideon.guideonbackend.domain.document.dto.ReprocessDocumentRequest;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import com.guideon.guideonbackend.global.storage.FileStorageService;
-import com.guideon.common.response.PageResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -101,11 +100,14 @@ public class DocumentService {
                                                        Pageable pageable, CustomAdminDetails adminDetails) {
         validateSiteAccess(adminDetails, siteId);
 
-        Page<DocumentDto> documentPage = coreDocumentClient.getDocuments(
+        PageResponse<DocumentDto> documentPage = coreDocumentClient.getDocuments(
                 siteId, keyword, status,
                 pageable.getPageNumber(), pageable.getPageSize());
 
-        return PageResponse.from(documentPage.map(DocumentResponse::from));
+        return PageResponse.<DocumentResponse>builder()
+                .items(documentPage.getItems().stream().map(DocumentResponse::from).toList())
+                .page(documentPage.getPage())
+                .build();
     }
 
     public DocumentResponse getDocument(Long siteId, Long docId, CustomAdminDetails adminDetails) {

@@ -1,11 +1,11 @@
 package com.guideon.core.api;
 
+import com.guideon.common.response.PageResponse;
 import com.guideon.core.dto.CreateDocumentCommand;
 import com.guideon.core.dto.DocumentDto;
 import com.guideon.core.dto.ReprocessDocumentCommand;
 import com.guideon.core.service.DocumentService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
@@ -27,13 +27,13 @@ public class DocumentInternalController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<DocumentDto>> getDocuments(
+    public ResponseEntity<PageResponse<DocumentDto>> getDocuments(
             @PathVariable Long siteId,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
             @PageableDefault(size = 20) Pageable pageable) {
-        Page<DocumentDto> documents = documentService.getDocuments(siteId, keyword, status, pageable);
-        return ResponseEntity.ok(documents);
+        return ResponseEntity.ok(PageResponse.from(
+                documentService.getDocuments(siteId, keyword, status, pageable)));
     }
 
     @GetMapping("/{docId}")

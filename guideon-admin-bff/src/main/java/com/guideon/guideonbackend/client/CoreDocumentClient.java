@@ -1,10 +1,10 @@
 package com.guideon.guideonbackend.client;
 
+import com.guideon.common.response.PageResponse;
 import com.guideon.core.dto.CreateDocumentCommand;
 import com.guideon.core.dto.DocumentDto;
 import com.guideon.core.dto.ReprocessDocumentCommand;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 @FeignClient(name = "core-document", url = "${core.service.url}")
@@ -16,7 +16,7 @@ public interface CoreDocumentClient {
             @RequestBody CreateDocumentCommand command);
 
     @GetMapping("/internal/v1/sites/{siteId}/documents")
-    Page<DocumentDto> getDocuments(
+    PageResponse<DocumentDto> getDocuments(
             @PathVariable("siteId") Long siteId,
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "status", required = false) String status,
