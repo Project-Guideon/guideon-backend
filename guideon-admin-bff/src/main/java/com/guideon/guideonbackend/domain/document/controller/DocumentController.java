@@ -98,7 +98,7 @@ public class DocumentController {
     public ResponseEntity<ApiResponse<DocumentResponse>> reprocessDocument(
             @PathVariable Long siteId,
             @PathVariable Long docId,
-            @RequestBody ReprocessDocumentRequest request,
+            @Valid @RequestBody ReprocessDocumentRequest request,
             @AuthenticationPrincipal CustomAdminDetails adminDetails,
             HttpServletRequest httpRequest
     ) {
