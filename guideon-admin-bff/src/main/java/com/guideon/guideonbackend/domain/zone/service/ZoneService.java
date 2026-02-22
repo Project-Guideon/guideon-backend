@@ -17,11 +17,12 @@ import com.guideon.guideonbackend.domain.zone.dto.ZoneResponse;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -64,9 +65,9 @@ public class ZoneService {
                                                 Pageable pageable, CustomAdminDetails adminDetails) {
         validateSiteAccess(adminDetails, siteId);
 
-        String sortParam = convertSortToString(pageable.getSort());
+        List<String> sortParam = convertSortToList(pageable.getSort());
 
-        Page<ZoneDto> zonePage = coreZoneClient.getZones(
+        PageResponse<ZoneDto> zonePage = coreZoneClient.getZones(
                 siteId,
                 zoneType,
                 parentZoneId,
@@ -75,20 +76,29 @@ public class ZoneService {
                 sortParam
         );
 
-        return PageResponse.from(zonePage.map(ZoneResponse::from));
+        return PageResponse.<ZoneResponse>builder()
+                .items(zonePage.getItems().stream().map(ZoneResponse::from).toList())
+                .page(zonePage.getPage())
+                .build();
     }
 
+    private static final Set<String> VALID_ZONE_SORT_FIELDS =
+            Set.of("zoneId", "name", "code", "zoneType", "level");
+
     /**
-     * Spring Sort 객체를 쿼리 파라미터 문자열로 변환
-     * 예: "zoneId,desc" 또는 "name,asc"
+     * Spring Sort 객체를 ["zoneId,desc", "name,asc"] 형태의 List로 변환
+     * Feign이 ?sort=zoneId,desc&sort=name,asc 으로 직렬화함
+     * 유효하지 않은 필드명(예: Swagger 플레이스홀더 "string")은 무시
      */
-    private String convertSortToString(Sort sort) {
-        if (sort.isUnsorted()) {
-            return "zoneId,asc"; // 기본 정렬
-        }
-        return sort.stream()
+    private List<String> convertSortToList(Sort sort) {
+        if (sort.isUnsorted()) return null;
+
+        List<String> result = sort.stream()
+                .filter(order -> VALID_ZONE_SORT_FIELDS.contains(order.getProperty()))
                 .map(order -> order.getProperty() + "," + order.getDirection().name().toLowerCase())
-                .collect(Collectors.joining(","));
+                .collect(Collectors.toList());
+
+        return result.isEmpty() ? null : result;
     }
 
     /**

@@ -1,12 +1,14 @@
 package com.guideon.guideonbackend.client;
 
+import com.guideon.common.response.PageResponse;
 import com.guideon.core.dto.CreateZoneCommand;
 import com.guideon.core.dto.DeleteZoneResult;
 import com.guideon.core.dto.UpdateZoneCommand;
 import com.guideon.core.dto.ZoneDto;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * Core Service Zone API 호출용 Feign Client
@@ -20,13 +22,13 @@ public interface CoreZoneClient {
             @RequestBody CreateZoneCommand command);
 
     @GetMapping("/internal/v1/sites/{siteId}/zones")
-    Page<ZoneDto> getZones(
+    PageResponse<ZoneDto> getZones(
             @PathVariable("siteId") Long siteId,
             @RequestParam(value = "zoneType", required = false) String zoneType,
             @RequestParam(value = "parentZoneId", required = false) Long parentZoneId,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "20") int size,
-            @RequestParam(value = "sort", required = false) String sort);
+            @RequestParam(value = "sort", required = false) List<String> sort);
 
     @GetMapping("/internal/v1/sites/{siteId}/zones/{zoneId}")
     ZoneDto getZone(

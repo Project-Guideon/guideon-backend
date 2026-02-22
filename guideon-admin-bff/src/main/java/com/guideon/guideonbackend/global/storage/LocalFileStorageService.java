@@ -64,6 +64,21 @@ public class LocalFileStorageService implements FileStorageService {
         }
     }
 
+    @Override
+    public void delete(String storageUrl) {
+        try {
+            Path filePath = Paths.get(storageUrl).normalize();
+            if (!filePath.startsWith(uploadDir)) {
+                log.warn("파일 삭제 거부 - 허용된 디렉토리 외부: storageUrl={}", storageUrl);
+                return;
+            }
+            Files.deleteIfExists(filePath);
+            log.info("파일 삭제 완료: {}", filePath);
+        } catch (IOException e) {
+            log.warn("파일 삭제 실패 (무시): storageUrl={}, error={}", storageUrl, e.getMessage());
+        }
+    }
+
     private String extractExtension(String filename) {
         if (filename != null && filename.contains(".")) {
             return filename.substring(filename.lastIndexOf('.'));

@@ -15,9 +15,13 @@ import com.guideon.guideonbackend.domain.place.dto.UpdatePlaceRequest;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Admin BFF Place Service
@@ -64,12 +68,17 @@ public class PlaceService {
                                                    Pageable pageable, CustomAdminDetails adminDetails) {
         validateSiteAccess(adminDetails, siteId);
 
-        Page<PlaceDto> placePage = corePlaceClient.getPlaces(
+        List<String> sortParam = convertSortToList(pageable.getSort());
+
+        PageResponse<PlaceDto> placePage = corePlaceClient.getPlaces(
                 siteId, keyword, category, zoneId, isActive,
-                pageable.getPageNumber(), pageable.getPageSize()
+                pageable.getPageNumber(), pageable.getPageSize(), sortParam
         );
 
-        return PageResponse.from(placePage.map(PlaceResponse::from));
+        return PageResponse.<PlaceResponse>builder()
+                .items(placePage.getItems().stream().map(PlaceResponse::from).toList())
+                .page(placePage.getPage())
+                .build();
     }
 
     /**
@@ -114,6 +123,33 @@ public class PlaceService {
 
         corePlaceClient.deletePlace(siteId, placeId);
         log.info("장소 삭제 완료: placeId={}, siteId={}", placeId, siteId);
+    }
+
+    // camelCase(API) → snake_case(native query 컬럼명) 매핑
+    private static final Map<String, String> PLACE_SORT_FIELD_MAP = Map.of(
+            "placeId",   "place_id",
+            "name",      "name",
+            "category",  "category",
+            "isActive",  "is_active",
+            "createdAt", "created_at",
+            "updatedAt", "updated_at"
+    );
+
+    /**
+     * Spring Sort 객체를 ["place_id,desc", "name,asc"] 형태의 List로 변환
+     * 클라이언트가 camelCase(?sort=placeId)로 전송 → native query용 snake_case로 변환
+     * Feign이 ?sort=place_id,desc&sort=name,asc 으로 직렬화함
+     * 유효하지 않은 필드명은 무시
+     */
+    private List<String> convertSortToList(Sort sort) {
+        if (sort.isUnsorted()) return null;
+
+        List<String> result = sort.stream()
+                .filter(order -> PLACE_SORT_FIELD_MAP.containsKey(order.getProperty()))
+                .map(order -> PLACE_SORT_FIELD_MAP.get(order.getProperty()) + "," + order.getDirection().name().toLowerCase())
+                .collect(Collectors.toList());
+
+        return result.isEmpty() ? null : result;
     }
 
     /**

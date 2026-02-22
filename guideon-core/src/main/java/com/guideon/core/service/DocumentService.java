@@ -8,8 +8,11 @@ import com.guideon.core.domain.site.entity.Site;
 import com.guideon.core.domain.site.repository.SiteRepository;
 import com.guideon.core.dto.CreateDocumentCommand;
 import com.guideon.core.dto.DocumentDto;
+import com.guideon.core.dto.ReprocessDocumentCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,5 +61,36 @@ public class DocumentService {
                 saved.getDocId(), siteId, command.getOriginalName());
 
         return DocumentDto.from(saved);
+    }
+
+    public Page<DocumentDto> getDocuments(Long siteId, String keyword, String status, Pageable pageable) {
+        return documentRepository.findByFilters(siteId, keyword, status, pageable)
+                .map(DocumentDto::from);
+    }
+
+    public DocumentDto getDocument(Long siteId, Long docId) {
+        Document document = documentRepository.findByDocIdAndSite_SiteId(docId, siteId)
+                .orElseThrow(() -> new CustomException(ErrorCode.DOC_NOT_FOUND));
+        return DocumentDto.from(document);
+    }
+
+    @Transactional
+    public DocumentDto reprocessDocument(Long siteId, Long docId, ReprocessDocumentCommand command) {
+        Document document = documentRepository.findByDocIdAndSite_SiteId(docId, siteId)
+                .orElseThrow(() -> new CustomException(ErrorCode.DOC_NOT_FOUND));
+
+        document.reprocess(command.getChunkSize(), command.getChunkOverlap(),
+                command.getEmbeddingModel());
+
+        log.info("문서 재처리 요청: docId={}, siteId={}", docId, siteId);
+        return DocumentDto.from(document);
+    }
+
+    @Transactional
+    public void deleteDocument(Long siteId, Long docId) {
+        Document document = documentRepository.findByDocIdAndSite_SiteId(docId, siteId)
+                .orElseThrow(() -> new CustomException(ErrorCode.DOC_NOT_FOUND));
+        documentRepository.delete(document);
+        log.info("문서 삭제 완료: docId={}, siteId={}", docId, siteId);
     }
 }

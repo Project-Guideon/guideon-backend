@@ -3,12 +3,14 @@ package com.guideon.common.response;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.extern.jackson.Jacksonized;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
 
 @Getter
 @Builder
+@Jacksonized
 public class PageResponse<T> {
 
     private List<T> items;
@@ -29,6 +31,7 @@ public class PageResponse<T> {
 
     @Getter
     @Builder
+    @Jacksonized
     public static class PageInfo {
         private int number;
         private int size;
