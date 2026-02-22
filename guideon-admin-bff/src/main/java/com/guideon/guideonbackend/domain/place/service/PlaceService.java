@@ -20,7 +20,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -125,11 +125,19 @@ public class PlaceService {
         log.info("장소 삭제 완료: placeId={}, siteId={}", placeId, siteId);
     }
 
-    private static final Set<String> VALID_PLACE_SORT_FIELDS =
-            Set.of("place_id", "name", "category", "is_active", "created_at", "updated_at");
+    // camelCase(API) → snake_case(native query 컬럼명) 매핑
+    private static final Map<String, String> PLACE_SORT_FIELD_MAP = Map.of(
+            "placeId",   "place_id",
+            "name",      "name",
+            "category",  "category",
+            "isActive",  "is_active",
+            "createdAt", "created_at",
+            "updatedAt", "updated_at"
+    );
 
     /**
-     * Spring Sort 객체를 ["place_id,desc", "name,asc"] 형태의 List로 변환 (native query용 컬럼명 기준)
+     * Spring Sort 객체를 ["place_id,desc", "name,asc"] 형태의 List로 변환
+     * 클라이언트가 camelCase(?sort=placeId)로 전송 → native query용 snake_case로 변환
      * Feign이 ?sort=place_id,desc&sort=name,asc 으로 직렬화함
      * 유효하지 않은 필드명은 무시
      */
@@ -137,8 +145,8 @@ public class PlaceService {
         if (sort.isUnsorted()) return null;
 
         List<String> result = sort.stream()
-                .filter(order -> VALID_PLACE_SORT_FIELDS.contains(order.getProperty()))
-                .map(order -> order.getProperty() + "," + order.getDirection().name().toLowerCase())
+                .filter(order -> PLACE_SORT_FIELD_MAP.containsKey(order.getProperty()))
+                .map(order -> PLACE_SORT_FIELD_MAP.get(order.getProperty()) + "," + order.getDirection().name().toLowerCase())
                 .collect(Collectors.toList());
 
         return result.isEmpty() ? null : result;

@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import java.io.IOException;
@@ -152,11 +152,18 @@ public class DocumentService {
         log.info("문서 삭제 완료: docId={}, siteId={}", docId, siteId);
     }
 
-    private static final Set<String> VALID_DOCUMENT_SORT_FIELDS =
-            Set.of("doc_id", "original_name", "status", "created_at", "updated_at");
+    // camelCase(API) → snake_case(native query 컬럼명) 매핑
+    private static final Map<String, String> DOCUMENT_SORT_FIELD_MAP = Map.of(
+            "docId",        "doc_id",
+            "originalName", "original_name",
+            "status",       "status",
+            "createdAt",    "created_at",
+            "updatedAt",    "updated_at"
+    );
 
     /**
-     * Spring Sort 객체를 ["doc_id,desc", "original_name,asc"] 형태의 List로 변환 (native query용 컬럼명 기준)
+     * Spring Sort 객체를 ["doc_id,desc", "original_name,asc"] 형태의 List로 변환
+     * 클라이언트가 camelCase(?sort=docId)로 전송 → native query용 snake_case로 변환
      * Feign이 ?sort=doc_id,desc&sort=original_name,asc 으로 직렬화함
      * 유효하지 않은 필드명은 무시
      */
@@ -164,8 +171,8 @@ public class DocumentService {
         if (sort.isUnsorted()) return null;
 
         List<String> result = sort.stream()
-                .filter(order -> VALID_DOCUMENT_SORT_FIELDS.contains(order.getProperty()))
-                .map(order -> order.getProperty() + "," + order.getDirection().name().toLowerCase())
+                .filter(order -> DOCUMENT_SORT_FIELD_MAP.containsKey(order.getProperty()))
+                .map(order -> DOCUMENT_SORT_FIELD_MAP.get(order.getProperty()) + "," + order.getDirection().name().toLowerCase())
                 .collect(Collectors.toList());
 
         return result.isEmpty() ? null : result;
