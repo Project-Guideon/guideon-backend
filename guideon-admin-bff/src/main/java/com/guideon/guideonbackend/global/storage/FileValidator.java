@@ -46,7 +46,7 @@ public class FileValidator {
                 throw new CustomException(ErrorCode.VALIDATION_ERROR, "손상되었거나 유효하지 않은 PDF 파일입니다.");
             }
         } catch (IOException e) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR, "파일을 읽을 수 없습니다: " + e.getMessage());
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "파일을 읽을 수 없습니다.");
         }
     }
 
@@ -91,11 +91,14 @@ public class FileValidator {
                 throw new CustomException(ErrorCode.VALIDATION_ERROR, "손상되었거나 유효하지 않은 이미지 파일입니다.");
             }
         } catch (IOException e) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR, "파일을 읽을 수 없습니다: " + e.getMessage());
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "파일을 읽을 수 없습니다.");
         }
     }
 
     public static String computeFileHash(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "빈 파일은 업로드할 수 없습니다.");
+        }
         try (InputStream is = file.getInputStream()) {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] buffer = new byte[8192];
@@ -105,17 +108,20 @@ public class FileValidator {
             }
             return HexFormat.of().formatHex(digest.digest());
         } catch (IOException | NoSuchAlgorithmException e) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR, "파일 해시 계산에 실패했습니다: " + e.getMessage());
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "파일 해시 계산에 실패했습니다.");
         }
     }
 
     public static String computeFileHash(byte[] fileBytes) {
+        if (fileBytes == null || fileBytes.length == 0) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "빈 파일은 업로드할 수 없습니다.");
+        }
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hashBytes = digest.digest(fileBytes);
             return HexFormat.of().formatHex(hashBytes);
         } catch (NoSuchAlgorithmException e) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR, "파일 해시 계산에 실패했습니다: " + e.getMessage());
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "파일 해시 계산에 실패했습니다.");
         }
     }
 
