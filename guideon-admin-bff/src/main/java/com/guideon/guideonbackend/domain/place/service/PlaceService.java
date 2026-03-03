@@ -10,18 +10,23 @@ import com.guideon.core.dto.UpdatePlaceCommand;
 import com.guideon.guideonbackend.client.CorePlaceClient;
 import com.guideon.common.response.PageResponse;
 import com.guideon.guideonbackend.domain.place.dto.CreatePlaceRequest;
+import com.guideon.guideonbackend.domain.place.dto.PlaceImageUploadResponse;
 import com.guideon.guideonbackend.domain.place.dto.PlaceResponse;
 import com.guideon.guideonbackend.domain.place.dto.UpdatePlaceRequest;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
+import com.guideon.guideonbackend.global.storage.FileStorageService;
+import com.guideon.guideonbackend.global.storage.FileValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
 
 /**
  * Admin BFF Place Service
@@ -35,6 +40,7 @@ public class PlaceService {
 
     private final CorePlaceClient corePlaceClient;
     private final AdminSiteRepository adminSiteRepository;
+    private final FileStorageService fileStorageService;
 
     /**
      * 장소 생성
@@ -123,6 +129,24 @@ public class PlaceService {
 
         corePlaceClient.deletePlace(siteId, placeId);
         log.info("장소 삭제 완료: placeId={}, siteId={}", placeId, siteId);
+    }
+
+    /**
+     * 장소 이미지 업로드 (선업로드 방식)
+     * Place 생성 전 이미지를 미리 업로드하고 URL을 반환
+     */
+    public PlaceImageUploadResponse uploadPlaceImage(Long siteId, MultipartFile file,
+                                                      CustomAdminDetails adminDetails) {
+        validateSiteAccess(adminDetails, siteId);
+        FileValidator.validateImage(file);
+
+        String fileHash = FileValidator.computeFileHash(file);
+        String storageUrl = fileStorageService.store(siteId, fileHash, file);
+
+        log.info("장소 이미지 업로드 완료: siteId={}, storageUrl={}", siteId, storageUrl);
+        return PlaceImageUploadResponse.builder()
+                .imageUrl(storageUrl)
+                .build();
     }
 
     // camelCase(API) → snake_case(native query 컬럼명) 매핑

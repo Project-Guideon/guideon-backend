@@ -2,6 +2,7 @@ package com.guideon.guideonbackend.domain.place.controller;
 
 import com.guideon.common.response.PageResponse;
 import com.guideon.guideonbackend.domain.place.dto.CreatePlaceRequest;
+import com.guideon.guideonbackend.domain.place.dto.PlaceImageUploadResponse;
 import com.guideon.guideonbackend.domain.place.dto.PlaceResponse;
 import com.guideon.guideonbackend.domain.place.dto.UpdatePlaceRequest;
 import com.guideon.guideonbackend.domain.place.service.PlaceService;
@@ -15,9 +16,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "장소 관리", description = "장소(Place) CRUD API")
 @RestController
@@ -82,6 +85,19 @@ public class PlaceController {
         placeService.deletePlace(siteId, placeId, adminDetails);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(null, traceId));
+    }
+
+    @Operation(summary = "장소 이미지 업로드", description = "장소 이미지를 선업로드합니다. 반환된 image_url을 장소 생성/수정 시 image_url 필드에 사용하세요.")
+    @PostMapping(value = "/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<PlaceImageUploadResponse>> uploadPlaceImage(
+            @PathVariable Long siteId,
+            @RequestPart("file") MultipartFile file,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        PlaceImageUploadResponse response = placeService.uploadPlaceImage(siteId, file, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
 
     @Operation(summary = "장소 생성", description = "관광지 내 새로운 장소를 생성합니다. zone_source가 AUTO면 좌표 기반으로 Zone이 자동 할당됩니다.")
