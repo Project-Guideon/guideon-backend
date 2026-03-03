@@ -13,6 +13,7 @@ import com.guideon.guideonbackend.domain.document.dto.DocumentResponse;
 import com.guideon.guideonbackend.domain.document.dto.ReprocessDocumentRequest;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import com.guideon.guideonbackend.global.storage.FileStorageService;
+import com.guideon.guideonbackend.global.storage.FileValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
@@ -24,12 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
-import java.util.HexFormat;
 
 @Slf4j
 @Service
@@ -48,9 +44,9 @@ public class DocumentService {
                                            String embeddingModel,
                                            CustomAdminDetails adminDetails) {
         validateSiteAccess(adminDetails, siteId);
-        validateFileType(file);
+        FileValidator.validatePdf(file);
 
-        String fileHash = computeFileHash(file);
+        String fileHash = FileValidator.computeFileHash(file);
         String storageUrl = fileStorageService.store(siteId, fileHash, file);
 
         CreateDocumentCommand command = CreateDocumentCommand.builder()
@@ -81,7 +77,7 @@ public class DocumentService {
         validateSiteAccess(adminDetails, siteId);
 
         byte[] fileBytes = Base64.getDecoder().decode(fileBase64);
-        String fileHash = computeFileHash(fileBytes);
+        String fileHash = FileValidator.computeFileHash(fileBytes);
         String storageUrl = fileStorageService.store(siteId, fileHash, fileBytes, originalName);
 
         CreateDocumentCommand command = CreateDocumentCommand.builder()
@@ -176,43 +172,6 @@ public class DocumentService {
                 .collect(Collectors.toList());
 
         return result.isEmpty() ? null : result;
-    }
-
-    private String computeFileHash(MultipartFile file) {
-        try (InputStream is = file.getInputStream()) {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] buffer = new byte[8192]; // 8KB 버퍼
-            int bytesRead;
-            while ((bytesRead = is.read(buffer)) != -1) { // 8KB씩 읽기
-                digest.update(buffer, 0, bytesRead); // 읽은 만큼만 해시에 추가
-            }
-            return HexFormat.of().formatHex(digest.digest());
-        } catch (IOException | NoSuchAlgorithmException e) {
-            throw new CustomException(ErrorCode.DOC_UPLOAD_FAILED,
-                    "파일 해시 계산에 실패했습니다: " + e.getMessage());
-        }
-    }
-
-    private String computeFileHash(byte[] fileBytes) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = digest.digest(fileBytes);
-            return HexFormat.of().formatHex(hashBytes);
-        } catch (NoSuchAlgorithmException e) {
-            throw new CustomException(ErrorCode.DOC_UPLOAD_FAILED,
-                    "파일 해시 계산에 실패했습니다: " + e.getMessage());
-        }
-    }
-
-    private void validateFileType(MultipartFile file) {
-        String contentType = file.getContentType();
-        String originalName = file.getOriginalFilename();
-        if (contentType == null || !contentType.equals("application/pdf")) {
-            throw new CustomException(ErrorCode.DOC_UPLOAD_FAILED, "PDF 파일만 업로드 가능합니다.");
-        }
-        if (originalName == null || !originalName.toLowerCase().endsWith(".pdf")) {
-            throw new CustomException(ErrorCode.DOC_UPLOAD_FAILED, "PDF 파일만 업로드 가능합니다.");
-        }
     }
 
     private void validateSiteAccess(CustomAdminDetails adminDetails, Long siteId) {
