@@ -77,6 +77,7 @@ public class DocumentService {
         validateSiteAccess(adminDetails, siteId);
 
         byte[] fileBytes = Base64.getDecoder().decode(fileBase64);
+        FileValidator.validatePdf(originalName, fileBytes);
         String fileHash = FileValidator.computeFileHash(fileBytes);
         String storageUrl = fileStorageService.store(siteId, fileHash, fileBytes, originalName);
 

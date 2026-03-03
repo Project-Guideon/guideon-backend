@@ -24,6 +24,9 @@ public class FileValidator {
     );
 
     public static void validatePdf(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "빈 파일은 업로드할 수 없습니다.");
+        }
         String contentType = file.getContentType();
         String originalName = file.getOriginalFilename();
 
@@ -38,9 +41,37 @@ public class FileValidator {
         if (!validExt) {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "PDF 파일만 업로드 가능합니다.");
         }
+        try (InputStream is = file.getInputStream()) {
+            if (!hasPdfSignature(is.readNBytes(5))) {
+                throw new CustomException(ErrorCode.VALIDATION_ERROR, "손상되었거나 유효하지 않은 PDF 파일입니다.");
+            }
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "파일을 읽을 수 없습니다: " + e.getMessage());
+        }
+    }
+
+    // Base64 업로드 경로용 오버로드 (content-type 없이 filename + 시그니처만 검증)
+    public static void validatePdf(String originalName, byte[] fileBytes) {
+        if (fileBytes == null || fileBytes.length == 0) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "빈 파일은 업로드할 수 없습니다.");
+        }
+        if (originalName == null) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "파일명이 없습니다.");
+        }
+        String lowerName = originalName.toLowerCase();
+        boolean validExt = ALLOWED_PDF_EXTENSIONS.stream().anyMatch(lowerName::endsWith);
+        if (!validExt) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "PDF 파일만 업로드 가능합니다.");
+        }
+        if (!hasPdfSignature(fileBytes)) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "손상되었거나 유효하지 않은 PDF 파일입니다.");
+        }
     }
 
     public static void validateImage(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "빈 파일은 업로드할 수 없습니다.");
+        }
         String contentType = file.getContentType();
         String originalName = file.getOriginalFilename();
 
@@ -54,6 +85,13 @@ public class FileValidator {
         boolean validExt = ALLOWED_IMAGE_EXTENSIONS.stream().anyMatch(lowerName::endsWith);
         if (!validExt) {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "JPG, PNG, WEBP 이미지만 업로드 가능합니다.");
+        }
+        try (InputStream is = file.getInputStream()) {
+            if (!hasImageSignature(is.readNBytes(12))) {
+                throw new CustomException(ErrorCode.VALIDATION_ERROR, "손상되었거나 유효하지 않은 이미지 파일입니다.");
+            }
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "파일을 읽을 수 없습니다: " + e.getMessage());
         }
     }
 
@@ -79,6 +117,52 @@ public class FileValidator {
         } catch (NoSuchAlgorithmException e) {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "파일 해시 계산에 실패했습니다: " + e.getMessage());
         }
+    }
+
+    private static boolean hasPdfSignature(byte[] header) {
+        // %PDF-
+        return header.length >= 5
+                && header[0] == 0x25
+                && header[1] == 0x50
+                && header[2] == 0x44
+                && header[3] == 0x46
+                && header[4] == 0x2D;
+    }
+
+    private static boolean hasImageSignature(byte[] header) {
+        return isJpeg(header) || isPng(header) || isWebP(header);
+    }
+
+    private static boolean isJpeg(byte[] h) {
+        return h.length >= 3
+                && (h[0] & 0xFF) == 0xFF
+                && (h[1] & 0xFF) == 0xD8
+                && (h[2] & 0xFF) == 0xFF;
+    }
+
+    private static boolean isPng(byte[] h) {
+        return h.length >= 8
+                && (h[0] & 0xFF) == 0x89
+                && h[1] == 0x50   // P
+                && h[2] == 0x4E   // N
+                && h[3] == 0x47   // G
+                && h[4] == 0x0D
+                && h[5] == 0x0A
+                && h[6] == 0x1A
+                && h[7] == 0x0A;
+    }
+
+    private static boolean isWebP(byte[] h) {
+        // RIFF....WEBP
+        return h.length >= 12
+                && h[0] == 0x52   // R
+                && h[1] == 0x49   // I
+                && h[2] == 0x46   // F
+                && h[3] == 0x46   // F
+                && h[8] == 0x57   // W
+                && h[9] == 0x45   // E
+                && h[10] == 0x42  // B
+                && h[11] == 0x50; // P
     }
 
     private FileValidator() {}
