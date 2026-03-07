@@ -1,9 +1,12 @@
 package com.guideon.core.api;
 
 import com.guideon.common.response.PageResponse;
+import com.guideon.core.client.FastApiDocumentService;
 import com.guideon.core.dto.CreateDocumentCommand;
 import com.guideon.core.dto.DocumentDto;
+import com.guideon.core.dto.ProcessDocumentCommand;
 import com.guideon.core.dto.ReprocessDocumentCommand;
+import com.guideon.core.dto.UpdateDocumentStatusCommand;
 import com.guideon.core.service.DocumentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -17,12 +20,15 @@ import org.springframework.web.bind.annotation.*;
 public class DocumentInternalController {
 
     private final DocumentService documentService;
+    private final FastApiDocumentService fastApiDocumentService;
 
     @PostMapping
     public ResponseEntity<DocumentDto> createDocument(
             @PathVariable Long siteId,
             @RequestBody CreateDocumentCommand command) {
         DocumentDto document = documentService.createDocument(siteId, command);
+        // 트랜잭션 커밋 후 FastAPI에 비동기 처리 요청
+        fastApiDocumentService.processDocument(ProcessDocumentCommand.from(document));
         return ResponseEntity.ok(document);
     }
 
@@ -50,8 +56,12 @@ public class DocumentInternalController {
             @PathVariable Long docId,
             @RequestBody ReprocessDocumentCommand command) {
         DocumentDto document = documentService.reprocessDocument(siteId, docId, command);
+        // 트랜잭션 커밋 후 FastAPI에 비동기 재처리 요청
+        fastApiDocumentService.processDocument(ProcessDocumentCommand.from(document));
         return ResponseEntity.ok(document);
     }
+
+
 
     @DeleteMapping("/{docId}")
     public ResponseEntity<Void> deleteDocument(
