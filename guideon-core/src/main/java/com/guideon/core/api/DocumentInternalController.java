@@ -61,7 +61,14 @@ public class DocumentInternalController {
         return ResponseEntity.ok(document);
     }
 
-
+    @PatchMapping("/{docId}/status")
+    public ResponseEntity<DocumentDto> updateDocumentStatus(
+            @PathVariable Long siteId,
+            @PathVariable Long docId,
+            @RequestBody UpdateDocumentStatusCommand command) {
+        DocumentDto document = documentService.updateDocumentStatus(siteId, docId, command);
+        return ResponseEntity.ok(document);
+    }
 
     @DeleteMapping("/{docId}")
     public ResponseEntity<Void> deleteDocument(
