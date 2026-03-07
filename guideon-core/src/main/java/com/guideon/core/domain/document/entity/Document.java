@@ -77,6 +77,18 @@ public class Document extends BaseEntity {
         this.status = DocStatus.PENDING;
     }
 
+    /**
+     * FastAPI 처리 결과에 따른 상태 업데이트
+     * PROCESSING: failedReason=null, processedAt=null
+     * COMPLETED:  failedReason=null, processedAt=now
+     * FAILED:     failedReason=에러메시지, processedAt=null
+     */
+    public void updateStatus(DocStatus status, String failedReason) {
+        this.status = status;
+        this.failedReason = failedReason;
+        this.processedAt = (status == DocStatus.COMPLETED) ? LocalDateTime.now() : null;
+    }
+
     public void reprocess(Integer chunkSize, Integer chunkOverlap, String embeddingModel) {
         this.chunkSize = chunkSize != null ? chunkSize : this.chunkSize;
         this.chunkOverlap = chunkOverlap != null ? chunkOverlap : this.chunkOverlap;
