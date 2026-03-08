@@ -15,6 +15,9 @@ public class ProcessDocumentCommand {
     @JsonProperty("doc_id")
     private Long docId;
 
+    @JsonProperty("site_id")
+    private Long siteId;
+
     @JsonProperty("storage_url")
     private String storageUrl;
 
@@ -30,6 +33,7 @@ public class ProcessDocumentCommand {
     public static ProcessDocumentCommand from(DocumentDto doc) {
         return ProcessDocumentCommand.builder()
                 .docId(doc.getDocId())
+                .siteId(doc.getSiteId())
                 .storageUrl(doc.getStorageUrl())
                 .chunkSize(doc.getChunkSize())
                 .chunkOverlap(doc.getChunkOverlap())
