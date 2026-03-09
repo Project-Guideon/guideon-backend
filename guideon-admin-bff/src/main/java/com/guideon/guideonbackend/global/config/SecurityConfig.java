@@ -81,6 +81,8 @@ public class SecurityConfig {
                         // Mascot 관리 API는 PLATFORM_ADMIN만 접근 가능
                         .requestMatchers("/api/v1/admin/sites/*/mascot/**").hasRole("PLATFORM_ADMIN")
                         .requestMatchers("/api/v1/admin/sites/*/mascot").hasRole("PLATFORM_ADMIN")
+                        // Device 관리 API는 PLATFORM_ADMIN + SITE_ADMIN 접근 가능
+                        .requestMatchers("/api/v1/admin/sites/*/devices/**").hasAnyRole("PLATFORM_ADMIN", "SITE_ADMIN")
                         // Site 관리 API는 PLATFORM_ADMIN만 접근 가능
                         .requestMatchers("/api/v1/admin/sites/**").hasRole("PLATFORM_ADMIN")
                         .anyRequest().authenticated()
