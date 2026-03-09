@@ -8,6 +8,7 @@ import com.guideon.core.dto.ProcessDocumentCommand;
 import com.guideon.core.dto.ReprocessDocumentCommand;
 import com.guideon.core.dto.UpdateDocumentStatusCommand;
 import com.guideon.core.service.DocumentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -65,7 +66,7 @@ public class DocumentInternalController {
     public ResponseEntity<DocumentDto> updateDocumentStatus(
             @PathVariable Long siteId,
             @PathVariable Long docId,
-            @RequestBody UpdateDocumentStatusCommand command) {
+            @RequestBody @Valid UpdateDocumentStatusCommand command) {
         DocumentDto document = documentService.updateDocumentStatus(siteId, docId, command);
         return ResponseEntity.ok(document);
     }
