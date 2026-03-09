@@ -46,6 +46,7 @@ uploads/
 ### AI ###
 CLAUDE.md
 ARCHITECTURE.md
+.claude/settings.local.json
 
 ### Internal Docs ###
 docs/internal/

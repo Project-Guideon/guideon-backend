@@ -191,6 +191,7 @@ CREATE TABLE IF NOT EXISTS tb_mascot (
   default_anim   VARCHAR(50) NOT NULL DEFAULT 'IDLE_A',
   greeting_msg   VARCHAR(200) NOT NULL,
   system_prompt  TEXT NOT NULL,
+  prompt_config  JSONB NOT NULL DEFAULT '{}',
   tts_voice_id   VARCHAR(50) NOT NULL,
   tts_voice_json JSONB NULL,
   is_active      BOOLEAN NOT NULL DEFAULT TRUE,
