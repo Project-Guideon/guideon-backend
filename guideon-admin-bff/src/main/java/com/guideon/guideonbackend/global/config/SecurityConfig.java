@@ -61,6 +61,8 @@ public class SecurityConfig {
                                 "/api/v1/admin/auth/refresh",
                                 "/health",
                                 "/error",
+                                // FastAPI가 PDF 다운로드할 때 사용하는 내부 엔드포인트
+                                "/internal/files/**",
                                 // Swagger UI
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
