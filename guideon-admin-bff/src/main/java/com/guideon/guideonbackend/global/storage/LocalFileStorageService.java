@@ -18,10 +18,13 @@ import java.nio.file.StandardCopyOption;
 public class LocalFileStorageService implements FileStorageService {
 
     private final Path uploadDir;
+    private final String fileBaseUrl;
 
     public LocalFileStorageService(
-            @Value("${file.upload-dir:./uploads}") String uploadDir) {
+            @Value("${file.upload-dir:./uploads}") String uploadDir,
+            @Value("${file.base-url:http://localhost:8081}") String fileBaseUrl) {
         this.uploadDir = Paths.get(uploadDir).toAbsolutePath().normalize();
+        this.fileBaseUrl = fileBaseUrl;
     }
 
     @Override
@@ -31,12 +34,13 @@ public class LocalFileStorageService implements FileStorageService {
             Files.createDirectories(siteDir);
 
             String extension = extractExtension(file.getOriginalFilename());
-            Path targetPath = siteDir.resolve(fileHash + extension);
+            String filename = fileHash + extension;
+            Path targetPath = siteDir.resolve(filename);
 
             Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
             log.info("파일 저장 완료: {}", targetPath);
 
-            return targetPath.toString();
+            return fileBaseUrl + "/internal/files/" + siteId + "/" + filename;
         } catch (IOException e) {
             log.error("파일 저장 실패: siteId={}, fileHash={}", siteId, fileHash, e);
             throw new CustomException(ErrorCode.DOC_UPLOAD_FAILED,
@@ -51,12 +55,13 @@ public class LocalFileStorageService implements FileStorageService {
             Files.createDirectories(siteDir);
 
             String extension = extractExtension(originalName);
-            Path targetPath = siteDir.resolve(fileHash + extension);
+            String filename = fileHash + extension;
+            Path targetPath = siteDir.resolve(filename);
 
             Files.write(targetPath, fileBytes);
             log.info("파일 저장 완료 (base64): {}", targetPath);
 
-            return targetPath.toString();
+            return fileBaseUrl + "/internal/files/" + siteId + "/" + filename;
         } catch (IOException e) {
             log.error("파일 저장 실패 (base64): siteId={}, fileHash={}", siteId, fileHash, e);
             throw new CustomException(ErrorCode.DOC_UPLOAD_FAILED,
