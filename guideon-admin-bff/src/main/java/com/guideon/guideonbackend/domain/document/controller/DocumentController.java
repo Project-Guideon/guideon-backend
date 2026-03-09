@@ -35,14 +35,10 @@ public class DocumentController {
     public ResponseEntity<ApiResponse<DocumentResponse>> uploadDocument(
             @PathVariable Long siteId,
             @RequestPart("file") MultipartFile file,
-            @RequestParam(value = "chunk_size", required = false) Integer chunkSize,
-            @RequestParam(value = "chunk_overlap", required = false) Integer chunkOverlap,
-            @RequestParam(value = "embedding_model", required = false) String embeddingModel,
             @AuthenticationPrincipal CustomAdminDetails adminDetails,
             HttpServletRequest httpRequest
     ) {
-        DocumentResponse response = documentService.uploadDocument(
-                siteId, file, chunkSize, chunkOverlap, embeddingModel, adminDetails);
+        DocumentResponse response = documentService.uploadDocument(siteId, file, adminDetails);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
@@ -57,9 +53,7 @@ public class DocumentController {
             HttpServletRequest httpRequest
     ) {
         DocumentResponse response = documentService.uploadDocumentJson(
-                siteId, request.getOriginalName(), request.getFileBase64(),
-                request.getChunkSize(), request.getChunkOverlap(),
-                request.getEmbeddingModel(), adminDetails);
+                siteId, request.getOriginalName(), request.getFileBase64(), adminDetails);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
@@ -93,16 +87,16 @@ public class DocumentController {
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
 
-    @Operation(summary = "문서 재처리", description = "문서의 청킹/임베딩 파라미터를 변경하고 재처리를 요청합니다.")
+    @Operation(summary = "문서 재처리", description = "실패한 문서를 재처리합니다.")
     @PostMapping("/{docId}/reprocess")
     public ResponseEntity<ApiResponse<DocumentResponse>> reprocessDocument(
             @PathVariable Long siteId,
             @PathVariable Long docId,
-            @Valid @RequestBody ReprocessDocumentRequest request,
+            @RequestBody(required = false) ReprocessDocumentRequest request,
             @AuthenticationPrincipal CustomAdminDetails adminDetails,
             HttpServletRequest httpRequest
     ) {
-        DocumentResponse response = documentService.reprocessDocument(siteId, docId, request, adminDetails);
+        DocumentResponse response = documentService.reprocessDocument(siteId, docId, adminDetails);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }

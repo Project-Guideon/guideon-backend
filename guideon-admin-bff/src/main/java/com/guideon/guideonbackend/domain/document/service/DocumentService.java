@@ -10,7 +10,6 @@ import com.guideon.core.dto.DocumentDto;
 import com.guideon.core.dto.ReprocessDocumentCommand;
 import com.guideon.guideonbackend.client.CoreDocumentClient;
 import com.guideon.guideonbackend.domain.document.dto.DocumentResponse;
-import com.guideon.guideonbackend.domain.document.dto.ReprocessDocumentRequest;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import com.guideon.guideonbackend.global.storage.FileStorageService;
 import com.guideon.guideonbackend.global.storage.FileValidator;
@@ -40,8 +39,6 @@ public class DocumentService {
      * 문서 업로드 (multipart)
      */
     public DocumentResponse uploadDocument(Long siteId, MultipartFile file,
-                                           Integer chunkSize, Integer chunkOverlap,
-                                           String embeddingModel,
                                            CustomAdminDetails adminDetails) {
         validateSiteAccess(adminDetails, siteId);
         FileValidator.validatePdf(file);
@@ -54,9 +51,6 @@ public class DocumentService {
                 .storageUrl(storageUrl)
                 .fileHash(fileHash)
                 .fileSize(file.getSize())
-                .chunkSize(chunkSize)
-                .chunkOverlap(chunkOverlap)
-                .embeddingModel(embeddingModel)
                 .build();
 
         DocumentDto documentDto = coreDocumentClient.createDocument(siteId, command);
@@ -71,8 +65,6 @@ public class DocumentService {
      */
     public DocumentResponse uploadDocumentJson(Long siteId, String originalName,
                                                String fileBase64,
-                                               Integer chunkSize, Integer chunkOverlap,
-                                               String embeddingModel,
                                                CustomAdminDetails adminDetails) {
         validateSiteAccess(adminDetails, siteId);
 
@@ -86,9 +78,6 @@ public class DocumentService {
                 .storageUrl(storageUrl)
                 .fileHash(fileHash)
                 .fileSize((long) fileBytes.length)
-                .chunkSize(chunkSize)
-                .chunkOverlap(chunkOverlap)
-                .embeddingModel(embeddingModel)
                 .build();
 
         DocumentDto documentDto = coreDocumentClient.createDocument(siteId, command);
@@ -121,17 +110,9 @@ public class DocumentService {
     }
 
     public DocumentResponse reprocessDocument(Long siteId, Long docId,
-                                               ReprocessDocumentRequest request,
                                                CustomAdminDetails adminDetails) {
         validateSiteAccess(adminDetails, siteId);
-
-        ReprocessDocumentCommand command = ReprocessDocumentCommand.builder()
-                .chunkSize(request.getChunkSize())
-                .chunkOverlap(request.getChunkOverlap())
-                .embeddingModel(request.getEmbeddingModel())
-                .build();
-
-        DocumentDto documentDto = coreDocumentClient.reprocessDocument(siteId, docId, command);
+        DocumentDto documentDto = coreDocumentClient.reprocessDocument(siteId, docId);
         log.info("문서 재처리 요청 완료: docId={}, siteId={}", docId, siteId);
         return DocumentResponse.from(documentDto);
     }
