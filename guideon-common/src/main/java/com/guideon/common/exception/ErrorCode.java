@@ -38,7 +38,11 @@ public enum ErrorCode {
     // ── Document ──
     DOC_HASH_DUPLICATE(HttpStatus.CONFLICT, "동일한 파일이 이미 업로드되어 있습니다"),
     DOC_NOT_FOUND(HttpStatus.NOT_FOUND, "문서를 찾을 수 없습니다"),
-    DOC_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다");
+    DOC_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다"),
+
+    // ── Mascot ──
+    MASCOT_NOT_FOUND(HttpStatus.NOT_FOUND, "마스코트 설정을 찾을 수 없습니다"),
+    MASCOT_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 마스코트가 등록된 관광지입니다");
 
     private final HttpStatus httpStatus;
     private final String message;

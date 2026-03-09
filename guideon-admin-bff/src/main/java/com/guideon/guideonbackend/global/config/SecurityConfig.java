@@ -78,6 +78,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/admin/sites/*/places/**").hasAnyRole("PLATFORM_ADMIN", "SITE_ADMIN")
                         // Document 관리 API는 PLATFORM_ADMIN + SITE_ADMIN 접근 가능
                         .requestMatchers("/api/v1/admin/sites/*/documents/**").hasAnyRole("PLATFORM_ADMIN", "SITE_ADMIN")
+                        // Mascot 관리 API는 PLATFORM_ADMIN만 접근 가능
+                        .requestMatchers("/api/v1/admin/sites/*/mascot/**").hasRole("PLATFORM_ADMIN")
+                        .requestMatchers("/api/v1/admin/sites/*/mascot").hasRole("PLATFORM_ADMIN")
                         // Site 관리 API는 PLATFORM_ADMIN만 접근 가능
                         .requestMatchers("/api/v1/admin/sites/**").hasRole("PLATFORM_ADMIN")
                         .anyRequest().authenticated()
