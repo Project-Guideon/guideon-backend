@@ -27,6 +27,10 @@ spring:
       host: ${SPRING_DATA_REDIS_HOST}
       port: ${SPRING_DATA_REDIS_PORT}
 
+fastapi:
+  service:
+    url: ${FASTAPI_SERVICE_URL:http://host.docker.internal:8000}
+
 # Logging (production default)
 logging:
   level:
