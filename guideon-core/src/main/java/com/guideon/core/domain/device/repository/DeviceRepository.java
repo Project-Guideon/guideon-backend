@@ -25,7 +25,7 @@ public interface DeviceRepository extends JpaRepository<Device, String> {
             SELECT z.zone_id
             FROM tb_zone z
             WHERE z.site_id = :siteId
-              AND ST_Contains(z.area_geometry, ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326))
+              AND ST_Covers(z.area_geometry, ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326))
             ORDER BY z.level DESC
             LIMIT 1
             """, nativeQuery = true)

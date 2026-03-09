@@ -1,7 +1,6 @@
 package com.guideon.guideonbackend.domain.mascot.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 
@@ -26,6 +25,7 @@ public class CreateMascotRequest {
     private String greetingMsg;
 
     @NotBlank
+    @Size(max = 2000, message = "systemPrompt는 2000자 이하여야 합니다")
     private String systemPrompt;
 
     private Map<String, Object> promptConfig;

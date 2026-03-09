@@ -92,14 +92,20 @@ public class DeviceService {
     }
 
     /**
-     * SITE_ADMIN의 사이트 접근 권한 검증
-     * PLATFORM_ADMIN은 모든 사이트 접근 가능
+     * 사이트 접근 권한 검증
+     * PLATFORM_ADMIN: 모든 사이트 접근 가능
+     * SITE_ADMIN: 본인에게 할당된 사이트만 접근 가능
      */
     private void validateSiteAccess(CustomAdminDetails adminDetails, Long siteId) {
+        if (AdminRole.PLATFORM_ADMIN.name().equals(adminDetails.getRole())) {
+            return;
+        }
         if (AdminRole.SITE_ADMIN.name().equals(adminDetails.getRole())) {
             if (!adminSiteRepository.existsById_AdminIdAndId_SiteId(adminDetails.getAdminId(), siteId)) {
                 throw new CustomException(ErrorCode.ADMIN_SITE_FORBIDDEN);
             }
+            return;
         }
+        throw new CustomException(ErrorCode.ADMIN_SITE_FORBIDDEN);
     }
 }

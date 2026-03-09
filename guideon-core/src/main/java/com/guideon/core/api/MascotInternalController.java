@@ -4,6 +4,7 @@ import com.guideon.core.dto.CreateMascotCommand;
 import com.guideon.core.dto.MascotDto;
 import com.guideon.core.dto.UpdateMascotCommand;
 import com.guideon.core.service.MascotService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +19,7 @@ public class MascotInternalController {
     @PostMapping
     public ResponseEntity<MascotDto> createMascot(
             @PathVariable Long siteId,
-            @RequestBody CreateMascotCommand command) {
+            @Valid @RequestBody CreateMascotCommand command) {
         return ResponseEntity.ok(mascotService.createMascot(siteId, command));
     }
 
@@ -30,7 +31,7 @@ public class MascotInternalController {
     @PatchMapping
     public ResponseEntity<MascotDto> updateMascot(
             @PathVariable Long siteId,
-            @RequestBody UpdateMascotCommand command) {
+            @Valid @RequestBody UpdateMascotCommand command) {
         return ResponseEntity.ok(mascotService.updateMascot(siteId, command));
     }
 }

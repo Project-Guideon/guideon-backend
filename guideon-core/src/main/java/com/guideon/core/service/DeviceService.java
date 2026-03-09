@@ -114,7 +114,12 @@ public class DeviceService {
                 .orElseThrow(() -> new CustomException(ErrorCode.DEVICE_NOT_FOUND));
 
         Point newLocation = null;
-        if (command.getLatitude() != null && command.getLongitude() != null) {
+        boolean hasLat = command.getLatitude() != null;
+        boolean hasLng = command.getLongitude() != null;
+        if (hasLat != hasLng) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "latitude와 longitude는 함께 제공해야 합니다");
+        }
+        if (hasLat) {
             validateCoordinates(command.getLatitude(), command.getLongitude());
             newLocation = createPoint(command.getLongitude(), command.getLatitude());
         }
