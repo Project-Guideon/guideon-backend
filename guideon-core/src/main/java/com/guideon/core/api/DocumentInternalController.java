@@ -54,8 +54,8 @@ public class DocumentInternalController {
     public ResponseEntity<DocumentDto> reprocessDocument(
             @PathVariable Long siteId,
             @PathVariable Long docId,
-            @RequestBody ReprocessDocumentCommand command) {
-        DocumentDto document = documentService.reprocessDocument(siteId, docId, command);
+            @RequestBody(required = false) ReprocessDocumentCommand command) {
+        DocumentDto document = documentService.reprocessDocument(siteId, docId);
         // 트랜잭션 커밋 후 FastAPI에 비동기 재처리 요청
         fastApiDocumentService.processDocument(ProcessDocumentCommand.from(document));
         return ResponseEntity.ok(document);

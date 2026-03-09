@@ -9,7 +9,6 @@ import com.guideon.core.domain.site.repository.SiteRepository;
 import com.guideon.core.domain.document.entity.DocStatus;
 import com.guideon.core.dto.CreateDocumentCommand;
 import com.guideon.core.dto.DocumentDto;
-import com.guideon.core.dto.ReprocessDocumentCommand;
 import com.guideon.core.dto.UpdateDocumentStatusCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,9 +47,6 @@ public class DocumentService {
                 .storageUrl(command.getStorageUrl())
                 .fileHash(command.getFileHash())
                 .fileSize(command.getFileSize())
-                .chunkSize(command.getChunkSize())
-                .chunkOverlap(command.getChunkOverlap())
-                .embeddingModel(command.getEmbeddingModel())
                 .build();
 
         Document saved;
@@ -77,12 +73,11 @@ public class DocumentService {
     }
 
     @Transactional
-    public DocumentDto reprocessDocument(Long siteId, Long docId, ReprocessDocumentCommand command) {
+    public DocumentDto reprocessDocument(Long siteId, Long docId) {
         Document document = documentRepository.findByDocIdAndSite_SiteId(docId, siteId)
                 .orElseThrow(() -> new CustomException(ErrorCode.DOC_NOT_FOUND));
 
-        document.reprocess(command.getChunkSize(), command.getChunkOverlap(),
-                command.getEmbeddingModel());
+        document.reprocess();
 
         log.info("문서 재처리 요청: docId={}, siteId={}", docId, siteId);
         return DocumentDto.from(document);

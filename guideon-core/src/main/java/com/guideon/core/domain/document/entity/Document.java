@@ -89,10 +89,7 @@ public class Document extends BaseEntity {
         this.processedAt = (status == DocStatus.COMPLETED) ? LocalDateTime.now() : null;
     }
 
-    public void reprocess(Integer chunkSize, Integer chunkOverlap, String embeddingModel) {
-        this.chunkSize = chunkSize != null ? chunkSize : this.chunkSize;
-        this.chunkOverlap = chunkOverlap != null ? chunkOverlap : this.chunkOverlap;
-        this.embeddingModel = embeddingModel != null ? embeddingModel : this.embeddingModel;
+    public void reprocess() {
         this.status = DocStatus.PENDING;
         this.failedReason = null;
         this.processedAt = null;
