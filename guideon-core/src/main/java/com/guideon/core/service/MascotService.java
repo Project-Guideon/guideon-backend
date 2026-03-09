@@ -68,7 +68,7 @@ public class MascotService {
         mascot.update(
                 command.getName(), command.getModelId(), command.getDefaultAnim(),
                 command.getGreetingMsg(), command.getSystemPrompt(), command.getPromptConfig(),
-                command.getTtsVoiceId(), command.getTtsVoiceJson(), command.getIsActive()
+                command.getTtsVoiceId(), command.getTtsVoiceJson(), command.getActive()
         );
 
         log.info("마스코트 수정 완료: mascotId={}, siteId={}", mascot.getMascotId(), siteId);

@@ -60,7 +60,7 @@ public class MascotService {
                 .promptConfig(request.getPromptConfig())
                 .ttsVoiceId(request.getTtsVoiceId())
                 .ttsVoiceJson(request.getTtsVoiceJson())
-                .isActive(request.getIsActive())
+                .active(request.getIsActive())
                 .build();
 
         MascotDto dto = coreMascotClient.updateMascot(siteId, command);

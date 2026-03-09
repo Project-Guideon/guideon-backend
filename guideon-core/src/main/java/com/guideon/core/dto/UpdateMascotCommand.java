@@ -34,5 +34,5 @@ public class UpdateMascotCommand {
 
     private Map<String, Object> ttsVoiceJson;
 
-    private Boolean isActive;
+    private Boolean active;
 }

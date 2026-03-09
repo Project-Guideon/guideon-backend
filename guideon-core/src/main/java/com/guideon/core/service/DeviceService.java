@@ -126,26 +126,29 @@ public class DeviceService {
 
         device.update(command.getLocationName(), newLocation, command.getIsActive());
 
-        // 유효 zoneSource: 명시 전달이면 파싱, 없으면 기기 현재 값 유지
-        ZoneSource finalZoneSource = command.getZoneSource() != null
-                ? parseZoneSource(command.getZoneSource())
-                : device.getZoneSource();
+        // zone 관련 입력이 있을 때만 zone 변경 처리
+        boolean hasZoneInput = command.getZoneSource() != null || command.getZoneId() != null;
+        if (hasZoneInput) {
+            ZoneSource finalZoneSource = command.getZoneSource() != null
+                    ? parseZoneSource(command.getZoneSource())
+                    : device.getZoneSource();
 
-        if (finalZoneSource == ZoneSource.MANUAL) {
-            // MANUAL: zoneId 필수
-            if (command.getZoneId() == null) {
-                throw new CustomException(ErrorCode.VALIDATION_ERROR, "MANUAL zone 지정 시 zoneId는 필수입니다");
+            if (finalZoneSource == ZoneSource.MANUAL) {
+                // MANUAL: zoneId 필수
+                if (command.getZoneId() == null) {
+                    throw new CustomException(ErrorCode.VALIDATION_ERROR, "MANUAL zone 지정 시 zoneId는 필수입니다");
+                }
+                Zone zone = zoneRepository.findByZoneIdAndSite_SiteId(command.getZoneId(), siteId)
+                        .orElseThrow(() -> new CustomException(ErrorCode.ZONE_NOT_FOUND));
+                device.changeZone(zone, ZoneSource.MANUAL);
+            } else {
+                // AUTO: 유효 좌표(변경된 값 또는 기존 값)로 재계산
+                Double lat = hasLat ? command.getLatitude() : device.getLocation().getY();
+                Double lng = hasLng ? command.getLongitude() : device.getLocation().getX();
+                Long autoZoneId = deviceRepository.findZoneIdByCoordinates(siteId, lat, lng);
+                Zone zone = autoZoneId != null ? zoneRepository.findById(autoZoneId).orElse(null) : null;
+                device.changeZone(zone, ZoneSource.AUTO);
             }
-            Zone zone = zoneRepository.findByZoneIdAndSite_SiteId(command.getZoneId(), siteId)
-                    .orElseThrow(() -> new CustomException(ErrorCode.ZONE_NOT_FOUND));
-            device.changeZone(zone, ZoneSource.MANUAL);
-        } else {
-            // AUTO: 유효 좌표(변경된 값 또는 기존 값)로 항상 재계산
-            Double lat = hasLat ? command.getLatitude() : device.getLocation().getY();
-            Double lng = hasLng ? command.getLongitude() : device.getLocation().getX();
-            Long autoZoneId = deviceRepository.findZoneIdByCoordinates(siteId, lat, lng);
-            Zone zone = autoZoneId != null ? zoneRepository.findById(autoZoneId).orElse(null) : null;
-            device.changeZone(zone, ZoneSource.AUTO);
         }
 
         log.info("디바이스 수정 완료: deviceId={}, siteId={}", deviceId, siteId);
