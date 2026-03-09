@@ -18,7 +18,7 @@ public class FastApiDocumentService {
 
     private final FastApiDocumentClient fastApiDocumentClient;
 
-    @Async
+    @Async("fastApiTaskExecutor")
     public void processDocument(ProcessDocumentCommand command) {
         try {
             fastApiDocumentClient.processDocument(command);
