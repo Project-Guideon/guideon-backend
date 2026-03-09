@@ -6,9 +6,10 @@ import com.guideon.core.domain.document.entity.Document;
 import com.guideon.core.domain.document.repository.DocumentRepository;
 import com.guideon.core.domain.site.entity.Site;
 import com.guideon.core.domain.site.repository.SiteRepository;
+import com.guideon.core.domain.document.entity.DocStatus;
 import com.guideon.core.dto.CreateDocumentCommand;
 import com.guideon.core.dto.DocumentDto;
-import com.guideon.core.dto.ReprocessDocumentCommand;
+import com.guideon.core.dto.UpdateDocumentStatusCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -46,9 +47,6 @@ public class DocumentService {
                 .storageUrl(command.getStorageUrl())
                 .fileHash(command.getFileHash())
                 .fileSize(command.getFileSize())
-                .chunkSize(command.getChunkSize())
-                .chunkOverlap(command.getChunkOverlap())
-                .embeddingModel(command.getEmbeddingModel())
                 .build();
 
         Document saved;
@@ -75,14 +73,31 @@ public class DocumentService {
     }
 
     @Transactional
-    public DocumentDto reprocessDocument(Long siteId, Long docId, ReprocessDocumentCommand command) {
+    public DocumentDto reprocessDocument(Long siteId, Long docId) {
         Document document = documentRepository.findByDocIdAndSite_SiteId(docId, siteId)
                 .orElseThrow(() -> new CustomException(ErrorCode.DOC_NOT_FOUND));
 
-        document.reprocess(command.getChunkSize(), command.getChunkOverlap(),
-                command.getEmbeddingModel());
+        document.reprocess();
 
         log.info("문서 재처리 요청: docId={}, siteId={}", docId, siteId);
+        return DocumentDto.from(document);
+    }
+
+    @Transactional
+    public DocumentDto updateDocumentStatus(Long siteId, Long docId, UpdateDocumentStatusCommand command) {
+        Document document = documentRepository.findByDocIdAndSite_SiteId(docId, siteId)
+                .orElseThrow(() -> new CustomException(ErrorCode.DOC_NOT_FOUND));
+
+        DocStatus status;
+        try {
+            status = DocStatus.valueOf(command.getStatus());
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                    "유효하지 않은 상태값입니다: " + command.getStatus());
+        }
+
+        document.updateStatus(status, command.getFailedReason());
+        log.info("문서 상태 업데이트: docId={}, siteId={}, status={}", docId, siteId, status);
         return DocumentDto.from(document);
     }
 

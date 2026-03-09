@@ -26,6 +26,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-security'
 
+    // OpenFeign (FastAPI 호출용)
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
     // PostGIS / Hibernate Spatial
     implementation 'org.hibernate.orm:hibernate-spatial'
 
