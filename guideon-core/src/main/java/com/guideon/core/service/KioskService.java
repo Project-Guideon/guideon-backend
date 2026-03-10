@@ -33,7 +33,11 @@ public class KioskService {
                 .orElseThrow(() -> new CustomException(ErrorCode.DEVICE_NOT_FOUND));
 
         if (!device.getIsActive()) {
-            throw new CustomException(ErrorCode.SITE_INACTIVE, "비활성화된 디바이스입니다");
+            throw new CustomException(ErrorCode.DEVICE_INACTIVE);
+        }
+
+        if (!device.getSite().getIsActive()) {
+            throw new CustomException(ErrorCode.SITE_INACTIVE);
         }
 
         Optional<Mascot> mascotOpt = mascotRepository.findBySite_SiteId(device.getSite().getSiteId());

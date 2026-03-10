@@ -1,5 +1,6 @@
 package com.guideon.kiosk.global.exception;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guideon.common.exception.CustomException;
 import com.guideon.common.exception.ErrorCode;
@@ -87,10 +88,14 @@ public class GlobalExceptionHandler {
         if (body != null && !body.isBlank()) {
             try {
                 ObjectMapper mapper = new ObjectMapper();
-                ApiError coreError = mapper.readValue(body, ApiError.class);
-                return ResponseEntity
-                        .status(e.status())
-                        .body(ApiResponse.fail(coreError, traceId(req)));
+                JsonNode root = mapper.readTree(body);
+                JsonNode errorNode = root.get("error");
+                if (errorNode != null && !errorNode.isNull()) {
+                    ApiError coreError = mapper.treeToValue(errorNode, ApiError.class);
+                    return ResponseEntity
+                            .status(e.status())
+                            .body(ApiResponse.fail(coreError, traceId(req)));
+                }
             } catch (Exception parseEx) {
                 log.warn("[{}] Core 에러 응답 파싱 실패: {}", traceId(req), parseEx.getMessage());
             }

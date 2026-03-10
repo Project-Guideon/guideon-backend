@@ -44,10 +44,10 @@ public class DeviceTokenAuthFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        try {
-            String plainToken = extractToken(request);
+        String plainToken = extractToken(request);
 
-            if (StringUtils.hasText(plainToken)) {
+        if (StringUtils.hasText(plainToken)) {
+            try {
                 String tokenHash = sha256Hex(plainToken);
                 Optional<Device> deviceOpt = deviceRepository.findByAuthTokenHashAndIsActiveTrue(tokenHash);
 
@@ -69,9 +69,11 @@ public class DeviceTokenAuthFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                     log.debug("Device 인증 성공: deviceId={}", device.getDeviceId());
                 }
+            } catch (Exception e) {
+                log.error("Device 인증 중 시스템 오류: {}", e.getMessage(), e);
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                return;
             }
-        } catch (Exception e) {
-            log.debug("Device 인증 실패: {}", e.getMessage());
         }
 
         filterChain.doFilter(request, response);

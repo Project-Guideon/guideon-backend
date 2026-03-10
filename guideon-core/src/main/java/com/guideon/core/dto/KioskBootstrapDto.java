@@ -1,7 +1,9 @@
 package com.guideon.core.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
@@ -11,6 +13,8 @@ import java.util.Map;
  */
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class KioskBootstrapDto {
 
     private String deviceId;
@@ -24,6 +28,8 @@ public class KioskBootstrapDto {
 
     @Getter
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class MascotSummary {
         private String name;
         private String modelId;
