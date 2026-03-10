@@ -56,7 +56,9 @@ public class DeviceTokenAuthFilter extends OncePerRequestFilter {
                     DeviceDetails deviceDetails = new DeviceDetails(
                             device.getDeviceId(),
                             device.getSite().getSiteId(),
-                            device.getZone() != null ? device.getZone().getZoneId() : null
+                            device.getZone() != null ? device.getZone().getZoneId() : null,
+                            device.getLocation() != null ? device.getLocation().getY() : null,
+                            device.getLocation() != null ? device.getLocation().getX() : null
                     );
 
                     UsernamePasswordAuthenticationToken authentication =

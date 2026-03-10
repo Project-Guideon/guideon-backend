@@ -13,5 +13,7 @@ import lombok.Getter;
 public class DeviceDetails {
     private String deviceId;
     private Long siteId;
-    private Long zoneId;   // nullable (OUTER zone)
+    private Long zoneId;      // nullable (OUTER zone)
+    private Double latitude;  // 디바이스 설치 좌표
+    private Double longitude;
 }
