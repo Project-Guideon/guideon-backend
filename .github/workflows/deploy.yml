@@ -6,7 +6,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
+  # Docker image 이름은 무조건 소문자여야 하므로 강제 소문자 변환
+  IMAGE_PREFIX: ghcr.io/project-guideon
 
 jobs:
   build-and-push:
