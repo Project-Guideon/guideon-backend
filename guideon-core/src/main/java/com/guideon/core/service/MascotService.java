@@ -47,6 +47,7 @@ public class MascotService {
                 .promptConfig(command.getPromptConfig())
                 .ttsVoiceId(command.getTtsVoiceId())
                 .ttsVoiceJson(command.getTtsVoiceJson())
+                .imageUrl(command.getImageUrl())
                 .build();
 
         Mascot saved = mascotRepository.save(mascot);
@@ -68,7 +69,8 @@ public class MascotService {
         mascot.update(
                 command.getName(), command.getModelId(), command.getDefaultAnim(),
                 command.getGreetingMsg(), command.getSystemPrompt(), command.getPromptConfig(),
-                command.getTtsVoiceId(), command.getTtsVoiceJson(), command.getActive()
+                command.getTtsVoiceId(), command.getTtsVoiceJson(), command.getImageUrl(),
+                command.getActive()
         );
 
         log.info("마스코트 수정 완료: mascotId={}, siteId={}", mascot.getMascotId(), siteId);

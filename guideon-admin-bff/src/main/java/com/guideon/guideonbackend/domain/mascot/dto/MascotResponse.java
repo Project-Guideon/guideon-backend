@@ -21,6 +21,7 @@ public class MascotResponse {
     private Map<String, Object> promptConfig;
     private String ttsVoiceId;
     private Map<String, Object> ttsVoiceJson;
+    private String imageUrl;
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -37,6 +38,7 @@ public class MascotResponse {
                 .promptConfig(dto.getPromptConfig())
                 .ttsVoiceId(dto.getTtsVoiceId())
                 .ttsVoiceJson(dto.getTtsVoiceJson())
+                .imageUrl(dto.getImageUrl())
                 .isActive(dto.getIsActive())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())

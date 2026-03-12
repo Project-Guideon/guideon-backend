@@ -53,13 +53,16 @@ public class Mascot extends BaseEntity {
     @Column(name = "tts_voice_json", columnDefinition = "jsonb")
     private Map<String, Object> ttsVoiceJson;
 
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
     @Builder
     public Mascot(Site site, String name, String modelId, String defaultAnim,
                   String greetingMsg, String systemPrompt, Map<String, Object> promptConfig,
-                  String ttsVoiceId, Map<String, Object> ttsVoiceJson) {
+                  String ttsVoiceId, Map<String, Object> ttsVoiceJson, String imageUrl) {
         this.site = site;
         this.name = name;
         this.modelId = modelId;
@@ -69,12 +72,14 @@ public class Mascot extends BaseEntity {
         this.promptConfig = promptConfig != null ? promptConfig : Map.of();
         this.ttsVoiceId = ttsVoiceId;
         this.ttsVoiceJson = ttsVoiceJson;
+        this.imageUrl = imageUrl;
         this.isActive = true;
     }
 
     public void update(String name, String modelId, String defaultAnim,
                        String greetingMsg, String systemPrompt, Map<String, Object> promptConfig,
-                       String ttsVoiceId, Map<String, Object> ttsVoiceJson, Boolean isActive) {
+                       String ttsVoiceId, Map<String, Object> ttsVoiceJson, String imageUrl,
+                       Boolean isActive) {
         if (name != null) this.name = name;
         if (modelId != null) this.modelId = modelId;
         if (defaultAnim != null) this.defaultAnim = defaultAnim;
@@ -83,6 +88,7 @@ public class Mascot extends BaseEntity {
         if (promptConfig != null) this.promptConfig = promptConfig;
         if (ttsVoiceId != null) this.ttsVoiceId = ttsVoiceId;
         if (ttsVoiceJson != null) this.ttsVoiceJson = ttsVoiceJson;
+        if (imageUrl != null) this.imageUrl = imageUrl;
         if (isActive != null) this.isActive = isActive;
     }
 }
