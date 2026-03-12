@@ -29,12 +29,12 @@ public class DailyInfo extends BaseEntity {
     @Column(name = "site_id", nullable = false)
     private Long siteId;
 
+    @Column(name = "place_id", nullable = false)
+    private Long placeId;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumns({
-            @JoinColumn(name = "place_id", referencedColumnName = "place_id"),
-            @JoinColumn(name = "site_id", referencedColumnName = "site_id",
-                    insertable = false, updatable = false)
-    })
+    @JoinColumn(name = "place_id", referencedColumnName = "place_id",
+            insertable = false, updatable = false)
     private Place place;
 
     @Column(name = "target_date", nullable = false)
@@ -47,8 +47,9 @@ public class DailyInfo extends BaseEntity {
     private String content;
 
     @Builder
-    public DailyInfo(Long siteId, Place place, LocalDate targetDate, String infoType, String content) {
+    public DailyInfo(Long siteId, Long placeId, Place place, LocalDate targetDate, String infoType, String content) {
         this.siteId = siteId;
+        this.placeId = placeId;
         this.place = place;
         this.targetDate = targetDate;
         this.infoType = infoType;

@@ -72,6 +72,7 @@ public class DailyInfoService {
         } else {
             dailyInfo = DailyInfo.builder()
                     .siteId(siteId)
+                    .placeId(place.getPlaceId())
                     .place(place)
                     .targetDate(targetDate)
                     .infoType(command.getInfoType())
