@@ -78,7 +78,7 @@ jobs:
           script: |
             cd ~/guideon-deploy
             mv docker-compose.prod.yml docker-compose.yml
-            echo "${{ secrets.ENV_FILE }}" > .env
+            echo "${{ secrets.ENV_FILE_CONTENT }}" > .env
             docker compose pull
             docker compose up -d
             echo "=== Deploy complete ==="
