@@ -51,6 +51,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Copy deploy files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: "deploy/docker-compose.prod.yml,deploy/nginx.conf"
+          target: "/home/ubuntu/guideon-deploy"
+          strip_components: 1
+
       - name: Deploy to server via SSH
         uses: appleboy/ssh-action@v1
         with:
@@ -59,6 +69,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
             cd ~/guideon-deploy
+            mv docker-compose.prod.yml docker-compose.yml
             echo "${{ secrets.ENV_FILE }}" > .env
             docker compose pull core admin-bff kiosk-bff
             docker compose up -d core admin-bff kiosk-bff
