@@ -1,0 +1,5 @@
+# Actual environment file (contains secrets)
+.env
+
+# Let's Encrypt certificates
+certbot/
