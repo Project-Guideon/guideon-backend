@@ -1,0 +1,138 @@
+services:
+  # ===== Infrastructure =====
+
+  db:
+    build:
+      context: ../infra
+    container_name: guideon-db
+    # ports: 내부 전용 — 외부 노출 안 함
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    container_name: guideon-redis
+    # ports: 내부 전용
+    networks:
+      - internal
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===== Backend (Spring Boot) =====
+
+  core:
+    image: ghcr.io/project-guideon/core:latest
+    container_name: guideon-core
+    # ports: 내부 전용 — BFF에서만 접근
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      JAVA_OPTS: "-Xmx384m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+    restart: always
+
+  admin-bff:
+    image: ghcr.io/project-guideon/admin-bff:latest
+    container_name: guideon-admin-bff
+    # ports: nginx가 프록시
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      CORE_SERVICE_URL: http://core:8080
+      JWT_SECRET: ${JWT_SECRET}
+      INIT_ADMIN_EMAIL: ${INIT_ADMIN_EMAIL}
+      INIT_ADMIN_PASSWORD: ${INIT_ADMIN_PASSWORD}
+      INVITE_EXPIRE_DAYS: ${INVITE_EXPIRE_DAYS:-7}
+      JAVA_OPTS: "-Xmx384m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m"
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      - core
+    networks:
+      - internal
+    restart: always
+
+  kiosk-bff:
+    image: ghcr.io/project-guideon/kiosk-bff:latest
+    container_name: guideon-kiosk-bff
+    # ports: nginx가 프록시
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      CORE_SERVICE_URL: http://core:8080
+      FASTAPI_SERVICE_URL: ${FASTAPI_SERVICE_URL:-http://localhost:8000}
+      JAVA_OPTS: "-Xmx384m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m"
+    depends_on:
+      - core
+    networks:
+      - internal
+    restart: always
+
+  # ===== Reverse Proxy + HTTPS =====
+
+  nginx:
+    image: nginx:alpine
+    container_name: guideon-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - certbot_www:/var/www/certbot
+      - certbot_conf:/etc/letsencrypt
+    depends_on:
+      - admin-bff
+      - kiosk-bff
+    networks:
+      - internal
+    restart: always
+
+  # Let's Encrypt 인증서 자동 갱신
+  certbot:
+    image: certbot/certbot
+    container_name: guideon-certbot
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_conf:/etc/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+  uploads:
+  certbot_www:
+  certbot_conf:
+
+networks:
+  internal:
+    driver: bridge
