@@ -23,7 +23,7 @@ public class KioskChatController {
 
     /**
      * POST /kiosk/chat/sessions
-     * 대화 세션 생성 (UUID 반환, DB 저장 X)
+     * 대화 세션 생성 (Core에서 UUID 생성 + DB 저장)
      */
     @PostMapping("/sessions")
     public ResponseEntity<ApiResponse<CreateSessionResponse>> createSession(
@@ -31,7 +31,7 @@ public class KioskChatController {
             HttpServletRequest httpRequest
     ) {
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
-        return ResponseEntity.ok(ApiResponse.success(chatService.createSession(), traceId));
+        return ResponseEntity.ok(ApiResponse.success(chatService.createSession(device), traceId));
     }
 
     /**

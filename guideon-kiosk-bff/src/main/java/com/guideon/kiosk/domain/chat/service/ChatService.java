@@ -1,12 +1,8 @@
 package com.guideon.kiosk.domain.chat.service;
 
-import com.guideon.core.dto.dailyinfo.DailyInfoDto;
-import com.guideon.core.dto.place.PlaceDto;
-import com.guideon.core.dto.qa.QaRequest;
-import com.guideon.core.dto.qa.QaResponse;
-import com.guideon.kiosk.client.CoreDailyInfoClient;
-import com.guideon.kiosk.client.CorePlaceClient;
-import com.guideon.kiosk.client.FastApiQaClient;
+import com.guideon.core.dto.chat.ChatCommand;
+import com.guideon.core.dto.chat.ChatResult;
+import com.guideon.kiosk.client.CoreChatClient;
 import com.guideon.kiosk.domain.chat.dto.ChatMessageRequest;
 import com.guideon.kiosk.domain.chat.dto.ChatMessageResponse;
 import com.guideon.kiosk.domain.chat.dto.CreateSessionResponse;
@@ -15,117 +11,76 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
+import java.util.Map;
 
+/**
+ * Kiosk BFF Chat Service
+ *
+ * 얇은 BFF 레이어: Core에 위임하고 응답을 Unity 포맷으로 변환만 함.
+ * 비즈니스 로직(context 조립, FastAPI 호출, 이력 저장)은 Core에서 처리.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatService {
 
-    private final FastApiQaClient fastApiQaClient;
-    private final CoreDailyInfoClient coreDailyInfoClient;
-    private final CorePlaceClient corePlaceClient;
+    private final CoreChatClient coreChatClient;
 
     /**
-     * 대화 세션 생성 — UUID만 반환 (DB 저장 X, FastAPI Redis가 관리)
+     * 대화 세션 생성 — Core에 위임
      */
-    public CreateSessionResponse createSession() {
-        String sessionId = UUID.randomUUID().toString();
-        log.info("Chat 세션 생성: sessionId={}", sessionId);
-        return new CreateSessionResponse(sessionId);
+    public CreateSessionResponse createSession(DeviceDetails device) {
+        try {
+            Map<String, String> result = coreChatClient.createSession(
+                    device.getDeviceId(), device.getSiteId());
+            String sessionId = result.get("sessionId");
+            log.info("Chat 세션 생성: sessionId={}, deviceId={}", sessionId, device.getDeviceId());
+            return new CreateSessionResponse(sessionId);
+        } catch (Exception e) {
+            log.error("세션 생성 실패: {}", e.getMessage());
+            throw e;
+        }
     }
 
     /**
-     * 메시지 처리: context 조립 → FastAPI QA 호출 → display hint 조립
+     * 메시지 처리 — Core에 위임 + 응답 변환
      */
     public ChatMessageResponse sendMessage(
             String sessionId,
             ChatMessageRequest request,
             DeviceDetails device
     ) {
-        // 1. 오늘 DailyInfo context 조립
-        List<QaRequest.DailyInfoSummary> dailyInfoSummaries = buildDailyInfoContext(device.getSiteId());
-
-        // 2. FastAPI QA 요청 조립
-        QaRequest qaRequest = QaRequest.builder()
+        ChatCommand command = ChatCommand.builder()
                 .sessionId(sessionId)
+                .deviceId(device.getDeviceId())
                 .siteId(device.getSiteId())
-                .question(request.getMessage())
+                .message(request.getMessage())
                 .language(request.getLanguage())
-                .deviceLocation(QaRequest.DeviceLocation.builder()
-                        .latitude(device.getLatitude())
-                        .longitude(device.getLongitude())
-                        .build())
-                .context(QaRequest.QaContext.builder()
-                        .dailyInfos(dailyInfoSummaries)
-                        .build())
+                .latitude(device.getLatitude())
+                .longitude(device.getLongitude())
                 .build();
 
-        // 3. FastAPI 호출 (실패 시 stub 응답)
-        QaResponse qaResponse = callFastApi(qaRequest);
+        ChatResult result = coreChatClient.sendMessage(sessionId, command);
 
-        // 4. Display hint 조립 (placeId가 있으면)
-        ChatMessageResponse.DisplayHint displayHint = buildDisplayHint(device.getSiteId(), qaResponse.getPlaceId());
+        // display hint 조립
+        ChatMessageResponse.DisplayHint displayHint = null;
+        if (result.getPlaceId() != null) {
+            displayHint = ChatMessageResponse.DisplayHint.builder()
+                    .type("PLACE")
+                    .placeId(result.getPlaceId())
+                    .placeName(result.getPlaceName())
+                    .imageUrl(result.getImageUrl())
+                    .latitude(result.getLatitude())
+                    .longitude(result.getLongitude())
+                    .build();
+        }
 
         return ChatMessageResponse.builder()
                 .sessionId(sessionId)
-                .answer(qaResponse.getAnswer())
-                .emotion(qaResponse.getEmotion())
-                .language(qaResponse.getLanguage())
+                .answer(result.getAnswer())
+                .emotion(result.getEmotion())
+                .language(result.getLanguage())
                 .display(displayHint)
                 .build();
-    }
-
-    private List<QaRequest.DailyInfoSummary> buildDailyInfoContext(Long siteId) {
-        try {
-            List<DailyInfoDto> dailyInfos = coreDailyInfoClient.getDailyInfos(siteId, LocalDate.now());
-            return dailyInfos.stream()
-                    .map(di -> QaRequest.DailyInfoSummary.builder()
-                            .placeName(di.getPlaceName())
-                            .infoType(di.getInfoType())
-                            .content(di.getContent())
-                            .build())
-                    .toList();
-        } catch (Exception e) {
-            log.warn("DailyInfo context 조회 실패 (무시하고 진행): {}", e.getMessage());
-            return List.of();
-        }
-    }
-
-    private QaResponse callFastApi(QaRequest request) {
-        try {
-            return fastApiQaClient.ask(request);
-        } catch (Exception e) {
-            log.warn("FastAPI QA 호출 실패 — stub 응답 반환: {}", e.getMessage());
-            return QaResponse.builder()
-                    .answer("[AI 서비스 연결 중] 죄송합니다, 잠시 후 다시 시도해주세요.")
-                    .placeId(null)
-                    .emotion("THINKING")
-                    .language(request.getLanguage() != null ? request.getLanguage() : "ko")
-                    .build();
-        }
-    }
-
-    private ChatMessageResponse.DisplayHint buildDisplayHint(Long siteId, Long placeId) {
-        if (placeId == null) {
-            return null;
-        }
-
-        try {
-            PlaceDto place = corePlaceClient.getPlace(siteId, placeId);
-            return ChatMessageResponse.DisplayHint.builder()
-                    .type("PLACE")
-                    .placeId(place.getPlaceId())
-                    .placeName(place.getName())
-                    .imageUrl(place.getImageUrl())
-                    .latitude(place.getLatitude())
-                    .longitude(place.getLongitude())
-                    .build();
-        } catch (Exception e) {
-            log.warn("Place 조회 실패 (display hint 생략): placeId={}, error={}", placeId, e.getMessage());
-            return null;
-        }
     }
 }
