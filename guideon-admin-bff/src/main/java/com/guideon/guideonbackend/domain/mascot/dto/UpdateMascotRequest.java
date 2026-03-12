@@ -29,5 +29,8 @@ public class UpdateMascotRequest {
 
     private Map<String, Object> ttsVoiceJson;
 
+    @Size(max = 500)
+    private String imageUrl;
+
     private Boolean isActive;
 }

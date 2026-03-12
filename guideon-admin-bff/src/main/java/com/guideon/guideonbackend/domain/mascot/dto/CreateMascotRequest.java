@@ -35,4 +35,7 @@ public class CreateMascotRequest {
     private String ttsVoiceId;
 
     private Map<String, Object> ttsVoiceJson;
+
+    @Size(max = 500)
+    private String imageUrl;
 }
