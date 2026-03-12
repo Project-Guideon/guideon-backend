@@ -194,6 +194,7 @@ CREATE TABLE IF NOT EXISTS tb_mascot (
   prompt_config  JSONB NOT NULL DEFAULT '{}',
   tts_voice_id   VARCHAR(50) NOT NULL,
   tts_voice_json JSONB NULL,
+  image_url      VARCHAR(500) NULL,
   is_active      BOOLEAN NOT NULL DEFAULT TRUE,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
