@@ -14,6 +14,7 @@ RUN chmod +x gradlew
 COPY build.gradle settings.gradle ./
 COPY guideon-common/build.gradle guideon-common/
 COPY guideon-core/build.gradle guideon-core/
+COPY guideon-admin-bff/build.gradle guideon-admin-bff/
 COPY guideon-kiosk-bff/build.gradle guideon-kiosk-bff/
 
 # 의존성 다운로드 (캐싱 레이어)

@@ -21,10 +21,16 @@ jobs:
         include:
           - service: core
             dockerfile: guideon-core/Dockerfile
+            context: .
           - service: admin-bff
             dockerfile: guideon-admin-bff/Dockerfile
+            context: .
           - service: kiosk-bff
             dockerfile: guideon-kiosk-bff/Dockerfile
+            context: .
+          - service: db
+            dockerfile: infra/Dockerfile
+            context: infra
 
     steps:
       - uses: actions/checkout@v4
@@ -39,7 +45,7 @@ jobs:
       - name: Build and push ${{ matrix.service }}
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: true
           tags: |
@@ -51,13 +57,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Copy deploy files to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: "deploy/docker-compose.prod.yml,deploy/nginx.conf"
+          source: "deploy/docker-compose.prod.yml,deploy/nginx.conf.template"
           target: "/home/ubuntu/guideon-deploy"
           strip_components: 1
 
@@ -71,7 +79,7 @@ jobs:
             cd ~/guideon-deploy
             mv docker-compose.prod.yml docker-compose.yml
             echo "${{ secrets.ENV_FILE }}" > .env
-            docker compose pull core admin-bff kiosk-bff
-            docker compose up -d core admin-bff kiosk-bff
+            docker compose pull
+            docker compose up -d
             echo "=== Deploy complete ==="
             docker compose ps
