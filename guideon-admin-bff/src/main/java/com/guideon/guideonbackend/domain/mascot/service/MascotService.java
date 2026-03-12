@@ -8,12 +8,16 @@ import com.guideon.core.dto.MascotDto;
 import com.guideon.core.dto.UpdateMascotCommand;
 import com.guideon.guideonbackend.client.CoreMascotClient;
 import com.guideon.guideonbackend.domain.mascot.dto.CreateMascotRequest;
+import com.guideon.guideonbackend.domain.mascot.dto.MascotImageUploadResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.MascotResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.UpdateMascotRequest;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
+import com.guideon.guideonbackend.global.storage.FileStorageService;
+import com.guideon.guideonbackend.global.storage.FileValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
@@ -21,6 +25,7 @@ import org.springframework.stereotype.Service;
 public class MascotService {
 
     private final CoreMascotClient coreMascotClient;
+    private final FileStorageService fileStorageService;
 
     public MascotResponse createMascot(Long siteId, CreateMascotRequest request,
                                        CustomAdminDetails adminDetails) {
@@ -35,6 +40,7 @@ public class MascotService {
                 .promptConfig(request.getPromptConfig())
                 .ttsVoiceId(request.getTtsVoiceId())
                 .ttsVoiceJson(request.getTtsVoiceJson())
+                .imageUrl(request.getImageUrl())
                 .build();
 
         MascotDto dto = coreMascotClient.createMascot(siteId, command);
@@ -60,12 +66,24 @@ public class MascotService {
                 .promptConfig(request.getPromptConfig())
                 .ttsVoiceId(request.getTtsVoiceId())
                 .ttsVoiceJson(request.getTtsVoiceJson())
+                .imageUrl(request.getImageUrl())
                 .active(request.getIsActive())
                 .build();
 
         MascotDto dto = coreMascotClient.updateMascot(siteId, command);
         log.info("마스코트 수정 완료: mascotId={}, siteId={}", dto.getMascotId(), siteId);
         return MascotResponse.from(dto);
+    }
+
+    public MascotImageUploadResponse uploadMascotImage(Long siteId, MultipartFile file,
+                                                         CustomAdminDetails adminDetails) {
+        validatePlatformAdmin(adminDetails);
+        FileValidator.validateImage(file);
+        String fileHash = FileValidator.computeFileHash(file);
+        String storageUrl = fileStorageService.store(siteId, fileHash, file);
+        return MascotImageUploadResponse.builder()
+                .imageUrl(storageUrl)
+                .build();
     }
 
     private void validatePlatformAdmin(CustomAdminDetails adminDetails) {
