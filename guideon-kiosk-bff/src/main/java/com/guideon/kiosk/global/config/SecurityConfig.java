@@ -49,7 +49,8 @@ public class SecurityConfig {
                                 "/error",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/swagger-resources/**"
+                                "/swagger-resources/**",
+                                "/ws/**"  // WS 핸드셰이크는 인터셉터에서 직접 인증
                         ).permitAll()
                         .requestMatchers("/kiosk/**").hasRole("DEVICE")
                         .anyRequest().authenticated()
