@@ -2,6 +2,7 @@ package com.guideon.guideonbackend.domain.mascot.controller;
 
 import com.guideon.common.response.ApiResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.CreateMascotRequest;
+import com.guideon.guideonbackend.domain.mascot.dto.MascotImageUploadResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.MascotResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.UpdateMascotRequest;
 import com.guideon.guideonbackend.domain.mascot.service.MascotService;
@@ -12,9 +13,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "마스코트 관리", description = "마스코트(Mascot) 설정 API - PLATFORM_ADMIN 전용")
 @RestController
@@ -23,6 +26,19 @@ import org.springframework.web.bind.annotation.*;
 public class MascotController {
 
     private final MascotService mascotService;
+
+    @Operation(summary = "마스코트 이미지 업로드", description = "마스코트 이미지를 업로드하고 URL을 반환합니다. PLATFORM_ADMIN 권한 필요")
+    @PostMapping(value = "/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<MascotImageUploadResponse>> uploadMascotImage(
+            @PathVariable Long siteId,
+            @RequestPart("file") MultipartFile file,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        MascotImageUploadResponse response = mascotService.uploadMascotImage(siteId, file, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
 
     @Operation(summary = "마스코트 생성", description = "관광지에 마스코트를 등록합니다. PLATFORM_ADMIN 권한 필요")
     @PostMapping
