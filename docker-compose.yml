@@ -38,7 +38,7 @@ services:
       retries: 5
 
   # 3. Core Service (Internal API - 내부망 전용)
-  core-service:
+  core:
     build:
       context: .
       dockerfile: guideon-core/Dockerfile
@@ -74,7 +74,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      CORE_SERVICE_URL: http://core-service:8080
+      CORE_SERVICE_URL: http://core:8080
       JWT_SECRET: ${JWT_SECRET}
       INIT_ADMIN_EMAIL: ${INIT_ADMIN_EMAIL}
       INIT_ADMIN_PASSWORD: ${INIT_ADMIN_PASSWORD}
@@ -82,7 +82,7 @@ services:
     volumes:
       - ./uploads:/app/uploads
     depends_on:
-      - core-service
+      - core
     networks:
       - guideon-net
     restart: always
@@ -99,10 +99,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      CORE_SERVICE_URL: http://core-service:8080
+      CORE_SERVICE_URL: http://core:8080
       FASTAPI_SERVICE_URL: ${FASTAPI_SERVICE_URL:-http://localhost:8000}
     depends_on:
-      - core-service
+      - core
     networks:
       - guideon-net
     restart: always
