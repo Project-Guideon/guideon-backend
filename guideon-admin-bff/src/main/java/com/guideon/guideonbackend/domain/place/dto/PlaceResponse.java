@@ -1,7 +1,7 @@
 package com.guideon.guideonbackend.domain.place.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.guideon.core.dto.PlaceDto;
+import com.guideon.core.dto.place.PlaceDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;

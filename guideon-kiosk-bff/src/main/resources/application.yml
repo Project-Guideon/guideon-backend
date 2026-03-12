@@ -1,0 +1,40 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: guideon-kiosk-bff
+
+  # Database
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+  # JPA
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_batch_fetch_size: 100
+
+# Logging (production default)
+logging:
+  level:
+    org.springframework.web: info
+
+# Feign
+spring.cloud.openfeign.okhttp.enabled: true
+
+# Core Service (Internal API)
+core:
+  service:
+    url: ${CORE_SERVICE_URL:http://localhost:8080}
+
+# FastAPI Service (AI: STT/TTS/QA)
+fastapi:
+  service:
+    url: ${FASTAPI_SERVICE_URL:http://localhost:8000}

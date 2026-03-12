@@ -84,4 +84,12 @@ public class Device extends BaseEntity {
     public void deactivate() {
         this.isActive = false;
     }
+
+    public void updateLastPing() {
+        this.lastPing = LocalDateTime.now();
+    }
+
+    public void updateLastAuthAt() {
+        this.lastAuthAt = LocalDateTime.now();
+    }
 }

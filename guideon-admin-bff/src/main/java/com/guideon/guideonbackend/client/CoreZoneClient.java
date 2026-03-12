@@ -1,10 +1,10 @@
 package com.guideon.guideonbackend.client;
 
 import com.guideon.common.response.PageResponse;
-import com.guideon.core.dto.CreateZoneCommand;
-import com.guideon.core.dto.DeleteZoneResult;
-import com.guideon.core.dto.UpdateZoneCommand;
-import com.guideon.core.dto.ZoneDto;
+import com.guideon.core.dto.zone.CreateZoneCommand;
+import com.guideon.core.dto.zone.DeleteZoneResult;
+import com.guideon.core.dto.zone.UpdateZoneCommand;
+import com.guideon.core.dto.zone.ZoneDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 

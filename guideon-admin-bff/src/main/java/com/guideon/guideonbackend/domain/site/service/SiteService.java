@@ -1,8 +1,8 @@
 package com.guideon.guideonbackend.domain.site.service;
 
-import com.guideon.core.dto.CreateSiteCommand;
-import com.guideon.core.dto.SiteDto;
-import com.guideon.core.dto.UpdateSiteCommand;
+import com.guideon.core.dto.site.CreateSiteCommand;
+import com.guideon.core.dto.site.SiteDto;
+import com.guideon.core.dto.site.UpdateSiteCommand;
 import com.guideon.guideonbackend.client.CoreSiteClient;
 import com.guideon.guideonbackend.domain.site.dto.CreateSiteRequest;
 import com.guideon.guideonbackend.domain.site.dto.SiteResponse;

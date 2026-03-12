@@ -46,7 +46,8 @@ public enum ErrorCode {
 
     // ── Device ──
     DEVICE_NOT_FOUND(HttpStatus.NOT_FOUND, "디바이스를 찾을 수 없습니다"),
-    DEVICE_ID_DUPLICATE(HttpStatus.CONFLICT, "이미 사용 중인 디바이스 ID입니다");
+    DEVICE_ID_DUPLICATE(HttpStatus.CONFLICT, "이미 사용 중인 디바이스 ID입니다"),
+    DEVICE_INACTIVE(HttpStatus.FORBIDDEN, "비활성화된 디바이스입니다");
 
     private final HttpStatus httpStatus;
     private final String message;

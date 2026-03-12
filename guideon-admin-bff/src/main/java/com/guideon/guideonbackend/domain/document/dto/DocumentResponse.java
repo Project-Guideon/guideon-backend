@@ -1,7 +1,7 @@
 package com.guideon.guideonbackend.domain.document.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.guideon.core.dto.DocumentDto;
+import com.guideon.core.dto.document.DocumentDto;
 import lombok.Builder;
 import lombok.Getter;
 

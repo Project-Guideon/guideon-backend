@@ -1,9 +1,9 @@
 package com.guideon.guideonbackend.client;
 
-import com.guideon.core.dto.AcceptInviteCommand;
-import com.guideon.core.dto.AcceptInviteResult;
-import com.guideon.core.dto.CreateInviteCommand;
-import com.guideon.core.dto.InviteDto;
+import com.guideon.core.dto.admin.AcceptInviteCommand;
+import com.guideon.core.dto.admin.AcceptInviteResult;
+import com.guideon.core.dto.admin.CreateInviteCommand;
+import com.guideon.core.dto.admin.InviteDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 

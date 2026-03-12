@@ -1,7 +1,7 @@
 package com.guideon.guideonbackend.domain.zone.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.guideon.core.dto.ZoneDto;
+import com.guideon.core.dto.zone.ZoneDto;
 import lombok.Builder;
 import lombok.Getter;
 

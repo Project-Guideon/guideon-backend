@@ -1,8 +1,8 @@
 package com.guideon.core.api;
 
-import com.guideon.core.dto.CreateSiteCommand;
-import com.guideon.core.dto.SiteDto;
-import com.guideon.core.dto.UpdateSiteCommand;
+import com.guideon.core.dto.site.CreateSiteCommand;
+import com.guideon.core.dto.site.SiteDto;
+import com.guideon.core.dto.site.UpdateSiteCommand;
 import com.guideon.core.service.SiteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

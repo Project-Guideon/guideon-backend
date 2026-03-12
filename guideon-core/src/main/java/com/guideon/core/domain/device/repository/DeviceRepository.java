@@ -17,6 +17,8 @@ public interface DeviceRepository extends JpaRepository<Device, String> {
 
     boolean existsByDeviceId(String deviceId);
 
+    Optional<Device> findByAuthTokenHashAndIsActiveTrue(String authTokenHash);
+
     /**
      * 좌표가 포함된 Zone ID 조회 (AUTO zone 할당용)
      * 가장 깊은 레벨(SUB > INNER)의 Zone을 반환, 없으면 null (OUTER)

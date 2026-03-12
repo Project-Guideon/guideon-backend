@@ -2,7 +2,7 @@ package com.guideon.guideonbackend.domain.admin.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.guideon.core.dto.InviteDto;
+import com.guideon.core.dto.admin.InviteDto;
 import lombok.Builder;
 import lombok.Getter;
 

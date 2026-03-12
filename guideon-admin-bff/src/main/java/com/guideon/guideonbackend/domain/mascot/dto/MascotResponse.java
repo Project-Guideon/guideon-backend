@@ -1,6 +1,6 @@
 package com.guideon.guideonbackend.domain.mascot.dto;
 
-import com.guideon.core.dto.MascotDto;
+import com.guideon.core.dto.mascot.MascotDto;
 import lombok.Builder;
 import lombok.Getter;
 

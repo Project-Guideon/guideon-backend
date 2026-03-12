@@ -1,7 +1,10 @@
 package com.guideon.guideonbackend.client;
 
 import com.guideon.common.response.PageResponse;
-import com.guideon.core.dto.*;
+import com.guideon.core.dto.device.CreateDeviceCommand;
+import com.guideon.core.dto.device.DeviceDto;
+import com.guideon.core.dto.device.RotateTokenResult;
+import com.guideon.core.dto.device.UpdateDeviceCommand;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 

@@ -2,10 +2,10 @@ package com.guideon.guideonbackend.domain.admin.service;
 
 import com.guideon.core.domain.admin.entity.RefreshToken;
 import com.guideon.core.domain.admin.repository.RefreshTokenRepository;
-import com.guideon.core.dto.AcceptInviteCommand;
-import com.guideon.core.dto.AcceptInviteResult;
-import com.guideon.core.dto.CreateInviteCommand;
-import com.guideon.core.dto.InviteDto;
+import com.guideon.core.dto.admin.AcceptInviteCommand;
+import com.guideon.core.dto.admin.AcceptInviteResult;
+import com.guideon.core.dto.admin.CreateInviteCommand;
+import com.guideon.core.dto.admin.InviteDto;
 import com.guideon.guideonbackend.client.CoreAdminClient;
 import com.guideon.guideonbackend.domain.admin.dto.AcceptInviteRequest;
 import com.guideon.guideonbackend.domain.admin.dto.AdminLoginResponse;

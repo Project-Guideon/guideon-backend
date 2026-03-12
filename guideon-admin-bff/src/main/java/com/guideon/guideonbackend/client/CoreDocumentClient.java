@@ -1,8 +1,8 @@
 package com.guideon.guideonbackend.client;
 
 import com.guideon.common.response.PageResponse;
-import com.guideon.core.dto.CreateDocumentCommand;
-import com.guideon.core.dto.DocumentDto;
+import com.guideon.core.dto.document.CreateDocumentCommand;
+import com.guideon.core.dto.document.DocumentDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 

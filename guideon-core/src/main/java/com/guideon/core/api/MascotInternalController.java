@@ -1,8 +1,8 @@
 package com.guideon.core.api;
 
-import com.guideon.core.dto.CreateMascotCommand;
-import com.guideon.core.dto.MascotDto;
-import com.guideon.core.dto.UpdateMascotCommand;
+import com.guideon.core.dto.mascot.CreateMascotCommand;
+import com.guideon.core.dto.mascot.MascotDto;
+import com.guideon.core.dto.mascot.UpdateMascotCommand;
 import com.guideon.core.service.MascotService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

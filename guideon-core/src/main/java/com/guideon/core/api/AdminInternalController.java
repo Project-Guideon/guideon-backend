@@ -1,9 +1,9 @@
 package com.guideon.core.api;
 
-import com.guideon.core.dto.AcceptInviteCommand;
-import com.guideon.core.dto.AcceptInviteResult;
-import com.guideon.core.dto.CreateInviteCommand;
-import com.guideon.core.dto.InviteDto;
+import com.guideon.core.dto.admin.AcceptInviteCommand;
+import com.guideon.core.dto.admin.AcceptInviteResult;
+import com.guideon.core.dto.admin.CreateInviteCommand;
+import com.guideon.core.dto.admin.InviteDto;
 import com.guideon.core.service.AdminInviteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
