@@ -1,9 +1,9 @@
 package com.guideon.guideonbackend.client;
 
 import com.guideon.common.response.PageResponse;
-import com.guideon.core.dto.CreatePlaceCommand;
-import com.guideon.core.dto.PlaceDto;
-import com.guideon.core.dto.UpdatePlaceCommand;
+import com.guideon.core.dto.place.CreatePlaceCommand;
+import com.guideon.core.dto.place.PlaceDto;
+import com.guideon.core.dto.place.UpdatePlaceCommand;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 

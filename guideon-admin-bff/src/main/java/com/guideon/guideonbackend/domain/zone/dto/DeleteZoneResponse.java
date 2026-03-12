@@ -1,7 +1,7 @@
 package com.guideon.guideonbackend.domain.zone.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.guideon.core.dto.DeleteZoneResult;
+import com.guideon.core.dto.zone.DeleteZoneResult;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;

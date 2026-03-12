@@ -1,7 +1,7 @@
 package com.guideon.kiosk.client;
 
-import com.guideon.core.dto.KioskBootstrapDto;
-import com.guideon.core.dto.KioskHeartbeatCommand;
+import com.guideon.core.dto.kiosk.KioskBootstrapDto;
+import com.guideon.core.dto.kiosk.KioskHeartbeatCommand;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;

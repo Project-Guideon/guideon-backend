@@ -1,6 +1,6 @@
 package com.guideon.guideonbackend.domain.device.dto;
 
-import com.guideon.core.dto.RotateTokenResult;
+import com.guideon.core.dto.device.RotateTokenResult;
 import lombok.Builder;
 import lombok.Getter;
 

@@ -1,9 +1,9 @@
 package com.guideon.kiosk.domain.chat.service;
 
-import com.guideon.core.dto.DailyInfoDto;
-import com.guideon.core.dto.PlaceDto;
-import com.guideon.core.dto.QaRequest;
-import com.guideon.core.dto.QaResponse;
+import com.guideon.core.dto.dailyinfo.DailyInfoDto;
+import com.guideon.core.dto.place.PlaceDto;
+import com.guideon.core.dto.qa.QaRequest;
+import com.guideon.core.dto.qa.QaResponse;
 import com.guideon.kiosk.client.CoreDailyInfoClient;
 import com.guideon.kiosk.client.CorePlaceClient;
 import com.guideon.kiosk.client.FastApiQaClient;

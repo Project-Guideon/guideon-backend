@@ -1,6 +1,6 @@
 package com.guideon.kiosk.client;
 
-import com.guideon.core.dto.DailyInfoDto;
+import com.guideon.core.dto.dailyinfo.DailyInfoDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;

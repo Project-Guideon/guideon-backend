@@ -1,7 +1,7 @@
 package com.guideon.kiosk.client;
 
-import com.guideon.core.dto.QaRequest;
-import com.guideon.core.dto.QaResponse;
+import com.guideon.core.dto.qa.QaRequest;
+import com.guideon.core.dto.qa.QaResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

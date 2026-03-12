@@ -1,6 +1,6 @@
 package com.guideon.core.client;
 
-import com.guideon.core.dto.ProcessDocumentCommand;
+import com.guideon.core.dto.document.ProcessDocumentCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;

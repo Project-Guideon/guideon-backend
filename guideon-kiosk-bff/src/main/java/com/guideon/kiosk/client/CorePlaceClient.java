@@ -1,7 +1,7 @@
 package com.guideon.kiosk.client;
 
 import com.guideon.common.response.PageResponse;
-import com.guideon.core.dto.PlaceDto;
+import com.guideon.core.dto.place.PlaceDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

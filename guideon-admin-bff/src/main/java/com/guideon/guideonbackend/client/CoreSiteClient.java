@@ -1,8 +1,8 @@
 package com.guideon.guideonbackend.client;
 
-import com.guideon.core.dto.CreateSiteCommand;
-import com.guideon.core.dto.SiteDto;
-import com.guideon.core.dto.UpdateSiteCommand;
+import com.guideon.core.dto.site.CreateSiteCommand;
+import com.guideon.core.dto.site.SiteDto;
+import com.guideon.core.dto.site.UpdateSiteCommand;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 

@@ -1,7 +1,7 @@
 package com.guideon.core.api;
 
-import com.guideon.core.dto.DailyInfoDto;
-import com.guideon.core.dto.UpsertDailyInfoCommand;
+import com.guideon.core.dto.dailyinfo.DailyInfoDto;
+import com.guideon.core.dto.dailyinfo.UpsertDailyInfoCommand;
 import com.guideon.core.service.DailyInfoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

@@ -1,7 +1,10 @@
 package com.guideon.core.api;
 
 import com.guideon.common.response.PageResponse;
-import com.guideon.core.dto.*;
+import com.guideon.core.dto.device.CreateDeviceCommand;
+import com.guideon.core.dto.device.DeviceDto;
+import com.guideon.core.dto.device.RotateTokenResult;
+import com.guideon.core.dto.device.UpdateDeviceCommand;
 import com.guideon.core.service.DeviceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;

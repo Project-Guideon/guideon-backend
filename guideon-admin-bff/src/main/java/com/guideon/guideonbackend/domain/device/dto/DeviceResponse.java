@@ -1,6 +1,6 @@
 package com.guideon.guideonbackend.domain.device.dto;
 
-import com.guideon.core.dto.DeviceDto;
+import com.guideon.core.dto.device.DeviceDto;
 import lombok.Builder;
 import lombok.Getter;
 

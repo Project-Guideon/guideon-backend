@@ -1,8 +1,8 @@
 package com.guideon.kiosk.domain.auth.controller;
 
 import com.guideon.common.response.ApiResponse;
-import com.guideon.core.dto.KioskBootstrapDto;
-import com.guideon.core.dto.KioskHeartbeatCommand;
+import com.guideon.core.dto.kiosk.KioskBootstrapDto;
+import com.guideon.core.dto.kiosk.KioskHeartbeatCommand;
 import com.guideon.kiosk.client.CoreKioskClient;
 import com.guideon.kiosk.domain.auth.dto.HeartbeatRequest;
 import com.guideon.kiosk.domain.auth.dto.VerifyResponse;

@@ -2,11 +2,11 @@ package com.guideon.core.api;
 
 import com.guideon.common.response.PageResponse;
 import com.guideon.core.client.FastApiDocumentService;
-import com.guideon.core.dto.CreateDocumentCommand;
-import com.guideon.core.dto.DocumentDto;
-import com.guideon.core.dto.ProcessDocumentCommand;
-import com.guideon.core.dto.ReprocessDocumentCommand;
-import com.guideon.core.dto.UpdateDocumentStatusCommand;
+import com.guideon.core.dto.document.CreateDocumentCommand;
+import com.guideon.core.dto.document.DocumentDto;
+import com.guideon.core.dto.document.ProcessDocumentCommand;
+import com.guideon.core.dto.document.ReprocessDocumentCommand;
+import com.guideon.core.dto.document.UpdateDocumentStatusCommand;
 import com.guideon.core.service.DocumentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

@@ -1,6 +1,6 @@
 package com.guideon.guideonbackend.domain.site.dto;
 
-import com.guideon.core.dto.SiteDto;
+import com.guideon.core.dto.site.SiteDto;
 import lombok.Builder;
 import lombok.Getter;
 

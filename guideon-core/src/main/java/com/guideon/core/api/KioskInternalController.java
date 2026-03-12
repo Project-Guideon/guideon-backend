@@ -1,7 +1,7 @@
 package com.guideon.core.api;
 
-import com.guideon.core.dto.KioskBootstrapDto;
-import com.guideon.core.dto.KioskHeartbeatCommand;
+import com.guideon.core.dto.kiosk.KioskBootstrapDto;
+import com.guideon.core.dto.kiosk.KioskHeartbeatCommand;
 import com.guideon.core.service.KioskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

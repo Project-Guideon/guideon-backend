@@ -1,8 +1,8 @@
 package com.guideon.guideonbackend.client;
 
-import com.guideon.core.dto.CreateMascotCommand;
-import com.guideon.core.dto.MascotDto;
-import com.guideon.core.dto.UpdateMascotCommand;
+import com.guideon.core.dto.mascot.CreateMascotCommand;
+import com.guideon.core.dto.mascot.MascotDto;
+import com.guideon.core.dto.mascot.UpdateMascotCommand;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 

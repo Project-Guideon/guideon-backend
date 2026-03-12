@@ -1,9 +1,9 @@
 package com.guideon.core.api;
 
 import com.guideon.common.response.PageResponse;
-import com.guideon.core.dto.CreatePlaceCommand;
-import com.guideon.core.dto.PlaceDto;
-import com.guideon.core.dto.UpdatePlaceCommand;
+import com.guideon.core.dto.place.CreatePlaceCommand;
+import com.guideon.core.dto.place.PlaceDto;
+import com.guideon.core.dto.place.UpdatePlaceCommand;
 import com.guideon.core.service.PlaceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
