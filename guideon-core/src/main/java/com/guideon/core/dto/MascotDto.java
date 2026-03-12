@@ -21,6 +21,7 @@ public class MascotDto {
     private Map<String, Object> promptConfig;
     private String ttsVoiceId;
     private Map<String, Object> ttsVoiceJson;
+    private String imageUrl;
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -37,6 +38,7 @@ public class MascotDto {
                 .promptConfig(mascot.getPromptConfig())
                 .ttsVoiceId(mascot.getTtsVoiceId())
                 .ttsVoiceJson(mascot.getTtsVoiceJson())
+                .imageUrl(mascot.getImageUrl())
                 .isActive(mascot.getIsActive())
                 .createdAt(mascot.getCreatedAt())
                 .updatedAt(mascot.getUpdatedAt())
