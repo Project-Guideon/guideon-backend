@@ -108,8 +108,8 @@ services:
       DOMAIN: ${DOMAIN}
     volumes:
       - ./nginx.conf.template:/etc/nginx/templates/default.conf.template
-      - certbot_www:/var/www/certbot
-      - certbot_conf:/etc/letsencrypt
+      - /var/www/certbot:/var/www/certbot
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - admin-bff
       - kiosk-bff
@@ -122,8 +122,8 @@ services:
     image: certbot/certbot
     container_name: guideon-certbot
     volumes:
-      - certbot_www:/var/www/certbot
-      - certbot_conf:/etc/letsencrypt
+      - /var/www/certbot:/var/www/certbot
+      - /etc/letsencrypt:/etc/letsencrypt
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
     networks:
       - internal
@@ -131,8 +131,6 @@ services:
 volumes:
   postgres_data:
   uploads:
-  certbot_www:
-  certbot_conf:
 
 networks:
   internal:
