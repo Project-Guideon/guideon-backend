@@ -5,8 +5,13 @@ import com.guideon.core.domain.chat.entity.ChatMessage;
 import com.guideon.core.domain.chat.entity.ChatSession;
 import com.guideon.core.domain.chat.repository.ChatMessageRepository;
 import com.guideon.core.domain.chat.repository.ChatSessionRepository;
+import com.guideon.core.domain.device.entity.Device;
+import com.guideon.core.domain.device.repository.DeviceRepository;
 import com.guideon.core.domain.place.entity.Place;
+import com.guideon.core.domain.place.repository.NearbyPlaceProjection;
 import com.guideon.core.domain.place.repository.PlaceRepository;
+import com.guideon.core.domain.zone.entity.Zone;
+import com.guideon.core.domain.zone.entity.ZoneType;
 import com.guideon.core.dto.chat.ChatCommand;
 import com.guideon.core.dto.chat.ChatResult;
 import com.guideon.core.dto.dailyinfo.DailyInfoDto;
@@ -25,7 +30,7 @@ import java.util.UUID;
 /**
  * Core 채팅 서비스
  *
- * 세션 생성/관리 + context 조립 + FastAPI QA 호출 + 대화 이력 DB 저장.
+ * 세션 생성/관리 + context 조립(nearbyPlaces, dailyInfos) + FastAPI QA 호출 + 대화 이력 DB 저장.
  * 대화 이력의 Source of Truth.
  */
 @Slf4j
@@ -34,11 +39,14 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class ChatService {
 
+    private static final int NEARBY_PLACES_LIMIT = 20;
+
     private final ChatSessionRepository chatSessionRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final FastApiQaClient fastApiQaClient;
     private final DailyInfoService dailyInfoService;
     private final PlaceRepository placeRepository;
+    private final DeviceRepository deviceRepository;
 
     /**
      * 대화 세션 생성 — UUID 생성 + DB 저장
@@ -75,10 +83,17 @@ public class ChatService {
                 });
         session.incrementMessageCount();
 
-        // 2. DailyInfo context 조립
+        // 2. Device 조회 → INNER zone 결정
+        Long innerZoneId = resolveInnerZoneId(command.getDeviceId());
+
+        // 3. nearbyPlaces context 조립 (PostGIS 공간 검색)
+        List<QaRequest.NearbyPlace> nearbyPlaces = buildNearbyPlacesContext(
+                command.getSiteId(), command.getLatitude(), command.getLongitude(), innerZoneId);
+
+        // 4. DailyInfo context 조립
         List<QaRequest.DailyInfoSummary> dailyInfoSummaries = buildDailyInfoContext(command.getSiteId());
 
-        // 3. FastAPI QA 요청 조립
+        // 5. FastAPI QA 요청 조립
         QaRequest qaRequest = QaRequest.builder()
                 .sessionId(command.getSessionId())
                 .siteId(command.getSiteId())
@@ -90,15 +105,16 @@ public class ChatService {
                         .build())
                 .context(QaRequest.QaContext.builder()
                         .dailyInfos(dailyInfoSummaries)
+                        .nearbyPlaces(nearbyPlaces)
                         .build())
                 .build();
 
-        // 4. FastAPI 호출 (실패 시 fallback)
+        // 6. FastAPI 호출 (실패 시 fallback)
         QaResponse qaResponse = callFastApi(qaRequest);
 
         long responseTimeMs = System.currentTimeMillis() - startTime;
 
-        // 5. 대화 이력 DB 저장
+        // 7. 대화 이력 DB 저장
         ChatMessage chatMessage = ChatMessage.builder()
                 .sessionId(command.getSessionId())
                 .siteId(command.getSiteId())
@@ -116,8 +132,62 @@ public class ChatService {
 
         chatMessageRepository.save(chatMessage);
 
-        // 6. Display hint 조립
+        // 8. Display hint 조립
         return buildChatResult(command.getSessionId(), qaResponse);
+    }
+
+    /**
+     * Device의 INNER zone ID를 결정.
+     * - Device가 INNER zone → 그대로 반환
+     * - Device가 SUB zone → parent(INNER) zone ID 반환
+     * - Device가 OUTER(zone=null) → null 반환 (site 전체 검색)
+     */
+    private Long resolveInnerZoneId(String deviceId) {
+        try {
+            Device device = deviceRepository.findById(deviceId).orElse(null);
+            if (device == null || device.getZone() == null) {
+                return null;
+            }
+
+            Zone zone = device.getZone();
+            if (zone.getZoneType() == ZoneType.INNER) {
+                return zone.getZoneId();
+            }
+            // SUB zone → parent INNER zone
+            if (zone.getZoneType() == ZoneType.SUB && zone.getParentZone() != null) {
+                return zone.getParentZone().getZoneId();
+            }
+            return null;
+        } catch (Exception e) {
+            log.warn("Device zone 조회 실패 (site 전체 검색으로 fallback): deviceId={}", deviceId);
+            return null;
+        }
+    }
+
+    /**
+     * PostGIS 공간 검색으로 근처 장소 목록 조립.
+     * 같은 INNER zone 장소 우선, ST_Distance 거리순 정렬.
+     */
+    private List<QaRequest.NearbyPlace> buildNearbyPlacesContext(
+            Long siteId, Double latitude, Double longitude, Long innerZoneId) {
+        try {
+            List<NearbyPlaceProjection> projections = placeRepository.findNearbyPlaces(
+                    siteId, latitude, longitude, innerZoneId, NEARBY_PLACES_LIMIT);
+
+            return projections.stream()
+                    .map(p -> QaRequest.NearbyPlace.builder()
+                            .placeId(p.getPlaceId())
+                            .name(p.getName())
+                            .category(p.getCategory())
+                            .description(p.getDescription())
+                            .distanceM(p.getDistanceM())
+                            .sameZone(p.getZonePriority() != null && p.getZonePriority() == 0)
+                            .build())
+                    .toList();
+        } catch (Exception e) {
+            log.warn("nearbyPlaces 조회 실패 (빈 목록으로 진행): {}", e.getMessage());
+            return List.of();
+        }
     }
 
     private List<QaRequest.DailyInfoSummary> buildDailyInfoContext(Long siteId) {
