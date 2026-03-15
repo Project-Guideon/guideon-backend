@@ -22,6 +22,9 @@ public class MascotResponse {
     private String ttsVoiceId;
     private Map<String, Object> ttsVoiceJson;
     private String imageUrl;
+    private String modelUrl;
+    private String modelFormat;
+    private Long generationId;
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -39,6 +42,9 @@ public class MascotResponse {
                 .ttsVoiceId(dto.getTtsVoiceId())
                 .ttsVoiceJson(dto.getTtsVoiceJson())
                 .imageUrl(dto.getImageUrl())
+                .modelUrl(dto.getModelUrl())
+                .modelFormat(dto.getModelFormat())
+                .generationId(dto.getGenerationId())
                 .isActive(dto.getIsActive())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
