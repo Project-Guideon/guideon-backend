@@ -1,10 +1,8 @@
 package com.guideon.guideonbackend.domain.mascot.controller;
 
 import com.guideon.common.response.ApiResponse;
-import com.guideon.guideonbackend.domain.mascot.dto.CreateMascotRequest;
-import com.guideon.guideonbackend.domain.mascot.dto.MascotImageUploadResponse;
-import com.guideon.guideonbackend.domain.mascot.dto.MascotResponse;
-import com.guideon.guideonbackend.domain.mascot.dto.UpdateMascotRequest;
+import com.guideon.guideonbackend.domain.mascot.dto.*;
+import com.guideon.guideonbackend.domain.mascot.service.MascotGenerationService;
 import com.guideon.guideonbackend.domain.mascot.service.MascotService;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import com.guideon.guideonbackend.global.trace.TraceIdUtil;
@@ -26,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class MascotController {
 
     private final MascotService mascotService;
+    private final MascotGenerationService generationService;
 
     @Operation(summary = "마스코트 이미지 업로드", description = "마스코트 이미지를 업로드하고 URL을 반환합니다. PLATFORM_ADMIN 권한 필요")
     @PostMapping(value = "/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -74,6 +73,46 @@ public class MascotController {
             HttpServletRequest httpRequest
     ) {
         MascotResponse response = mascotService.updateMascot(siteId, request, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    // ── 3D 모델 생성 (Tripo AI) ──
+
+    @Operation(summary = "3D 모델 생성 시작", description = "이미지를 업로드하여 Tripo AI 3D 모델 생성을 시작합니다. PLATFORM_ADMIN 권한 필요")
+    @PostMapping(value = "/generate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<StartGenerationResponse>> startGeneration(
+            @PathVariable Long siteId,
+            @RequestPart("file") MultipartFile file,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        StartGenerationResponse response = generationService.startGeneration(siteId, file, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    @Operation(summary = "3D 모델 생성 상태 폴링", description = "생성 진행 상태를 확인합니다. model 완료 시 자동으로 rigging이 시작됩니다.")
+    @GetMapping("/generate/{generationId}/status")
+    public ResponseEntity<ApiResponse<GenerationStatusResponse>> pollGenerationStatus(
+            @PathVariable Long siteId,
+            @PathVariable Long generationId,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        GenerationStatusResponse response = generationService.pollStatus(siteId, generationId, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    @Operation(summary = "최근 3D 생성 이력 조회", description = "해당 사이트의 가장 최근 3D 모델 생성 상태를 조회합니다.")
+    @GetMapping("/generate/latest")
+    public ResponseEntity<ApiResponse<GenerationStatusResponse>> getLatestGeneration(
+            @PathVariable Long siteId,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        GenerationStatusResponse response = generationService.getLatestGeneration(siteId, adminDetails);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
