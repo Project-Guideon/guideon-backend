@@ -56,6 +56,16 @@ public class Mascot extends BaseEntity {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
+    @Column(name = "model_url", length = 500)
+    private String modelUrl;
+
+    @Column(name = "model_format", length = 10)
+    private String modelFormat;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "generation_id")
+    private MascotGeneration generation;
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
@@ -90,5 +100,11 @@ public class Mascot extends BaseEntity {
         if (ttsVoiceJson != null) this.ttsVoiceJson = ttsVoiceJson;
         if (imageUrl != null) this.imageUrl = imageUrl;
         if (isActive != null) this.isActive = isActive;
+    }
+
+    public void updateModelUrl(String modelUrl, String modelFormat, MascotGeneration generation) {
+        this.modelUrl = modelUrl;
+        this.modelFormat = modelFormat;
+        this.generation = generation;
     }
 }
