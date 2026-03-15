@@ -209,7 +209,8 @@ public class TripoApiService {
             Integer code = (Integer) body.get("code");
             if (code != null && code != 0) {
                 String message = (String) body.getOrDefault("message", "알 수 없는 오류");
-                throw new CustomException(ErrorCode.TRIPO_API_ERROR, "Tripo API 오류: " + message);
+                log.error("Tripo API 비즈니스 오류: url={}, code={}, message={}", url, code, message);
+                throw new CustomException(ErrorCode.TRIPO_API_ERROR, "Tripo API 오류 (code=" + code + "): " + message);
             }
 
             return body;

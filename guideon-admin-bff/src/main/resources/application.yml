@@ -69,3 +69,5 @@ core:
 tripo:
   api-key: ${TRIPO_API_KEY}
   base-url: https://api.tripo3d.ai/v2/openapi
+  connect-timeout: 10000   # 연결 타임아웃 (ms)
+  read-timeout: 60000      # 읽기 타임아웃 (ms)
