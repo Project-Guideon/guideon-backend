@@ -67,5 +67,5 @@ core:
 
 # Tripo AI (3D Model Generation)
 tripo:
-  api-key: ${TRIPO_API_KEY:}
+  api-key: ${TRIPO_API_KEY}
   base-url: https://api.tripo3d.ai/v2/openapi

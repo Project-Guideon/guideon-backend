@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -23,18 +24,26 @@ import java.util.Map;
 @Service
 public class TripoApiService {
 
+    private static final long MAX_MODEL_SIZE = 50L * 1024 * 1024; // 50MB
+
     private final String apiKey;
     private final String baseUrl;
     private final RestTemplate restTemplate;
 
     public TripoApiService(
             @Value("${tripo.api-key}") String apiKey,
-            @Value("${tripo.base-url}") String baseUrl) {
+            @Value("${tripo.base-url}") String baseUrl,
+            @Value("${tripo.connect-timeout:10000}") int connectTimeout,
+            @Value("${tripo.read-timeout:60000}") int readTimeout) {
         this.apiKey = apiKey;
         this.baseUrl = baseUrl;
-        this.restTemplate = new RestTemplate();
-        log.info("TripoApiService 초기화: apiKey={}, baseUrl={}",
-                apiKey != null && apiKey.length() > 10 ? apiKey.substring(0, 10) + "..." : "(비어있음)", baseUrl);
+
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(connectTimeout);
+        factory.setReadTimeout(readTimeout);
+        this.restTemplate = new RestTemplate(factory);
+
+        log.info("TripoApiService 초기화: baseUrl={}", baseUrl);
     }
 
     /**
@@ -151,8 +160,20 @@ public class TripoApiService {
      */
     public byte[] downloadModel(String modelDownloadUrl) {
         try {
+            // HEAD 요청으로 파일 크기 사전 확인
+            HttpHeaders headHeaders = restTemplate.headForHeaders(modelDownloadUrl);
+            long contentLength = headHeaders.getContentLength();
+            if (contentLength > MAX_MODEL_SIZE) {
+                throw new CustomException(ErrorCode.TRIPO_API_ERROR,
+                        "모델 파일이 너무 큽니다: " + contentLength + " bytes (최대 " + MAX_MODEL_SIZE + ")");
+            }
+
             ResponseEntity<byte[]> response = restTemplate.getForEntity(modelDownloadUrl, byte[].class);
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                if (response.getBody().length > MAX_MODEL_SIZE) {
+                    throw new CustomException(ErrorCode.TRIPO_API_ERROR,
+                            "모델 파일이 너무 큽니다: " + response.getBody().length + " bytes");
+                }
                 log.info("GLB 모델 다운로드 완료: size={}bytes", response.getBody().length);
                 return response.getBody();
             }

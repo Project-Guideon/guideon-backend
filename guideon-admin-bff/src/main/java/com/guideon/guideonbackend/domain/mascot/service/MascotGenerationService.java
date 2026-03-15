@@ -3,15 +3,14 @@ package com.guideon.guideonbackend.domain.mascot.service;
 import com.guideon.common.exception.CustomException;
 import com.guideon.common.exception.ErrorCode;
 import com.guideon.core.domain.admin.entity.AdminRole;
+import com.guideon.core.domain.mascot.entity.GenerationStatus;
 import com.guideon.core.domain.mascot.entity.Mascot;
 import com.guideon.core.domain.mascot.entity.MascotGeneration;
 import com.guideon.core.domain.mascot.repository.MascotGenerationRepository;
 import com.guideon.core.domain.mascot.repository.MascotRepository;
 import com.guideon.core.domain.site.entity.Site;
 import com.guideon.core.domain.site.repository.SiteRepository;
-import com.guideon.core.dto.mascot.MascotGenerationDto;
 import com.guideon.guideonbackend.domain.mascot.dto.GenerationStatusResponse;
-import com.guideon.guideonbackend.domain.mascot.dto.StartGenerationRequest;
 import com.guideon.guideonbackend.domain.mascot.dto.StartGenerationResponse;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import com.guideon.guideonbackend.global.storage.FileStorageService;
@@ -43,7 +42,6 @@ public class MascotGenerationService {
     /**
      * Step 1: 이미지 업로드 + Tripo 3D 생성 task 시작
      */
-    @Transactional
     public StartGenerationResponse startGeneration(Long siteId, MultipartFile imageFile,
                                                     CustomAdminDetails adminDetails) {
         validatePlatformAdmin(adminDetails);
@@ -51,6 +49,14 @@ public class MascotGenerationService {
 
         Site site = siteRepository.findById(siteId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 관광지: " + siteId));
+
+        // 진행 중인 생성 작업이 있는지 확인
+        generationRepository.findTopBySite_SiteIdOrderByCreatedAtDesc(siteId)
+                .filter(gen -> !gen.isFullyCompleted() && !gen.isFailed())
+                .ifPresent(gen -> {
+                    throw new CustomException(ErrorCode.CONFLICT,
+                            "이미 진행 중인 3D 생성 작업이 있습니다: " + gen.getGenerationId());
+                });
 
         // 1. 이미지 로컬 저장 (원본 보관)
         String fileHash = FileValidator.computeFileHash(imageFile);
@@ -62,13 +68,8 @@ public class MascotGenerationService {
         // 3. image_to_model task 생성
         String modelTaskId = tripoApiService.createImageToModelTask(imageToken);
 
-        // 4. DB 저장
-        MascotGeneration generation = MascotGeneration.builder()
-                .site(site)
-                .sourceImageUrl(sourceImageUrl)
-                .build();
-        generation.startModelGeneration(modelTaskId);
-        generationRepository.save(generation);
+        // 4. DB 저장 (외부 API 호출 완료 후 트랜잭션)
+        MascotGeneration generation = saveGenerationRecord(site, sourceImageUrl, modelTaskId);
 
         log.info("마스코트 3D 생성 시작: generationId={}, siteId={}, modelTaskId={}",
                 generation.getGenerationId(), siteId, modelTaskId);
@@ -78,6 +79,16 @@ public class MascotGenerationService {
                 .modelTaskId(modelTaskId)
                 .status("PROCESSING")
                 .build();
+    }
+
+    @Transactional
+    protected MascotGeneration saveGenerationRecord(Site site, String sourceImageUrl, String modelTaskId) {
+        MascotGeneration generation = MascotGeneration.builder()
+                .site(site)
+                .sourceImageUrl(sourceImageUrl)
+                .build();
+        generation.startModelGeneration(modelTaskId);
+        return generationRepository.save(generation);
     }
 
     /**
@@ -91,13 +102,18 @@ public class MascotGenerationService {
         MascotGeneration gen = generationRepository.findById(generationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MASCOT_GENERATION_NOT_FOUND));
 
+        // IDOR 방지: generation이 요청된 siteId에 속하는지 검증
+        if (!gen.getSite().getSiteId().equals(siteId)) {
+            throw new CustomException(ErrorCode.MASCOT_GENERATION_NOT_FOUND);
+        }
+
         // 이미 완료 or 실패면 바로 반환
         if (gen.isFullyCompleted() || gen.isFailed()) {
             return GenerationStatusResponse.from(gen);
         }
 
         // Phase 1: model 생성 중
-        if ("PROCESSING".equals(gen.getModelStatus())) {
+        if (gen.getModelStatus() == GenerationStatus.PROCESSING) {
             TripoApiService.TripoTaskStatus status = tripoApiService.getTaskStatus(gen.getModelTaskId());
 
             if (status.isFailed()) {
@@ -120,7 +136,7 @@ public class MascotGenerationService {
         }
 
         // Phase 2: rigging 중
-        if ("PROCESSING".equals(gen.getRigStatus())) {
+        if (gen.getRigStatus() == GenerationStatus.PROCESSING) {
             TripoApiService.TripoTaskStatus status = tripoApiService.getTaskStatus(gen.getRigTaskId());
 
             if (status.isFailed()) {
@@ -163,10 +179,14 @@ public class MascotGenerationService {
     }
 
     private void updateMascotModelUrl(Long siteId, String modelUrl, MascotGeneration generation) {
-        mascotRepository.findBySite_SiteId(siteId).ifPresent(mascot -> {
-            mascot.updateModelUrl(modelUrl, "glb", generation);
-            log.info("tb_mascot model_url 업데이트: siteId={}", siteId);
-        });
+        mascotRepository.findBySite_SiteId(siteId).ifPresentOrElse(
+                mascot -> {
+                    mascot.updateModelUrl(modelUrl, "glb", generation);
+                    log.info("tb_mascot model_url 업데이트: siteId={}", siteId);
+                },
+                () -> log.warn("tb_mascot 미존재 — model_url 업데이트 생략: siteId={}, modelUrl={}, generationId={}",
+                        siteId, modelUrl, generation.getGenerationId())
+        );
     }
 
     private void validatePlatformAdmin(CustomAdminDetails adminDetails) {

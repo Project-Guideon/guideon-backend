@@ -29,14 +29,16 @@ public class MascotGeneration extends BaseEntity {
     @Column(name = "model_task_id", length = 100)
     private String modelTaskId;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "model_status", nullable = false, length = 20)
-    private String modelStatus;
+    private GenerationStatus modelStatus;
 
     @Column(name = "rig_task_id", length = 100)
     private String rigTaskId;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "rig_status", nullable = false, length = 20)
-    private String rigStatus;
+    private GenerationStatus rigStatus;
 
     @Column(name = "result_model_url", length = 500)
     private String resultModelUrl;
@@ -48,44 +50,60 @@ public class MascotGeneration extends BaseEntity {
     public MascotGeneration(Site site, String sourceImageUrl) {
         this.site = site;
         this.sourceImageUrl = sourceImageUrl;
-        this.modelStatus = "PENDING";
-        this.rigStatus = "PENDING";
+        this.modelStatus = GenerationStatus.PENDING;
+        this.rigStatus = GenerationStatus.PENDING;
     }
 
     public void startModelGeneration(String modelTaskId) {
         this.modelTaskId = modelTaskId;
-        this.modelStatus = "PROCESSING";
+        this.modelStatus = GenerationStatus.PROCESSING;
     }
 
     public void completeModelGeneration() {
-        this.modelStatus = "SUCCESS";
+        this.modelStatus = GenerationStatus.SUCCESS;
     }
 
     public void failModelGeneration(String reason) {
-        this.modelStatus = "FAILED";
-        this.failedReason = reason;
+        this.modelStatus = GenerationStatus.FAILED;
+        this.failedReason = appendReason(this.failedReason, reason);
     }
 
     public void startRigging(String rigTaskId) {
         this.rigTaskId = rigTaskId;
-        this.rigStatus = "PROCESSING";
+        this.rigStatus = GenerationStatus.PROCESSING;
     }
 
     public void completeRigging(String resultModelUrl) {
-        this.rigStatus = "SUCCESS";
+        this.rigStatus = GenerationStatus.SUCCESS;
         this.resultModelUrl = resultModelUrl;
     }
 
     public void failRigging(String reason) {
-        this.rigStatus = "FAILED";
-        this.failedReason = reason;
+        this.rigStatus = GenerationStatus.FAILED;
+        this.failedReason = appendReason(this.failedReason, reason);
     }
 
     public boolean isFullyCompleted() {
-        return "SUCCESS".equals(modelStatus) && "SUCCESS".equals(rigStatus);
+        return modelStatus == GenerationStatus.SUCCESS && rigStatus == GenerationStatus.SUCCESS;
     }
 
     public boolean isFailed() {
-        return "FAILED".equals(modelStatus) || "FAILED".equals(rigStatus);
+        return modelStatus == GenerationStatus.FAILED || rigStatus == GenerationStatus.FAILED;
+    }
+
+    // status를 String으로 반환 (하위 호환)
+    public String getModelStatusValue() {
+        return modelStatus.name();
+    }
+
+    public String getRigStatusValue() {
+        return rigStatus.name();
+    }
+
+    private String appendReason(String existing, String newReason) {
+        if (existing == null || existing.isBlank()) {
+            return newReason;
+        }
+        return existing + " | " + newReason;
     }
 }

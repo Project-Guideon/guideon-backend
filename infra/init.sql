@@ -221,10 +221,14 @@ CREATE TABLE IF NOT EXISTS tb_mascot_generation (
   failed_reason      TEXT NULL,
 
   created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT ck_model_status CHECK (model_status IN ('PENDING','PROCESSING','SUCCESS','FAILED')),
+  CONSTRAINT ck_rig_status CHECK (rig_status IN ('PENDING','PROCESSING','SUCCESS','FAILED'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_mascot_gen_site ON tb_mascot_generation (site_id, model_status);
+CREATE INDEX IF NOT EXISTS idx_mascot_gen_site_created ON tb_mascot_generation (site_id, created_at DESC);
 
 CREATE OR REPLACE TRIGGER trg_mascot_gen_updated_at
 BEFORE UPDATE ON tb_mascot_generation
@@ -233,7 +237,7 @@ FOR EACH ROW EXECUTE FUNCTION guideon_set_updated_at();
 -- tb_mascot 컬럼 추가 (3D 모델 URL)
 ALTER TABLE tb_mascot ADD COLUMN IF NOT EXISTS model_url VARCHAR(500) NULL;
 ALTER TABLE tb_mascot ADD COLUMN IF NOT EXISTS model_format VARCHAR(10) NULL DEFAULT 'glb';
-ALTER TABLE tb_mascot ADD COLUMN IF NOT EXISTS generation_id BIGINT NULL REFERENCES tb_mascot_generation(generation_id) ON DELETE SET NULL;
+ALTER TABLE tb_mascot ADD COLUMN IF NOT EXISTS generation_id BIGINT NULL UNIQUE REFERENCES tb_mascot_generation(generation_id) ON DELETE SET NULL;
 
 -- tb_document
 CREATE TABLE IF NOT EXISTS tb_document (

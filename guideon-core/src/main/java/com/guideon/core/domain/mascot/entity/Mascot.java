@@ -63,7 +63,7 @@ public class Mascot extends BaseEntity {
     private String modelFormat;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "generation_id")
+    @JoinColumn(name = "generation_id", unique = true)
     private MascotGeneration generation;
 
     @Column(name = "is_active", nullable = false)
@@ -104,7 +104,7 @@ public class Mascot extends BaseEntity {
 
     public void updateModelUrl(String modelUrl, String modelFormat, MascotGeneration generation) {
         this.modelUrl = modelUrl;
-        this.modelFormat = modelFormat;
+        this.modelFormat = (modelFormat != null && !modelFormat.isBlank()) ? modelFormat : "glb";
         this.generation = generation;
     }
 }
