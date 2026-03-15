@@ -33,6 +33,8 @@ public class TripoApiService {
         this.apiKey = apiKey;
         this.baseUrl = baseUrl;
         this.restTemplate = new RestTemplate();
+        log.info("TripoApiService 초기화: apiKey={}, baseUrl={}",
+                apiKey != null && apiKey.length() > 10 ? apiKey.substring(0, 10) + "..." : "(비어있음)", baseUrl);
     }
 
     /**

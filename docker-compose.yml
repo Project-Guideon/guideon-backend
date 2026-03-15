@@ -79,6 +79,7 @@ services:
       INIT_ADMIN_EMAIL: ${INIT_ADMIN_EMAIL}
       INIT_ADMIN_PASSWORD: ${INIT_ADMIN_PASSWORD}
       INVITE_EXPIRE_DAYS: ${INVITE_EXPIRE_DAYS}
+      TRIPO_API_KEY: ${TRIPO_API_KEY}
     volumes:
       - ./uploads:/app/uploads
     depends_on:
