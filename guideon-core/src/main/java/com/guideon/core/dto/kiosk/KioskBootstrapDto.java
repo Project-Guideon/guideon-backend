@@ -33,6 +33,8 @@ public class KioskBootstrapDto {
     public static class MascotSummary {
         private String name;
         private String modelId;
+        private String modelUrl;
+        private String modelFormat;
         private String defaultAnim;
         private String greetingMsg;
         private String ttsVoiceId;

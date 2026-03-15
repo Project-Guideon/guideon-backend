@@ -47,6 +47,8 @@ public class KioskService {
                 .map(m -> KioskBootstrapDto.MascotSummary.builder()
                         .name(m.getName())
                         .modelId(m.getModelId())
+                        .modelUrl(m.getModelUrl())
+                        .modelFormat(m.getModelFormat())
                         .defaultAnim(m.getDefaultAnim())
                         .greetingMsg(m.getGreetingMsg())
                         .ttsVoiceId(m.getTtsVoiceId())
