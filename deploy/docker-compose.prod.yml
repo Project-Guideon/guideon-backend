@@ -71,6 +71,7 @@ services:
       INIT_ADMIN_PASSWORD: ${INIT_ADMIN_PASSWORD}
       INVITE_EXPIRE_DAYS: ${INVITE_EXPIRE_DAYS:-7}
       TRIPO_API_KEY: ${TRIPO_API_KEY}
+      FILE_BASE_URL: https://${DOMAIN}
       JAVA_OPTS: "-Xmx384m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m"
     volumes:
       - uploads:/app/uploads

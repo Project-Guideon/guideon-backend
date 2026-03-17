@@ -36,6 +36,9 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
+# 업로드 디렉토리 생성 (Docker volume 마운트 전에 소유권 확보)
+RUN mkdir -p /app/uploads && chown appuser:appgroup /app/uploads
+
 # 빌드된 JAR 복사 및 권한 설정
 COPY --from=builder --chown=appuser:appgroup /app/guideon-admin-bff/build/libs/guideon-admin-bff.jar app.jar
 
