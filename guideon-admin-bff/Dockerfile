@@ -31,19 +31,14 @@ RUN ./gradlew :guideon-admin-bff:bootJar --no-daemon -x test
 # 런타임 이미지
 FROM eclipse-temurin:21-jre-alpine
 
-# non-root user 생성
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# non-root user 생성 + su-exec 설치 (런타임 권한 전환용)
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
+    && apk add --no-cache su-exec
 
 WORKDIR /app
 
-# 업로드 디렉토리 생성 (Docker volume 마운트 전에 소유권 확보)
-RUN mkdir -p /app/uploads && chown appuser:appgroup /app/uploads
-
 # 빌드된 JAR 복사 및 권한 설정
 COPY --from=builder --chown=appuser:appgroup /app/guideon-admin-bff/build/libs/guideon-admin-bff.jar app.jar
-
-# non-root user로 전환
-USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
@@ -51,4 +46,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
 
 EXPOSE 8081
 
-ENTRYPOINT ["sh", "-c", "java ${JAVA_OPTS:--Xmx384m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m} -jar app.jar"]
+# 런타임에 /app/uploads 소유권 보정 후 appuser로 앱 실행
+ENTRYPOINT ["sh", "-c", "mkdir -p /app/uploads && chown -R appuser:appgroup /app/uploads && exec su-exec appuser java ${JAVA_OPTS:--Xmx384m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m} -jar app.jar"]
