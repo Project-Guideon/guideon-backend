@@ -46,5 +46,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
 
 EXPOSE 8081
 
-# 런타임에 /app/uploads 소유권 보정 후 appuser로 앱 실행
-ENTRYPOINT ["sh", "-c", "mkdir -p /app/uploads && chown -R appuser:appgroup /app/uploads && exec su-exec appuser java ${JAVA_OPTS:--Xmx384m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m} -jar app.jar"]
+# 런타임에 /app/uploads 소유권 보정(필요 시만) 후 appuser로 앱 실행
+ENTRYPOINT ["sh", "-c", "mkdir -p /app/uploads && if find /app/uploads ! -user appuser -o ! -group appgroup | read; then chown -R appuser:appgroup /app/uploads; fi && exec su-exec appuser java ${JAVA_OPTS:--Xmx384m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m} -jar app.jar"]
