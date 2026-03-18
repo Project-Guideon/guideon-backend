@@ -48,6 +48,17 @@ public class AdminInviteController {
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
 
+    // 초대 재발송 (PLATFORM_ADMIN 전용)
+    @PostMapping("/{inviteId}/resend")
+    public ResponseEntity<ApiResponse<InviteResponse>> resendInvite(
+            @PathVariable Long inviteId,
+            HttpServletRequest httpRequest
+    ) {
+        InviteResponse response = adminInviteService.resendInvite(inviteId);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
     // 초대 만료 처리 (PLATFORM_ADMIN 전용)
     @PostMapping("/{inviteId}/expire")
     public ResponseEntity<ApiResponse<Void>> expireInvite(

@@ -6,17 +6,20 @@ import com.guideon.core.dto.admin.AcceptInviteCommand;
 import com.guideon.core.dto.admin.AcceptInviteResult;
 import com.guideon.core.dto.admin.CreateInviteCommand;
 import com.guideon.core.dto.admin.InviteDto;
+import com.guideon.core.dto.admin.ResendInviteCommand;
 import com.guideon.guideonbackend.client.CoreAdminClient;
 import com.guideon.guideonbackend.domain.admin.dto.AcceptInviteRequest;
 import com.guideon.guideonbackend.domain.admin.dto.AdminLoginResponse;
 import com.guideon.guideonbackend.domain.admin.dto.CreateInviteRequest;
 import com.guideon.guideonbackend.domain.admin.dto.InviteResponse;
+import com.guideon.guideonbackend.global.mail.EmailService;
 import com.guideon.guideonbackend.global.security.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -31,6 +34,9 @@ public class AdminInviteService {
     private final CoreAdminClient coreAdminClient;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtProvider jwtProvider;
+    private final EmailService emailService;
+
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy년 M월 d일");
 
     @Value("${app.invite.expire-days}")
     private int expireDays;
@@ -50,6 +56,8 @@ public class AdminInviteService {
         log.info("초대 생성 완료: inviteId={}, siteId={}",
                 inviteDto.getInviteId(), inviteDto.getSiteId());
 
+        sendInviteEmail(inviteDto);
+
         return InviteResponse.from(inviteDto);
     }
 
@@ -68,6 +76,23 @@ public class AdminInviteService {
     public void expireInvite(Long inviteId) {
         coreAdminClient.expireInvite(inviteId);
         log.info("초대 만료 처리: inviteId={}", inviteId);
+    }
+
+    /**
+     * 초대 재발송 (토큰 재생성 + 메일 발송)
+     */
+    public InviteResponse resendInvite(Long inviteId) {
+        ResendInviteCommand command = ResendInviteCommand.builder()
+                .inviteId(inviteId)
+                .expireDays(expireDays)
+                .build();
+
+        InviteDto inviteDto = coreAdminClient.resendInvite(inviteId, command);
+        log.info("초대 재발송: inviteId={}", inviteId);
+
+        sendInviteEmail(inviteDto);
+
+        return InviteResponse.from(inviteDto);
     }
 
     /**
@@ -108,5 +133,15 @@ public class AdminInviteService {
                 .role(result.getRole())
                 .siteIds(result.getSiteIds())
                 .build();
+    }
+
+    private void sendInviteEmail(InviteDto inviteDto) {
+        if (inviteDto.getRawToken() == null) return;
+        emailService.sendInviteEmail(
+                inviteDto.getEmail(),
+                inviteDto.getSiteName(),
+                inviteDto.getRawToken(),
+                inviteDto.getExpiresAt().format(DATE_FMT)
+        );
     }
 }
