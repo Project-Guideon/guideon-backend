@@ -4,6 +4,7 @@ import com.guideon.core.dto.admin.AcceptInviteCommand;
 import com.guideon.core.dto.admin.AcceptInviteResult;
 import com.guideon.core.dto.admin.CreateInviteCommand;
 import com.guideon.core.dto.admin.InviteDto;
+import com.guideon.core.dto.admin.ResendInviteCommand;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +24,9 @@ public interface CoreAdminClient {
 
     @PostMapping("/internal/v1/admin/invites/{inviteId}/expire")
     void expireInvite(@PathVariable("inviteId") Long inviteId);
+
+    @PostMapping("/internal/v1/admin/invites/{inviteId}/resend")
+    InviteDto resendInvite(@PathVariable("inviteId") Long inviteId, @RequestBody ResendInviteCommand command);
 
     @PostMapping("/internal/v1/admin/invites/accept")
     AcceptInviteResult acceptInvite(@RequestBody AcceptInviteCommand command);
