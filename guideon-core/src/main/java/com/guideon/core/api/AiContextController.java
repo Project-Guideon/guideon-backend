@@ -41,14 +41,16 @@ public class AiContextController {
         List<NearbyPlaceProjection> places = chatService.getNearbyPlacesByCategory(siteId, deviceId, category);
 
         List<Map<String, Object>> response = places.stream()
-                .map(p -> Map.<String, Object>of(
-                        "placeId",    p.getPlaceId(),
-                        "name",       p.getName(),
-                        "category",   p.getCategory(),
-                        "description", p.getDescription() != null ? p.getDescription() : "",
-                        "distanceM",  p.getDistanceM(),
-                        "sameZone",   p.getZonePriority() != null && p.getZonePriority() == 0
-                ))
+                .map(p -> {
+                    Map<String, Object> map = new java.util.HashMap<>();
+                    map.put("placeId",     p.getPlaceId());
+                    map.put("name",        p.getName());
+                    map.put("category",    p.getCategory());
+                    map.put("description", p.getDescription() != null ? p.getDescription() : "");
+                    map.put("distanceM",   p.getDistanceM());   // null 허용 (Map.of 는 null 불가)
+                    map.put("sameZone",    p.getZonePriority() != null && p.getZonePriority() == 0);
+                    return map;
+                })
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(response);

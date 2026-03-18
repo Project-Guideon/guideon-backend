@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -143,7 +144,7 @@ public class ChatService {
         try {
             Device device = deviceRepository.findById(deviceId).orElse(null);
             if (device == null || device.getLocation() == null) {
-                log.warn("Device 없음 또는 위치 미설정: deviceId={}", deviceId);
+                log.warn("Device 없음 또는 위치 미설정: deviceId=***");
                 return List.of();
             }
 
@@ -198,16 +199,25 @@ public class ChatService {
         }
     }
 
+    private static final Map<String, String> FALLBACK_ANSWERS = Map.of(
+            "ko", "[AI 서비스 연결 중] 죄송합니다, 잠시 후 다시 시도해주세요.",
+            "en", "[AI service connecting] Sorry, please try again in a moment.",
+            "ja", "[AI サービス接続中] 申し訳ありませんが、しばらくしてからもう一度お試しください。",
+            "zh", "[AI服务连接中] 抱歉，请稍后再试。"
+    );
+
     private QaResponse callFastApi(QaRequest request) {
         try {
             return fastApiQaClient.ask(request);
         } catch (Exception e) {
             log.warn("FastAPI QA 호출 실패 — fallback 응답 반환: {}", e.getMessage());
+            String lang = request.getLanguage() != null ? request.getLanguage().split("-")[0].toLowerCase() : "ko";
+            String fallbackAnswer = FALLBACK_ANSWERS.getOrDefault(lang, FALLBACK_ANSWERS.get("en"));
             return QaResponse.builder()
-                    .answer("[AI 서비스 연결 중] 죄송합니다, 잠시 후 다시 시도해주세요.")
+                    .answer(fallbackAnswer)
                     .placeId(null)
                     .emotion("SORRY")
-                    .language(request.getLanguage() != null ? request.getLanguage() : "ko")
+                    .language(lang)
                     .category("ERROR")
                     .answerFound(false)
                     .build();
