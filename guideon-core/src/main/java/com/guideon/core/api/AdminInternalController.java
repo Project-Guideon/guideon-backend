@@ -4,6 +4,7 @@ import com.guideon.core.dto.admin.AcceptInviteCommand;
 import com.guideon.core.dto.admin.AcceptInviteResult;
 import com.guideon.core.dto.admin.CreateInviteCommand;
 import com.guideon.core.dto.admin.InviteDto;
+import com.guideon.core.dto.admin.ResendInviteCommand;
 import com.guideon.core.service.AdminInviteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +40,19 @@ public class AdminInternalController {
     public ResponseEntity<Void> expireInvite(@PathVariable Long inviteId) {
         adminInviteService.expireInvite(inviteId);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/invites/{inviteId}/resend")
+    public ResponseEntity<InviteDto> resendInvite(
+            @PathVariable Long inviteId,
+            @RequestBody ResendInviteCommand command
+    ) {
+        ResendInviteCommand fullCommand = ResendInviteCommand.builder()
+                .inviteId(inviteId)
+                .expireDays(command.getExpireDays())
+                .build();
+        InviteDto invite = adminInviteService.resendInvite(fullCommand);
+        return ResponseEntity.ok(invite);
     }
 
     @PostMapping("/invites/accept")
