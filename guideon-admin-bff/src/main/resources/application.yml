@@ -18,6 +18,28 @@ spring:
       max-file-size: 50MB
       max-request-size: 50MB
 
+  # Mail (SMTP)
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+    default-encoding: UTF-8
+
+  # Thymeleaf
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+    check-template-location: true
+
   # JPA
   jpa:
     open-in-view: false
@@ -45,6 +67,9 @@ app:
     admin-password: ${INIT_ADMIN_PASSWORD}
   invite:
     expire-days: ${INVITE_EXPIRE_DAYS}
+    accept-url: ${INVITE_ACCEPT_URL:http://localhost:3000/invite/accept}
+    from-email: ${MAIL_FROM:noreply@guideon.kr}
+    from-name: ${MAIL_FROM_NAME:GUIDEON}
 
 # JWT
 jwt:
