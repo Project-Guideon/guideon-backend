@@ -79,4 +79,9 @@ public class AdminInvite extends BaseEntity {
     public boolean isExpired() {
         return LocalDateTime.now().isAfter(this.expiresAt);
     }
+
+    public void renewToken(String newTokenHash, LocalDateTime newExpiresAt) {
+        this.tokenHash = newTokenHash;
+        this.expiresAt = newExpiresAt;
+    }
 }

@@ -12,6 +12,7 @@ import com.guideon.core.dto.admin.AcceptInviteCommand;
 import com.guideon.core.dto.admin.AcceptInviteResult;
 import com.guideon.core.dto.admin.CreateInviteCommand;
 import com.guideon.core.dto.admin.InviteDto;
+import com.guideon.core.dto.admin.ResendInviteCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -99,6 +100,26 @@ public class AdminInviteService {
 
         invite.markExpired();
         log.info("초대 만료 처리: inviteId={}", inviteId);
+    }
+
+    /**
+     * 초대 재발송 (토큰 재생성 + 만료일 리셋)
+     */
+    @Transactional
+    public InviteDto resendInvite(ResendInviteCommand command) {
+        AdminInvite invite = adminInviteRepository.findById(command.getInviteId())
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "초대를 찾을 수 없습니다"));
+
+        if (invite.getStatus() != AdminInviteStatus.PENDING) {
+            throw new CustomException(ErrorCode.DOMAIN_RULE_VIOLATION, "PENDING 상태의 초대만 재발송할 수 있습니다");
+        }
+
+        String rawToken = UUID.randomUUID().toString();
+        String tokenHash = sha256(rawToken);
+        invite.renewToken(tokenHash, LocalDateTime.now().plusDays(command.getExpireDays()));
+
+        log.info("초대 재발송 토큰 갱신: inviteId={}", invite.getInviteId());
+        return InviteDto.fromWithToken(invite, rawToken);
     }
 
     /**
