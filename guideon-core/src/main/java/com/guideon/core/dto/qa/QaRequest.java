@@ -10,8 +10,8 @@ import java.util.List;
 /**
  * FastAPI /internal/v1/qa 요청 DTO
  *
- * Core가 DB에서 context(nearbyPlaces, dailyInfos)를 조립하여 FastAPI에 전달.
- * FastAPI는 PDF만 RAG 검색하고, Place/DailyInfo는 이 context를 활용.
+ * - nearbyPlaces: FastAPI fetch_places_node 가 category 추출 후 직접 Spring Boot 에 조회 요청
+ * - systemPrompt: tb_mascot 에서 조회한 마스코트 캐릭터 프롬프트
  */
 @Getter
 @Builder
@@ -21,8 +21,10 @@ public class QaRequest {
 
     private String sessionId;
     private Long siteId;
+    private String deviceId;
     private String question;
     private String language;
+    private String systemPrompt;
 
     private DeviceLocation deviceLocation;
 
@@ -43,7 +45,6 @@ public class QaRequest {
     @AllArgsConstructor
     public static class QaContext {
         private List<DailyInfoSummary> dailyInfos;
-        private List<NearbyPlace> nearbyPlaces;
     }
 
     @Getter
@@ -56,20 +57,4 @@ public class QaRequest {
         private String content;
     }
 
-    /**
-     * Core가 PostGIS 공간 검색으로 조립한 근처 장소 정보.
-     * FastAPI LangGraph 위치 안내 라우트에서 활용.
-     */
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class NearbyPlace {
-        private Long placeId;
-        private String name;
-        private String category;
-        private String description;
-        private Double distanceM;
-        private boolean sameZone;
-    }
 }

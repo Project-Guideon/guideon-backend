@@ -7,6 +7,8 @@ import com.guideon.core.domain.chat.repository.ChatMessageRepository;
 import com.guideon.core.domain.chat.repository.ChatSessionRepository;
 import com.guideon.core.domain.device.entity.Device;
 import com.guideon.core.domain.device.repository.DeviceRepository;
+import com.guideon.core.domain.mascot.entity.Mascot;
+import com.guideon.core.domain.mascot.repository.MascotRepository;
 import com.guideon.core.domain.place.entity.Place;
 import com.guideon.core.domain.place.repository.NearbyPlaceProjection;
 import com.guideon.core.domain.place.repository.PlaceRepository;
@@ -25,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -39,14 +42,13 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class ChatService {
 
-    private static final int NEARBY_PLACES_LIMIT = 20;
-
     private final ChatSessionRepository chatSessionRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final FastApiQaClient fastApiQaClient;
     private final DailyInfoService dailyInfoService;
     private final PlaceRepository placeRepository;
     private final DeviceRepository deviceRepository;
+    private final MascotRepository mascotRepository;
 
     /**
      * 대화 세션 생성 — UUID 생성 + DB 저장
@@ -83,29 +85,27 @@ public class ChatService {
                 });
         session.incrementMessageCount();
 
-        // 2. Device 조회 → INNER zone 결정
-        Long innerZoneId = resolveInnerZoneId(command.getDeviceId());
+        // 2. 마스코트 systemPrompt 조회
+        String systemPrompt = buildSystemPrompt(command.getSiteId());
 
-        // 3. nearbyPlaces context 조립 (PostGIS 공간 검색)
-        List<QaRequest.NearbyPlace> nearbyPlaces = buildNearbyPlacesContext(
-                command.getSiteId(), command.getLatitude(), command.getLongitude(), innerZoneId);
-
-        // 4. DailyInfo context 조립
+        // 3. DailyInfo context 조립
         List<QaRequest.DailyInfoSummary> dailyInfoSummaries = buildDailyInfoContext(command.getSiteId());
 
-        // 5. FastAPI QA 요청 조립
+        // 4. FastAPI QA 요청 조립
+        // nearbyPlaces 는 FastAPI fetch_places_node 가 category 추출 후 직접 조회
         QaRequest qaRequest = QaRequest.builder()
                 .sessionId(command.getSessionId())
                 .siteId(command.getSiteId())
+                .deviceId(command.getDeviceId())
                 .question(command.getMessage())
                 .language(command.getLanguage())
+                .systemPrompt(systemPrompt)
                 .deviceLocation(QaRequest.DeviceLocation.builder()
                         .latitude(command.getLatitude())
                         .longitude(command.getLongitude())
                         .build())
                 .context(QaRequest.QaContext.builder()
                         .dailyInfos(dailyInfoSummaries)
-                        .nearbyPlaces(nearbyPlaces)
                         .build())
                 .build();
 
@@ -137,56 +137,49 @@ public class ChatService {
     }
 
     /**
-     * Device의 INNER zone ID를 결정.
-     * - Device가 INNER zone → 그대로 반환
-     * - Device가 SUB zone → parent(INNER) zone ID 반환
-     * - Device가 OUTER(zone=null) → null 반환 (site 전체 검색)
+     * FastAPI fetch_places_node 전용 — category 필터 근처 장소 조회.
+     * deviceId로 device 위치 + zone 조회 후 findNearbyPlacesByCategory 실행.
      */
-    private Long resolveInnerZoneId(String deviceId) {
+    public List<NearbyPlaceProjection> getNearbyPlacesByCategory(Long siteId, String deviceId, String category) {
         try {
             Device device = deviceRepository.findById(deviceId).orElse(null);
-            if (device == null || device.getZone() == null) {
-                return null;
+            if (device == null || device.getLocation() == null) {
+                log.warn("Device 없음 또는 위치 미설정: deviceId=***");
+                return List.of();
             }
 
-            Zone zone = device.getZone();
-            if (zone.getZoneType() == ZoneType.INNER) {
-                return zone.getZoneId();
-            }
-            // SUB zone → parent INNER zone
-            if (zone.getZoneType() == ZoneType.SUB && zone.getParentZone() != null) {
-                return zone.getParentZone().getZoneId();
-            }
-            return null;
+            double lat = device.getLocation().getY();
+            double lng = device.getLocation().getX();
+            Long innerZoneId = resolveInnerZoneId(device);
+
+            return placeRepository.findNearbyPlacesByCategory(siteId, lat, lng, innerZoneId, category);
         } catch (Exception e) {
-            log.warn("Device zone 조회 실패 (site 전체 검색으로 fallback): deviceId={}", deviceId);
-            return null;
+            log.warn("getNearbyPlacesByCategory 실패: deviceId={}, category={}", deviceId, category);
+            return List.of();
         }
     }
 
-    /**
-     * PostGIS 공간 검색으로 근처 장소 목록 조립.
-     * 같은 INNER zone 장소 우선, ST_Distance 거리순 정렬.
-     */
-    private List<QaRequest.NearbyPlace> buildNearbyPlacesContext(
-            Long siteId, Double latitude, Double longitude, Long innerZoneId) {
-        try {
-            List<NearbyPlaceProjection> projections = placeRepository.findNearbyPlaces(
-                    siteId, latitude, longitude, innerZoneId, NEARBY_PLACES_LIMIT);
+    private Long resolveInnerZoneId(Device device) {
+        if (device.getZone() == null) return null;
+        Zone zone = device.getZone();
+        if (zone.getZoneType() == ZoneType.INNER) return zone.getZoneId();
+        if (zone.getZoneType() == ZoneType.SUB && zone.getParentZone() != null)
+            return zone.getParentZone().getZoneId();
+        return null;
+    }
 
-            return projections.stream()
-                    .map(p -> QaRequest.NearbyPlace.builder()
-                            .placeId(p.getPlaceId())
-                            .name(p.getName())
-                            .category(p.getCategory())
-                            .description(p.getDescription())
-                            .distanceM(p.getDistanceM())
-                            .sameZone(p.getZonePriority() != null && p.getZonePriority() == 0)
-                            .build())
-                    .toList();
+    /**
+     * 마스코트 systemPrompt 조회.
+     * 없으면 null 반환 (FastAPI 기본 프롬프트 사용).
+     */
+    private String buildSystemPrompt(Long siteId) {
+        try {
+            return mascotRepository.findBySite_SiteId(siteId)
+                    .map(Mascot::getSystemPrompt)
+                    .orElse(null);
         } catch (Exception e) {
-            log.warn("nearbyPlaces 조회 실패 (빈 목록으로 진행): {}", e.getMessage());
-            return List.of();
+            log.warn("마스코트 systemPrompt 조회 실패 (기본 프롬프트 사용): siteId={}", siteId);
+            return null;
         }
     }
 
@@ -206,16 +199,25 @@ public class ChatService {
         }
     }
 
+    private static final Map<String, String> FALLBACK_ANSWERS = Map.of(
+            "ko", "[AI 서비스 연결 중] 죄송합니다, 잠시 후 다시 시도해주세요.",
+            "en", "[AI service connecting] Sorry, please try again in a moment.",
+            "ja", "[AI サービス接続中] 申し訳ありませんが、しばらくしてからもう一度お試しください。",
+            "zh", "[AI服务连接中] 抱歉，请稍后再试。"
+    );
+
     private QaResponse callFastApi(QaRequest request) {
         try {
             return fastApiQaClient.ask(request);
         } catch (Exception e) {
             log.warn("FastAPI QA 호출 실패 — fallback 응답 반환: {}", e.getMessage());
+            String lang = request.getLanguage() != null ? request.getLanguage().split("-")[0].toLowerCase() : "ko";
+            String fallbackAnswer = FALLBACK_ANSWERS.getOrDefault(lang, FALLBACK_ANSWERS.get("en"));
             return QaResponse.builder()
-                    .answer("[AI 서비스 연결 중] 죄송합니다, 잠시 후 다시 시도해주세요.")
+                    .answer(fallbackAnswer)
                     .placeId(null)
                     .emotion("SORRY")
-                    .language(request.getLanguage() != null ? request.getLanguage() : "ko")
+                    .language(lang)
                     .category("ERROR")
                     .answerFound(false)
                     .build();
