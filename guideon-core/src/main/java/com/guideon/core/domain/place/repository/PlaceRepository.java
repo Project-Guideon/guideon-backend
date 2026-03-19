@@ -120,6 +120,7 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
               AND p.is_active = true
               AND (CAST(:category AS TEXT) IS NULL OR p.category = :category)  -- category 필터 (NULL 이면 전체)
             ORDER BY zonePriority, distanceM ASC
+            LIMIT 30
             """, nativeQuery = true)
     List<NearbyPlaceProjection> findNearbyPlacesByCategory(
             @Param("siteId") Long siteId,
