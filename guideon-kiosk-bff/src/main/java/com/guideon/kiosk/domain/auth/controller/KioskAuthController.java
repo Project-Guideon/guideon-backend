@@ -3,6 +3,7 @@ package com.guideon.kiosk.domain.auth.controller;
 import com.guideon.common.response.ApiResponse;
 import com.guideon.core.dto.kiosk.KioskBootstrapDto;
 import com.guideon.core.dto.kiosk.KioskHeartbeatCommand;
+import com.guideon.core.dto.kiosk.KioskMascotDto;
 import com.guideon.kiosk.client.CoreKioskClient;
 import com.guideon.kiosk.domain.auth.dto.HeartbeatRequest;
 import com.guideon.kiosk.domain.auth.dto.VerifyResponse;
@@ -48,6 +49,21 @@ public class KioskAuthController {
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(
                 coreKioskClient.getBootstrap(device.getDeviceId()), traceId
+        ));
+    }
+
+    /**
+     * GET /kiosk/mascot
+     * 마스코트 상세 정보 조회 (2D 이미지 + 3D 모델 URL 포함)
+     */
+    @GetMapping("/mascot")
+    public ResponseEntity<ApiResponse<KioskMascotDto>> getMascot(
+            @AuthenticationPrincipal DeviceDetails device,
+            HttpServletRequest httpRequest
+    ) {
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(
+                coreKioskClient.getMascot(device.getDeviceId()), traceId
         ));
     }
 
