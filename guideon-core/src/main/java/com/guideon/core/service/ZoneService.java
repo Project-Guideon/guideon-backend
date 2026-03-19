@@ -93,7 +93,13 @@ public class ZoneService {
                 .build();
 
         Zone saved = zoneRepository.save(zone);
+        zoneRepository.flush();
         log.info("구역 생성 완료: zoneId={}, siteId={}, code={}", saved.getZoneId(), siteId, command.getCode());
+
+        RecalcResultDto recalcResult = recalculateZones(siteId);
+        log.info("구역 생성 후 자동 재계산: places={}/{}, devices={}/{}",
+                recalcResult.getUpdatedPlaces(), recalcResult.getTotalPlaces(),
+                recalcResult.getUpdatedDevices(), recalcResult.getTotalDevices());
 
         return ZoneDto.from(saved);
     }
@@ -162,6 +168,14 @@ public class ZoneService {
 
         zone.update(command.getName(), command.getCode(), newGeometry);
         log.info("구역 수정 완료: zoneId={}, siteId={}", zoneId, siteId);
+
+        if (newGeometry != null) {
+            zoneRepository.flush();
+            RecalcResultDto recalcResult = recalculateZones(siteId);
+            log.info("구역 수정 후 자동 재계산: places={}/{}, devices={}/{}",
+                    recalcResult.getUpdatedPlaces(), recalcResult.getTotalPlaces(),
+                    recalcResult.getUpdatedDevices(), recalcResult.getTotalDevices());
+        }
 
         return ZoneDto.from(zone);
     }
