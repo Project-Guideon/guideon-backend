@@ -152,7 +152,7 @@ public class ChatService {
             double lng = device.getLocation().getX();
             Long innerZoneId = resolveInnerZoneId(device);
 
-            return placeRepository.findNearbyPlacesByCategory(siteId, lat, lng, innerZoneId, category);
+            return placeRepository.findNearbyPlacesByCategory(siteId, lat, lng, innerZoneId, category, 30);
         } catch (Exception e) {
             log.warn("getNearbyPlacesByCategory 실패: deviceId=***, category={}", category, e);
             return List.of();
