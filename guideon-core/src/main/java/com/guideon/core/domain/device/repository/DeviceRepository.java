@@ -1,12 +1,14 @@
 package com.guideon.core.domain.device.repository;
 
 import com.guideon.core.domain.device.entity.Device;
+import com.guideon.core.domain.place.entity.ZoneSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface DeviceRepository extends JpaRepository<Device, String> {
@@ -36,4 +38,9 @@ public interface DeviceRepository extends JpaRepository<Device, String> {
             @Param("latitude") Double latitude,
             @Param("longitude") Double longitude
     );
+
+    /**
+     * site 내 AUTO zone 할당된 Device 목록 조회 (재계산 대상)
+     */
+    List<Device> findBySite_SiteIdAndZoneSource(Long siteId, ZoneSource zoneSource);
 }

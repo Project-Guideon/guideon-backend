@@ -1,6 +1,7 @@
 package com.guideon.core.domain.place.repository;
 
 import com.guideon.core.domain.place.entity.Place;
+import com.guideon.core.domain.place.entity.ZoneSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -110,4 +111,9 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
             @Param("latitude") Double latitude,
             @Param("longitude") Double longitude
     );
+
+    /**
+     * site 내 AUTO zone 할당된 Place 목록 조회 (재계산 대상)
+     */
+    List<Place> findBySite_SiteIdAndZoneSource(Long siteId, ZoneSource zoneSource);
 }

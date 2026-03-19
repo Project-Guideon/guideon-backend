@@ -2,6 +2,11 @@ package com.guideon.core.service;
 
 import com.guideon.common.exception.CustomException;
 import com.guideon.common.exception.ErrorCode;
+import com.guideon.core.domain.device.entity.Device;
+import com.guideon.core.domain.device.repository.DeviceRepository;
+import com.guideon.core.domain.place.entity.Place;
+import com.guideon.core.domain.place.entity.ZoneSource;
+import com.guideon.core.domain.place.repository.PlaceRepository;
 import com.guideon.core.domain.site.entity.Site;
 import com.guideon.core.domain.site.repository.SiteRepository;
 import com.guideon.core.domain.zone.entity.Zone;
@@ -9,18 +14,21 @@ import com.guideon.core.domain.zone.entity.ZoneType;
 import com.guideon.core.domain.zone.repository.ZoneRepository;
 import com.guideon.core.dto.zone.CreateZoneCommand;
 import com.guideon.core.dto.zone.DeleteZoneResult;
+import com.guideon.core.dto.zone.RecalcResultDto;
 import com.guideon.core.dto.zone.UpdateZoneCommand;
 import com.guideon.core.dto.zone.ZoneDto;
 import com.guideon.core.global.util.GeoJsonUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.Point;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Core Zone Service - 순수 비즈니스 로직
@@ -34,6 +42,8 @@ public class ZoneService {
 
     private final ZoneRepository zoneRepository;
     private final SiteRepository siteRepository;
+    private final PlaceRepository placeRepository;
+    private final DeviceRepository deviceRepository;
 
     /**
      * 구역 생성
@@ -185,6 +195,52 @@ public class ZoneService {
         log.info("구역 삭제 완료: zoneId={}, siteId={}", zoneId, siteId);
 
         return DeleteZoneResult.of(zoneId);
+    }
+
+    /**
+     * Zone 재계산: site 내 AUTO 할당된 Place/Device의 zone_id를 좌표 기반으로 재할당
+     * MANUAL로 지정된 항목은 건드리지 않음
+     */
+    @Transactional
+    public RecalcResultDto recalculateZones(Long siteId) {
+        validateSiteExists(siteId);
+
+        int placesUpdated = 0;
+        int devicesUpdated = 0;
+
+        // Place 재계산
+        List<Place> autoPlaces = placeRepository.findBySite_SiteIdAndZoneSource(siteId, ZoneSource.AUTO);
+        for (Place place : autoPlaces) {
+            Point loc = place.getLocation();
+            Long newZoneId = placeRepository.findZoneIdByCoordinates(siteId, loc.getY(), loc.getX());
+
+            Long currentZoneId = place.getZone() != null ? place.getZone().getZoneId() : null;
+            if (!Objects.equals(currentZoneId, newZoneId)) {
+                Zone newZone = newZoneId != null ? zoneRepository.getReferenceById(newZoneId) : null;
+                place.changeZone(newZone, ZoneSource.AUTO);
+                placesUpdated++;
+            }
+        }
+
+        // Device 재계산
+        List<Device> autoDevices = deviceRepository.findBySite_SiteIdAndZoneSource(siteId, ZoneSource.AUTO);
+        for (Device device : autoDevices) {
+            Point loc = device.getLocation();
+            Long newZoneId = deviceRepository.findZoneIdByCoordinates(siteId, loc.getY(), loc.getX());
+
+            Long currentZoneId = device.getZone() != null ? device.getZone().getZoneId() : null;
+            if (!Objects.equals(currentZoneId, newZoneId)) {
+                Zone newZone = newZoneId != null ? zoneRepository.getReferenceById(newZoneId) : null;
+                device.changeZone(newZone, ZoneSource.AUTO);
+                devicesUpdated++;
+            }
+        }
+
+        log.info("Zone 재계산 완료: siteId={}, places={}/{}, devices={}/{}",
+                siteId, placesUpdated, autoPlaces.size(), devicesUpdated, autoDevices.size());
+
+        return RecalcResultDto.of(siteId, autoPlaces.size(), placesUpdated,
+                autoDevices.size(), devicesUpdated);
     }
 
     private Site findSiteById(Long siteId) {
