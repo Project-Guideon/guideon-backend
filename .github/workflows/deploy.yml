@@ -81,5 +81,8 @@ jobs:
             echo "${{ secrets.ENV_FILE_CONTENT }}" > .env
             docker compose pull
             docker compose up -d
+
+
+            docker restart guideon-nginx
             echo "=== Deploy complete ==="
             docker compose ps
