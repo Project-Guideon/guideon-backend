@@ -14,7 +14,7 @@ reviews:
     drafts: false
     base_branches:
       - main
-      - develope
+      - develop
 
 chat:
   auto_reply: true
