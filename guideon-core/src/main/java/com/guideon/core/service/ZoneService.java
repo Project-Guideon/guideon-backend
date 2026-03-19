@@ -232,8 +232,9 @@ public class ZoneService {
         List<Place> autoPlaces = placeRepository.findBySite_SiteIdAndZoneSource(siteId, ZoneSource.AUTO);
         for (Place place : autoPlaces) {
             Point loc = place.getLocation();
-            Long newZoneId = placeRepository.findZoneIdByCoordinates(siteId, loc.getY(), loc.getX());
+            if (loc == null) continue;
 
+            Long newZoneId = placeRepository.findZoneIdByCoordinates(siteId, loc.getY(), loc.getX());
             Long currentZoneId = place.getZone() != null ? place.getZone().getZoneId() : null;
             if (!Objects.equals(currentZoneId, newZoneId)) {
                 Zone newZone = newZoneId != null ? zoneRepository.getReferenceById(newZoneId) : null;
@@ -246,8 +247,9 @@ public class ZoneService {
         List<Device> autoDevices = deviceRepository.findBySite_SiteIdAndZoneSource(siteId, ZoneSource.AUTO);
         for (Device device : autoDevices) {
             Point loc = device.getLocation();
-            Long newZoneId = deviceRepository.findZoneIdByCoordinates(siteId, loc.getY(), loc.getX());
+            if (loc == null) continue;
 
+            Long newZoneId = deviceRepository.findZoneIdByCoordinates(siteId, loc.getY(), loc.getX());
             Long currentZoneId = device.getZone() != null ? device.getZone().getZoneId() : null;
             if (!Objects.equals(currentZoneId, newZoneId)) {
                 Zone newZone = newZoneId != null ? zoneRepository.getReferenceById(newZoneId) : null;
