@@ -46,6 +46,19 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
      * 그 안에서 키오스크 좌표 기준 거리순으로 정렬.
      * innerZoneId가 NULL(OUTER)이면 전체 site에서 거리순만 적용.
      */
+
+    /**
+     * category 필터 + Zone 우선순위 + 거리순 근처 장소 조회.
+     *
+     * [정렬 기준]
+     * 1순위 zonePriority: 같은 INNER zone (+ 하위 SUB zone) 이면 0, 외부이면 1
+     *   - innerZoneId 가 NULL(OUTER 디바이스)이면 모두 1로 동일 취급 → 거리순만 적용
+     * 2순위 distanceM: ST_Distance 로 계산한 디바이스 ↔ 장소 간 실제 거리(미터)
+     *
+     * [파라미터]
+     * - category: NULL 이면 전체 카테고리 반환, 값이 있으면 해당 카테고리만 필터링
+     * - limitCount: 반환 건수 상한 (예: 일반 20, fetch_places_node 30)
+     */
     @Query(value = """
             SELECT p.place_id AS placeId,
                    p.name AS name,
@@ -66,14 +79,16 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
             FROM tb_place p
             WHERE p.site_id = :siteId
               AND p.is_active = true
+              AND (CAST(:category AS TEXT) IS NULL OR p.category = :category)
             ORDER BY zonePriority, distanceM ASC
             LIMIT :limitCount
             """, nativeQuery = true)
-    List<NearbyPlaceProjection> findNearbyPlaces(
+    List<NearbyPlaceProjection> findNearbyPlacesByCategory(
             @Param("siteId") Long siteId,
             @Param("lat") Double latitude,
             @Param("lng") Double longitude,
             @Param("innerZoneId") Long innerZoneId,
+            @Param("category") String category,
             @Param("limitCount") int limitCount
     );
 
