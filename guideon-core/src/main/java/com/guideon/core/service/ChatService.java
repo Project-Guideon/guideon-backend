@@ -154,7 +154,7 @@ public class ChatService {
 
             return placeRepository.findNearbyPlacesByCategory(siteId, lat, lng, innerZoneId, category);
         } catch (Exception e) {
-            log.warn("getNearbyPlacesByCategory 실패: deviceId={}, category={}", deviceId, category);
+            log.warn("getNearbyPlacesByCategory 실패: deviceId=***, category={}", category, e);
             return List.of();
         }
     }
@@ -211,13 +211,14 @@ public class ChatService {
             return fastApiQaClient.ask(request);
         } catch (Exception e) {
             log.warn("FastAPI QA 호출 실패 — fallback 응답 반환: {}", e.getMessage());
-            String lang = request.getLanguage() != null ? request.getLanguage().split("-")[0].toLowerCase() : "ko";
-            String fallbackAnswer = FALLBACK_ANSWERS.getOrDefault(lang, FALLBACK_ANSWERS.get("en"));
+            String requestedLang = request.getLanguage() != null ? request.getLanguage().split("-")[0].toLowerCase() : "ko";
+            String resolvedLang = FALLBACK_ANSWERS.containsKey(requestedLang) ? requestedLang : "en";
+            String fallbackAnswer = FALLBACK_ANSWERS.get(resolvedLang);
             return QaResponse.builder()
                     .answer(fallbackAnswer)
                     .placeId(null)
                     .emotion("SORRY")
-                    .language(lang)
+                    .language(resolvedLang)
                     .category("ERROR")
                     .answerFound(false)
                     .build();
