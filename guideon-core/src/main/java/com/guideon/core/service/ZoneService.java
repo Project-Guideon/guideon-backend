@@ -192,7 +192,13 @@ public class ZoneService {
         }
 
         zoneRepository.delete(zone);
+        zoneRepository.flush();
         log.info("구역 삭제 완료: zoneId={}, siteId={}", zoneId, siteId);
+
+        RecalcResultDto recalcResult = recalculateZones(siteId);
+        log.info("구역 삭제 후 자동 재계산: places={}/{}, devices={}/{}",
+                recalcResult.getUpdatedPlaces(), recalcResult.getTotalPlaces(),
+                recalcResult.getUpdatedDevices(), recalcResult.getTotalDevices());
 
         return DeleteZoneResult.of(zoneId);
     }
