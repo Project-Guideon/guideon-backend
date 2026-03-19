@@ -7,11 +7,13 @@ import com.guideon.core.domain.admin.entity.AdminRole;
 import com.guideon.core.domain.admin.repository.AdminSiteRepository;
 import com.guideon.core.dto.zone.CreateZoneCommand;
 import com.guideon.core.dto.zone.DeleteZoneResult;
+import com.guideon.core.dto.zone.RecalcResultDto;
 import com.guideon.core.dto.zone.UpdateZoneCommand;
 import com.guideon.core.dto.zone.ZoneDto;
 import com.guideon.guideonbackend.client.CoreZoneClient;
 import com.guideon.guideonbackend.domain.zone.dto.CreateZoneRequest;
 import com.guideon.guideonbackend.domain.zone.dto.DeleteZoneResponse;
+import com.guideon.guideonbackend.domain.zone.dto.RecalcZoneResponse;
 import com.guideon.guideonbackend.domain.zone.dto.UpdateZoneRequest;
 import com.guideon.guideonbackend.domain.zone.dto.ZoneResponse;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
@@ -139,6 +141,20 @@ public class ZoneService {
         log.info("구역 삭제 완료: zoneId={}, siteId={}", zoneId, siteId);
 
         return DeleteZoneResponse.from(result);
+    }
+
+    /**
+     * Zone 재계산 실행
+     */
+    public RecalcZoneResponse recalculateZones(Long siteId, CustomAdminDetails adminDetails) {
+        validateSiteAccess(adminDetails, siteId);
+
+        RecalcResultDto result = coreZoneClient.recalculateZones(siteId);
+        log.info("Zone 재계산 완료: siteId={}, places={}/{}, devices={}/{}",
+                siteId, result.getUpdatedPlaces(), result.getTotalPlaces(),
+                result.getUpdatedDevices(), result.getTotalDevices());
+
+        return RecalcZoneResponse.from(result);
     }
 
     /**
