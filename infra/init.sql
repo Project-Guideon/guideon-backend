@@ -141,9 +141,9 @@ CREATE TABLE IF NOT EXISTS tb_place (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT uk_place_id_site UNIQUE (place_id, site_id),
-  CONSTRAINT fk_place_zone_site
-    FOREIGN KEY (zone_id, site_id)
-    REFERENCES tb_zone(zone_id, site_id)
+  CONSTRAINT fk_place_zone
+    FOREIGN KEY (zone_id)
+    REFERENCES tb_zone(zone_id)
     ON DELETE SET NULL
 );
 
@@ -169,9 +169,9 @@ CREATE TABLE IF NOT EXISTS tb_device (
   last_auth_at    TIMESTAMPTZ NULL,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT fk_device_zone_site
-    FOREIGN KEY (zone_id, site_id)
-    REFERENCES tb_zone(zone_id, site_id)
+  CONSTRAINT fk_device_zone
+    FOREIGN KEY (zone_id)
+    REFERENCES tb_zone(zone_id)
     ON DELETE SET NULL
 );
 

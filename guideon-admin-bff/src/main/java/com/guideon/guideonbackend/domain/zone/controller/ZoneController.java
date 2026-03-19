@@ -2,6 +2,7 @@ package com.guideon.guideonbackend.domain.zone.controller;
 
 import com.guideon.guideonbackend.domain.zone.dto.CreateZoneRequest;
 import com.guideon.guideonbackend.domain.zone.dto.DeleteZoneResponse;
+import com.guideon.guideonbackend.domain.zone.dto.RecalcZoneResponse;
 import com.guideon.guideonbackend.domain.zone.dto.UpdateZoneRequest;
 import com.guideon.guideonbackend.domain.zone.dto.ZoneResponse;
 import com.guideon.guideonbackend.domain.zone.service.ZoneService;
@@ -79,6 +80,18 @@ public class ZoneController {
             HttpServletRequest httpRequest
     ) {
         ZoneResponse response = zoneService.updateZone(siteId, zoneId, request, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    @Operation(summary = "Zone 재계산", description = "사이트 내 AUTO 할당된 Place/Device의 zone_id를 좌표 기반으로 재계산합니다.")
+    @PostMapping("/recalc")
+    public ResponseEntity<ApiResponse<RecalcZoneResponse>> recalculateZones(
+            @PathVariable Long siteId,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        RecalcZoneResponse response = zoneService.recalculateZones(siteId, adminDetails);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
