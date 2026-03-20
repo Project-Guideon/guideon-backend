@@ -136,7 +136,7 @@ public class ChatService {
         chatMessageRepository.save(chatMessage);
 
         // 8. Display hint 조립
-        return buildChatResult(command.getSessionId(), qaResponse);
+        return buildChatResult(command.getSessionId(), command, qaResponse);
     }
 
     /**
@@ -226,13 +226,15 @@ public class ChatService {
         }
     }
 
-    private ChatResult buildChatResult(String sessionId, QaResponse qaResponse) {
+    private ChatResult buildChatResult(String sessionId, ChatCommand command, QaResponse qaResponse) {
         ChatResult.ChatResultBuilder builder = ChatResult.builder()
                 .sessionId(sessionId)
                 .answer(qaResponse.getAnswer())
                 .emotion(qaResponse.getEmotion())
                 .language(qaResponse.getLanguage())
-                .category(qaResponse.getCategory());
+                .category(qaResponse.getCategory())
+                .deviceLatitude(command.getLatitude())
+                .deviceLongitude(command.getLongitude());
 
         if (qaResponse.getPlaceId() != null) {
             try {
