@@ -85,8 +85,8 @@ public class ChatService {
                 });
         session.incrementMessageCount();
 
-        // 2. 마스코트 systemPrompt 조회
-        String systemPrompt = buildSystemPrompt(command.getSiteId());
+        // 2. 마스코트 systemPrompt + promptConfig 조회
+        Mascot mascot = findMascot(command.getSiteId());
 
         // 3. DailyInfo context 조립
         List<QaRequest.DailyInfoSummary> dailyInfoSummaries = buildDailyInfoContext(command.getSiteId());
@@ -99,7 +99,10 @@ public class ChatService {
                 .deviceId(command.getDeviceId())
                 .question(command.getMessage())
                 .language(command.getLanguage())
-                .systemPrompt(systemPrompt)
+                .systemPrompt(mascot != null ? mascot.getSystemPrompt() : null)
+                .name(mascot != null ? mascot.getName() : null)
+                .greetingMsg(mascot != null ? mascot.getGreetingMsg() : null)
+                .promptConfig(mascot != null ? mascot.getPromptConfig() : null)
                 .deviceLocation(QaRequest.DeviceLocation.builder()
                         .latitude(command.getLatitude())
                         .longitude(command.getLongitude())
@@ -169,16 +172,14 @@ public class ChatService {
     }
 
     /**
-     * 마스코트 systemPrompt 조회.
+     * 마스코트 조회.
      * 없으면 null 반환 (FastAPI 기본 프롬프트 사용).
      */
-    private String buildSystemPrompt(Long siteId) {
+    private Mascot findMascot(Long siteId) {
         try {
-            return mascotRepository.findBySite_SiteId(siteId)
-                    .map(Mascot::getSystemPrompt)
-                    .orElse(null);
+            return mascotRepository.findBySite_SiteId(siteId).orElse(null);
         } catch (Exception e) {
-            log.warn("마스코트 systemPrompt 조회 실패 (기본 프롬프트 사용): siteId={}", siteId);
+            log.warn("마스코트 조회 실패 (기본 프롬프트 사용): siteId={}", siteId);
             return null;
         }
     }
