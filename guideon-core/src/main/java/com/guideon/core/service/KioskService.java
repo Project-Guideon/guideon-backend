@@ -86,6 +86,14 @@ public class KioskService {
         Device device = deviceRepository.findById(deviceId)
                 .orElseThrow(() -> new CustomException(ErrorCode.DEVICE_NOT_FOUND));
 
+        if (!device.getIsActive()) {
+            throw new CustomException(ErrorCode.DEVICE_INACTIVE);
+        }
+
+        if (!device.getSite().getIsActive()) {
+            throw new CustomException(ErrorCode.SITE_INACTIVE);
+        }
+
         Mascot mascot = mascotRepository.findBySite_SiteId(device.getSite().getSiteId())
                 .filter(Mascot::getIsActive)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "등록된 마스코트가 없습니다"));

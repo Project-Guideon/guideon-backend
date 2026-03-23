@@ -34,6 +34,10 @@ public class OperatorService {
 
     @Transactional
     public OperatorDto updateOperatorStatus(Long siteId, Long operatorId, UpdateOperatorCommand command) {
+        if (command.getIsActive() == null) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "isActive 값은 필수입니다");
+        }
+
         validateSiteExists(siteId);
 
         if (!adminSiteRepository.existsById_AdminIdAndId_SiteId(operatorId, siteId)) {
@@ -45,12 +49,10 @@ public class OperatorService {
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND,
                         "존재하지 않는 운영자입니다: " + operatorId));
 
-        if (command.getIsActive() != null) {
-            if (command.getIsActive()) {
-                admin.activate();
-            } else {
-                admin.deactivate();
-            }
+        if (command.getIsActive()) {
+            admin.activate();
+        } else {
+            admin.deactivate();
         }
 
         log.info("운영자 상태 변경: operatorId={}, siteId={}, isActive={}", operatorId, siteId, admin.getIsActive());
