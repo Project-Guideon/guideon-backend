@@ -1,5 +1,6 @@
 package com.guideon.core.domain.admin.repository;
 
+import com.guideon.core.domain.admin.entity.Admin;
 import com.guideon.core.domain.admin.entity.AdminSite;
 import com.guideon.core.domain.admin.entity.AdminSiteId;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,4 +15,7 @@ public interface AdminSiteRepository extends JpaRepository<AdminSite, AdminSiteI
     List<Long> findSiteIdsByAdminId(@Param("adminId") Long adminId);
 
     boolean existsById_AdminIdAndId_SiteId(Long adminId, Long siteId);
+
+    @Query("SELECT a.admin FROM AdminSite a WHERE a.id.siteId = :siteId")
+    List<Admin> findAdminsBySiteId(@Param("siteId") Long siteId);
 }

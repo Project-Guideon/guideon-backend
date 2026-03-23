@@ -3,6 +3,7 @@ package com.guideon.guideonbackend.client;
 import com.guideon.common.response.PageResponse;
 import com.guideon.core.dto.zone.CreateZoneCommand;
 import com.guideon.core.dto.zone.DeleteZoneResult;
+import com.guideon.core.dto.zone.RecalcResultDto;
 import com.guideon.core.dto.zone.UpdateZoneCommand;
 import com.guideon.core.dto.zone.ZoneDto;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -45,4 +46,7 @@ public interface CoreZoneClient {
     DeleteZoneResult deleteZone(
             @PathVariable("siteId") Long siteId,
             @PathVariable("zoneId") Long zoneId);
+
+    @PostMapping("/internal/v1/sites/{siteId}/zones/recalc")
+    RecalcResultDto recalculateZones(@PathVariable("siteId") Long siteId);
 }

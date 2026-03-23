@@ -8,6 +8,7 @@ import com.guideon.core.domain.mascot.entity.Mascot;
 import com.guideon.core.domain.mascot.repository.MascotRepository;
 import com.guideon.core.dto.kiosk.KioskBootstrapDto;
 import com.guideon.core.dto.kiosk.KioskHeartbeatCommand;
+import com.guideon.core.dto.kiosk.KioskMascotDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -76,6 +77,28 @@ public class KioskService {
 
         device.updateLastPing();
         log.debug("하트비트 수신: deviceId={}, version={}", deviceId, command.getVersion());
+    }
+
+    /**
+     * 키오스크 마스코트 정보 조회 (imageUrl, modelUrl 포함)
+     */
+    public KioskMascotDto getMascot(String deviceId) {
+        Device device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new CustomException(ErrorCode.DEVICE_NOT_FOUND));
+
+        if (!device.getIsActive()) {
+            throw new CustomException(ErrorCode.DEVICE_INACTIVE);
+        }
+
+        if (!device.getSite().getIsActive()) {
+            throw new CustomException(ErrorCode.SITE_INACTIVE);
+        }
+
+        Mascot mascot = mascotRepository.findBySite_SiteId(device.getSite().getSiteId())
+                .filter(Mascot::getIsActive)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "등록된 마스코트가 없습니다"));
+
+        return KioskMascotDto.from(mascot);
     }
 
     /**

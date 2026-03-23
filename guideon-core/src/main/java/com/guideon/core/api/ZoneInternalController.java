@@ -3,6 +3,7 @@ package com.guideon.core.api;
 import com.guideon.common.response.PageResponse;
 import com.guideon.core.dto.zone.CreateZoneCommand;
 import com.guideon.core.dto.zone.DeleteZoneResult;
+import com.guideon.core.dto.zone.RecalcResultDto;
 import com.guideon.core.dto.zone.UpdateZoneCommand;
 import com.guideon.core.dto.zone.ZoneDto;
 import com.guideon.core.service.ZoneService;
@@ -64,6 +65,12 @@ public class ZoneInternalController {
             @PathVariable Long siteId,
             @PathVariable Long zoneId) {
         DeleteZoneResult result = zoneService.deleteZone(siteId, zoneId);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/recalc")
+    public ResponseEntity<RecalcResultDto> recalculateZones(@PathVariable Long siteId) {
+        RecalcResultDto result = zoneService.recalculateZones(siteId);
         return ResponseEntity.ok(result);
     }
 }

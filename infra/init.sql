@@ -141,9 +141,12 @@ CREATE TABLE IF NOT EXISTS tb_place (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT uk_place_id_site UNIQUE (place_id, site_id),
-  CONSTRAINT fk_place_zone_site
-    FOREIGN KEY (zone_id, site_id)
-    REFERENCES tb_zone(zone_id, site_id)
+  -- 의도적으로 단일 FK 사용 (#56):
+  -- composite FK(zone_id, site_id)는 ON DELETE SET NULL 시 site_id까지 NULL 시도 → NOT NULL 위반 500 에러.
+  -- cross-site 참조 방지는 애플리케이션 레벨(zone 재계산, site 스코프 검증)에서 보장.
+  CONSTRAINT fk_place_zone
+    FOREIGN KEY (zone_id)
+    REFERENCES tb_zone(zone_id)
     ON DELETE SET NULL
 );
 
@@ -169,9 +172,10 @@ CREATE TABLE IF NOT EXISTS tb_device (
   last_auth_at    TIMESTAMPTZ NULL,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT fk_device_zone_site
-    FOREIGN KEY (zone_id, site_id)
-    REFERENCES tb_zone(zone_id, site_id)
+  -- 의도적으로 단일 FK 사용 (#56): tb_place와 동일한 이유.
+  CONSTRAINT fk_device_zone
+    FOREIGN KEY (zone_id)
+    REFERENCES tb_zone(zone_id)
     ON DELETE SET NULL
 );
 

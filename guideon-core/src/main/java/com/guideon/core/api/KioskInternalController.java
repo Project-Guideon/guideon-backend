@@ -2,6 +2,7 @@ package com.guideon.core.api;
 
 import com.guideon.core.dto.kiosk.KioskBootstrapDto;
 import com.guideon.core.dto.kiosk.KioskHeartbeatCommand;
+import com.guideon.core.dto.kiosk.KioskMascotDto;
 import com.guideon.core.service.KioskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,11 @@ public class KioskInternalController {
     @GetMapping("/bootstrap")
     public ResponseEntity<KioskBootstrapDto> getBootstrap(@PathVariable String deviceId) {
         return ResponseEntity.ok(kioskService.getBootstrap(deviceId));
+    }
+
+    @GetMapping("/mascot")
+    public ResponseEntity<KioskMascotDto> getMascot(@PathVariable String deviceId) {
+        return ResponseEntity.ok(kioskService.getMascot(deviceId));
     }
 
     @PostMapping("/heartbeat")
