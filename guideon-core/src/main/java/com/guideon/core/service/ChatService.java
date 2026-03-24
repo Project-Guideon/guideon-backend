@@ -103,10 +103,7 @@ public class ChatService {
                 .name(mascot != null ? mascot.getName() : null)
                 .greetingMsg(mascot != null ? mascot.getGreetingMsg() : null)
                 .promptConfig(mascot != null ? mascot.getPromptConfig() : null)
-                .deviceLocation(QaRequest.DeviceLocation.builder()
-                        .latitude(command.getLatitude())
-                        .longitude(command.getLongitude())
-                        .build())
+                .deviceLocation(buildDeviceLocation(command.getDeviceId()))
                 .context(QaRequest.QaContext.builder()
                         .dailyInfos(dailyInfoSummaries)
                         .build())
@@ -160,6 +157,21 @@ public class ChatService {
             log.warn("getNearbyPlacesByCategory 실패: deviceId=***, category={}", category, e);
             return List.of();
         }
+    }
+
+    private QaRequest.DeviceLocation buildDeviceLocation(String deviceId) {
+        try {
+            Device device = deviceRepository.findById(deviceId).orElse(null);
+            if (device != null && device.getLocation() != null) {
+                return QaRequest.DeviceLocation.builder()
+                        .latitude(device.getLocation().getY())
+                        .longitude(device.getLocation().getX())
+                        .build();
+            }
+        } catch (Exception e) {
+            log.warn("Device 위치 조회 실패: deviceId=***, {}", e.getMessage());
+        }
+        return null;
     }
 
     private Long resolveInnerZoneId(Device device) {
