@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * FastAPI /internal/v1/qa 요청 DTO
@@ -25,6 +26,9 @@ public class QaRequest {
     private String question;
     private String language;
     private String systemPrompt;
+    private String name;
+    private String greetingMsg;
+    private Map<String, Object> promptConfig;
 
     private DeviceLocation deviceLocation;
 
