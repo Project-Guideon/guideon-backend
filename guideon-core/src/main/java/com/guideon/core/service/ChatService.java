@@ -118,7 +118,7 @@ public class ChatService {
         ChatMessage chatMessage = ChatMessage.builder()
                 .sessionId(command.getSessionId())
                 .siteId(command.getSiteId())
-                .deviceId(command.getDeviceId())
+                .deviceId(session.getDeviceId())
                 .question(command.getMessage())
                 .language(command.getLanguage())
                 .answer(qaResponse.getAnswer())
