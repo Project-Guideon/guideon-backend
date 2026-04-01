@@ -14,6 +14,7 @@ import com.guideon.core.domain.zone.entity.Zone;
 import com.guideon.core.domain.zone.repository.ZoneRepository;
 import com.guideon.core.dto.device.DeviceDto;
 import com.guideon.core.dto.pairing.PairDeviceCommand;
+import com.guideon.core.dto.pairing.PairingClaimResponse;
 import com.guideon.core.dto.pairing.PairingCodeResponse;
 import com.guideon.core.dto.pairing.PairingStatusResponse;
 import lombok.RequiredArgsConstructor;
@@ -64,7 +65,7 @@ public class PairingService {
                 .build();
 
         pairingRequestRepository.save(request);
-        log.info("페어링 코드 발급: code={}", code);
+        log.info("페어링 코드 발급: code={}**", code.substring(0, 4));
 
         return PairingCodeResponse.from(request);
     }
@@ -84,27 +85,26 @@ public class PairingService {
                     .build();
         }
 
-        if (request.getStatus() == PairingStatus.PAIRED) {
-            // 매칭 완료 → 토큰 전달은 별도 endpoint
-            return PairingStatusResponse.builder()
-                    .pairingCode(pairingCode)
-                    .status(request.getStatus().name())
-                    .build();
-        }
-
-        return PairingStatusResponse.waiting(request);
+        return PairingStatusResponse.from(request);
     }
 
     /**
      * 페어링 결과 조회 (토큰 수령)
      * PAIRED 상태일 때 키오스크가 호출하여 토큰을 받아감
-     * 토큰은 새로 생성하여 일회성으로 반환
+     * 토큰은 1회만 발급 — CLAIMED 상태에서 재호출 시 에러
      */
     @Transactional
-    public PairingStatusResponse claimPairingResult(String pairingCode) {
-        PairingRequest request = pairingRequestRepository.findByPairingCodeAndStatus(
-                        pairingCode, PairingStatus.PAIRED)
+    public PairingClaimResponse claimPairingResult(String pairingCode) {
+        PairingRequest request = pairingRequestRepository.findByPairingCode(pairingCode)
                 .orElseThrow(() -> new CustomException(ErrorCode.PAIRING_CODE_NOT_FOUND));
+
+        if (request.getStatus() == PairingStatus.CLAIMED) {
+            throw new CustomException(ErrorCode.PAIRING_ALREADY_CLAIMED);
+        }
+
+        if (request.getStatus() != PairingStatus.PAIRED) {
+            throw new CustomException(ErrorCode.PAIRING_CODE_NOT_FOUND);
+        }
 
         Device device = request.getDevice();
         if (device == null) {
@@ -115,8 +115,13 @@ public class PairingService {
         String plainToken = UUID.randomUUID().toString();
         device.rotateToken(sha256Hex(plainToken));
 
-        log.info("페어링 토큰 수령: code={}, deviceId={}", pairingCode, device.getDeviceId());
-        return PairingStatusResponse.paired(request, plainToken, DeviceDto.from(device));
+        request.claim();
+
+        log.info("페어링 토큰 수령 완료: deviceId={}", device.getDeviceId());
+        return PairingClaimResponse.builder()
+                .plainToken(plainToken)
+                .device(DeviceDto.from(device))
+                .build();
     }
 
     /**
@@ -176,8 +181,7 @@ public class PairingService {
         // 페어링 완료 처리
         request.pair(device);
 
-        log.info("페어링 매칭 완료: code={}, deviceId={}, siteId={}",
-                command.getPairingCode(), command.getDeviceId(), siteId);
+        log.info("페어링 매칭 완료: deviceId={}, siteId={}", command.getDeviceId(), siteId);
 
         return DeviceDto.from(device);
     }

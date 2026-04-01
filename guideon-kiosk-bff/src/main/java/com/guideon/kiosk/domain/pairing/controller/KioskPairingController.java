@@ -1,6 +1,7 @@
 package com.guideon.kiosk.domain.pairing.controller;
 
 import com.guideon.common.response.ApiResponse;
+import com.guideon.core.dto.pairing.PairingClaimResponse;
 import com.guideon.core.dto.pairing.PairingCodeResponse;
 import com.guideon.core.dto.pairing.PairingStatusResponse;
 import com.guideon.kiosk.client.CorePairingClient;
@@ -56,13 +57,13 @@ public class KioskPairingController {
      * PAIRED 확인 후 토큰 수령 → 키오스크가 로컬에 저장
      * 인증 불필요
      */
-    @Operation(summary = "페어링 결과 수령", description = "매칭 완료 후 디바이스 토큰을 수령합니다. 이 토큰을 로컬에 저장하세요.")
+    @Operation(summary = "페어링 결과 수령", description = "매칭 완료 후 디바이스 토큰을 수령합니다. 1회만 가능하며, 이 토큰을 로컬에 저장하세요.")
     @PostMapping("/{pairingCode}/claim")
-    public ResponseEntity<ApiResponse<PairingStatusResponse>> claimPairingResult(
+    public ResponseEntity<ApiResponse<PairingClaimResponse>> claimPairingResult(
             @PathVariable String pairingCode,
             HttpServletRequest httpRequest
     ) {
-        PairingStatusResponse response = corePairingClient.claimPairingResult(pairingCode);
+        PairingClaimResponse response = corePairingClient.claimPairingResult(pairingCode);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }

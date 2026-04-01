@@ -31,12 +31,15 @@ public class PairingRequest extends BaseEntity {
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "device_id")
     private Device device;
 
     @Column(name = "paired_at")
     private LocalDateTime pairedAt;
+
+    @Column(name = "claimed_at")
+    private LocalDateTime claimedAt;
 
     @Builder
     public PairingRequest(String pairingCode, LocalDateTime expiresAt) {
@@ -53,6 +56,11 @@ public class PairingRequest extends BaseEntity {
         this.device = device;
         this.status = PairingStatus.PAIRED;
         this.pairedAt = LocalDateTime.now();
+    }
+
+    public void claim() {
+        this.status = PairingStatus.CLAIMED;
+        this.claimedAt = LocalDateTime.now();
     }
 
     public void expire() {

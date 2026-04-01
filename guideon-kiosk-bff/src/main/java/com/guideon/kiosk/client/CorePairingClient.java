@@ -1,5 +1,6 @@
 package com.guideon.kiosk.client;
 
+import com.guideon.core.dto.pairing.PairingClaimResponse;
 import com.guideon.core.dto.pairing.PairingCodeResponse;
 import com.guideon.core.dto.pairing.PairingStatusResponse;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -17,5 +18,5 @@ public interface CorePairingClient {
     PairingStatusResponse getPairingStatus(@PathVariable String pairingCode);
 
     @PostMapping("/internal/v1/pairing/{pairingCode}/claim")
-    PairingStatusResponse claimPairingResult(@PathVariable String pairingCode);
+    PairingClaimResponse claimPairingResult(@PathVariable String pairingCode);
 }

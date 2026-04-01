@@ -2,6 +2,7 @@ package com.guideon.core.api;
 
 import com.guideon.core.dto.device.DeviceDto;
 import com.guideon.core.dto.pairing.PairDeviceCommand;
+import com.guideon.core.dto.pairing.PairingClaimResponse;
 import com.guideon.core.dto.pairing.PairingCodeResponse;
 import com.guideon.core.dto.pairing.PairingStatusResponse;
 import com.guideon.core.service.PairingService;
@@ -29,9 +30,9 @@ public class PairingInternalController {
         return ResponseEntity.ok(pairingService.getPairingStatus(pairingCode));
     }
 
-    /** 키오스크 → PAIRED 확인 후 토큰 수령 */
+    /** 키오스크 → PAIRED 확인 후 토큰 수령 (1회만 가능) */
     @PostMapping("/{pairingCode}/claim")
-    public ResponseEntity<PairingStatusResponse> claimPairingResult(
+    public ResponseEntity<PairingClaimResponse> claimPairingResult(
             @PathVariable String pairingCode) {
         return ResponseEntity.ok(pairingService.claimPairingResult(pairingCode));
     }

@@ -7,7 +7,7 @@ import lombok.Getter;
 public class PairDeviceRequest {
 
     @NotBlank(message = "pairingCode는 필수입니다")
-    @Pattern(regexp = "^[A-Z0-9]{6}$", message = "페어링 코드는 6자리 영문 대문자+숫자입니다")
+    @Pattern(regexp = "^[A-HJ-NP-Z2-9]{6}$", message = "페어링 코드는 6자리 영문 대문자+숫자입니다 (O,0,I,1 제외)")
     private String pairingCode;
 
     @NotBlank(message = "deviceId는 필수입니다")
@@ -32,4 +32,12 @@ public class PairDeviceRequest {
     private String zoneSource;
 
     private Long zoneId;
+
+    @AssertTrue(message = "zoneSource가 MANUAL일 경우 zoneId는 필수입니다")
+    private boolean isZoneIdValidForManual() {
+        if ("MANUAL".equals(zoneSource)) {
+            return zoneId != null;
+        }
+        return true;
+    }
 }

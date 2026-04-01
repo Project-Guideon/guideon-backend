@@ -92,8 +92,7 @@ public class DeviceService {
                 .build();
 
         DeviceDto dto = corePairingClient.pairDevice(siteId, command);
-        log.info("페어링 매칭 완료: code={}, deviceId={}, siteId={}",
-                request.getPairingCode(), request.getDeviceId(), siteId);
+        log.info("페어링 매칭 완료: deviceId={}, siteId={}", request.getDeviceId(), siteId);
         return DeviceResponse.from(dto);
     }
 
