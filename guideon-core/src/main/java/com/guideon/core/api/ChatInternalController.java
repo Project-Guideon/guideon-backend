@@ -38,4 +38,15 @@ public class ChatInternalController {
         ChatResult result = chatService.sendMessage(command);
         return ResponseEntity.ok(result);
     }
+
+    /**
+     * POST /internal/v1/chat/sessions/{sessionId}/end
+     * 세션 종료 — DB ended_at 기록 + Redis 대화 내역 삭제
+     * 키오스크 종료 버튼 클릭 시 Kiosk BFF가 호출
+     */
+    @PostMapping("/sessions/{sessionId}/end")
+    public ResponseEntity<Void> endSession(@PathVariable String sessionId) {
+        chatService.endSession(sessionId);
+        return ResponseEntity.ok().build();
+    }
 }
