@@ -49,6 +49,20 @@ public class ChatService {
     private final PlaceRepository placeRepository;
     private final DeviceRepository deviceRepository;
     private final MascotRepository mascotRepository;
+    private final ChatHistoryService chatHistoryService;
+
+    /**
+     * 세션 종료 — DB ended_at 기록 + Redis 대화 내역 삭제
+     * 키오스크 종료 버튼 클릭 시 호출
+     */
+    @Transactional
+    public void endSession(String sessionId) {
+        chatSessionRepository.findById(sessionId).ifPresent(session -> {
+            session.endSession();
+            log.info("Chat 세션 종료: sessionId={}", sessionId);
+        });
+        chatHistoryService.deleteHistory(sessionId);
+    }
 
     /**
      * 대화 세션 생성 — UUID 생성 + DB 저장
@@ -132,7 +146,10 @@ public class ChatService {
 
         chatMessageRepository.save(chatMessage);
 
-        // 8. Display hint 조립
+        // 8. 대화 내역 Redis 저장
+        chatHistoryService.saveTurn(command.getSessionId(), command.getMessage(), qaResponse.getAnswer());
+
+        // 9. Display hint 조립
         return buildChatResult(command.getSessionId(), command, qaResponse);
     }
 
