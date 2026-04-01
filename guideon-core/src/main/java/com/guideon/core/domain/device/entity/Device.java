@@ -13,11 +13,13 @@ import org.locationtech.jts.geom.Point;
 
 import java.time.LocalDateTime;
 
+import org.springframework.data.domain.Persistable;
+
 @Entity
 @Table(name = "tb_device")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Device extends BaseEntity {
+public class Device extends BaseEntity implements Persistable<String> {
 
     @Id
     @Column(name = "device_id", length = 50)
@@ -91,5 +93,15 @@ public class Device extends BaseEntity {
 
     public void updateLastAuthAt() {
         this.lastAuthAt = LocalDateTime.now();
+    }
+
+    @Override
+    public String getId() {
+        return deviceId;
+    }
+
+    @Override
+    public boolean isNew() {
+        return getCreatedAt() == null;
     }
 }

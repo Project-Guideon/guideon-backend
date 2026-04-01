@@ -171,7 +171,7 @@ public class PairingService {
                 .isActive(true)
                 .build();
 
-        deviceRepository.save(device);
+        device = deviceRepository.save(device);
 
         // 페어링 완료 처리
         request.pair(device);

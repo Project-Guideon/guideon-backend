@@ -25,19 +25,6 @@ public class DeviceController {
 
     private final DeviceService deviceService;
 
-    @Operation(summary = "디바이스 등록", description = "키오스크 디바이스를 등록합니다. 응답의 plainToken은 일회성이므로 즉시 저장하세요.")
-    @PostMapping
-    public ResponseEntity<ApiResponse<CreateDeviceResponse>> createDevice(
-            @PathVariable Long siteId,
-            @Valid @RequestBody CreateDeviceRequest request,
-            @AuthenticationPrincipal CustomAdminDetails adminDetails,
-            HttpServletRequest httpRequest
-    ) {
-        CreateDeviceResponse response = deviceService.createDevice(siteId, request, adminDetails);
-        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
-        return ResponseEntity.ok(ApiResponse.success(response, traceId));
-    }
-
     @Operation(summary = "디바이스 목록 조회", description = "관광지 내 디바이스 목록을 조회합니다.")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<DeviceResponse>>> getDevices(

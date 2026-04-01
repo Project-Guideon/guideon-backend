@@ -5,7 +5,6 @@ import com.guideon.common.exception.ErrorCode;
 import com.guideon.common.response.PageResponse;
 import com.guideon.core.domain.admin.entity.AdminRole;
 import com.guideon.core.domain.admin.repository.AdminSiteRepository;
-import com.guideon.core.dto.device.CreateDeviceCommand;
 import com.guideon.core.dto.device.DeviceDto;
 import com.guideon.core.dto.device.RotateTokenResult;
 import com.guideon.core.dto.device.UpdateDeviceCommand;
@@ -27,25 +26,6 @@ public class DeviceService {
     private final CoreDeviceClient coreDeviceClient;
     private final CorePairingClient corePairingClient;
     private final AdminSiteRepository adminSiteRepository;
-
-    public CreateDeviceResponse createDevice(Long siteId, CreateDeviceRequest request,
-                                             CustomAdminDetails adminDetails) {
-        validateSiteAccess(adminDetails, siteId);
-
-        CreateDeviceCommand command = CreateDeviceCommand.builder()
-                .deviceId(request.getDeviceId())
-                .locationName(request.getLocationName())
-                .latitude(request.getLatitude())
-                .longitude(request.getLongitude())
-                .zoneSource(request.getZoneSource())
-                .zoneId(request.getZoneId())
-                .isActive(request.getIsActive())
-                .build();
-
-        RotateTokenResult result = coreDeviceClient.createDevice(siteId, command);
-        log.info("디바이스 등록 완료: deviceId={}, siteId={}", result.getDevice().getDeviceId(), siteId);
-        return CreateDeviceResponse.from(result);
-    }
 
     public PageResponse<DeviceResponse> getDevices(Long siteId, Pageable pageable,
                                                     CustomAdminDetails adminDetails) {
