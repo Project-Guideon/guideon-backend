@@ -91,6 +91,19 @@ public class DeviceController {
         return ResponseEntity.ok(ApiResponse.success(null, traceId));
     }
 
+    @Operation(summary = "페어링 코드로 디바이스 등록", description = "키오스크 화면에 표시된 6자리 페어링 코드로 디바이스를 등록합니다.")
+    @PostMapping("/pair")
+    public ResponseEntity<ApiResponse<DeviceResponse>> pairDevice(
+            @PathVariable Long siteId,
+            @Valid @RequestBody PairDeviceRequest request,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        DeviceResponse response = deviceService.pairDevice(siteId, request, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
     @Operation(summary = "디바이스 토큰 재발급", description = "디바이스 인증 토큰을 재발급합니다. 응답의 plainToken은 일회성이므로 즉시 저장하세요.")
     @PostMapping("/{deviceId}/rotate-token")
     public ResponseEntity<ApiResponse<RotateTokenResponse>> rotateToken(

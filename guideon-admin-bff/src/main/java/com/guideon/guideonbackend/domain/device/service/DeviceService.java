@@ -9,7 +9,9 @@ import com.guideon.core.dto.device.CreateDeviceCommand;
 import com.guideon.core.dto.device.DeviceDto;
 import com.guideon.core.dto.device.RotateTokenResult;
 import com.guideon.core.dto.device.UpdateDeviceCommand;
+import com.guideon.core.dto.pairing.PairDeviceCommand;
 import com.guideon.guideonbackend.client.CoreDeviceClient;
+import com.guideon.guideonbackend.client.CorePairingClient;
 import com.guideon.guideonbackend.domain.device.dto.*;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 public class DeviceService {
 
     private final CoreDeviceClient coreDeviceClient;
+    private final CorePairingClient corePairingClient;
     private final AdminSiteRepository adminSiteRepository;
 
     public CreateDeviceResponse createDevice(Long siteId, CreateDeviceRequest request,
@@ -92,6 +95,26 @@ public class DeviceService {
         RotateTokenResult result = coreDeviceClient.rotateToken(siteId, deviceId);
         log.info("디바이스 토큰 재발급 완료: deviceId={}, siteId={}", deviceId, siteId);
         return RotateTokenResponse.from(result);
+    }
+
+    public DeviceResponse pairDevice(Long siteId, PairDeviceRequest request,
+                                     CustomAdminDetails adminDetails) {
+        validateSiteAccess(adminDetails, siteId);
+
+        PairDeviceCommand command = PairDeviceCommand.builder()
+                .pairingCode(request.getPairingCode())
+                .deviceId(request.getDeviceId())
+                .locationName(request.getLocationName())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
+                .zoneSource(request.getZoneSource())
+                .zoneId(request.getZoneId())
+                .build();
+
+        DeviceDto dto = corePairingClient.pairDevice(siteId, command);
+        log.info("페어링 매칭 완료: code={}, deviceId={}, siteId={}",
+                request.getPairingCode(), request.getDeviceId(), siteId);
+        return DeviceResponse.from(dto);
     }
 
     /**
