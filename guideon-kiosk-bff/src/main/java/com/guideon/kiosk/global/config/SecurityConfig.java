@@ -50,7 +50,8 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**",
-                                "/ws/**"  // WS 핸드셰이크는 인터셉터에서 직접 인증
+                                "/ws/**",  // WS 핸드셰이크는 인터셉터에서 직접 인증
+                                "/kiosk/pairing/**"  // 페어링은 토큰 없는 상태에서 호출
                         ).permitAll()
                         .requestMatchers("/kiosk/**").hasRole("DEVICE")
                         .anyRequest().authenticated()

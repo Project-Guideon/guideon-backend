@@ -4,7 +4,11 @@ import jakarta.validation.constraints.*;
 import lombok.Getter;
 
 @Getter
-public class CreateDeviceRequest {
+public class PairDeviceRequest {
+
+    @NotBlank(message = "pairingCode는 필수입니다")
+    @Pattern(regexp = "^[A-HJ-NP-Z2-9]{6}$", message = "페어링 코드는 6자리 영문 대문자+숫자입니다 (O,0,I,1 제외)")
+    private String pairingCode;
 
     @NotBlank(message = "deviceId는 필수입니다")
     @Size(max = 50, message = "deviceId는 50자 이하여야 합니다")
@@ -24,12 +28,16 @@ public class CreateDeviceRequest {
     @DecimalMax(value = "180.0", message = "longitude는 180 이하여야 합니다")
     private Double longitude;
 
-    /** AUTO(기본) 또는 MANUAL. MANUAL일 때는 zoneId 필수 */
     @Pattern(regexp = "^(AUTO|MANUAL)$", message = "zoneSource는 AUTO 또는 MANUAL이어야 합니다")
     private String zoneSource;
 
-    /** zoneSource가 MANUAL일 때 지정 */
     private Long zoneId;
 
-    private Boolean isActive;
+    @AssertTrue(message = "zoneSource가 MANUAL일 경우 zoneId는 필수입니다")
+    private boolean isZoneIdValidForManual() {
+        if ("MANUAL".equals(zoneSource)) {
+            return zoneId != null;
+        }
+        return true;
+    }
 }

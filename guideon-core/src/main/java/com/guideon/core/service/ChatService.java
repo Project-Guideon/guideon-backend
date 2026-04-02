@@ -85,8 +85,8 @@ public class ChatService {
                 });
         session.incrementMessageCount();
 
-        // 2. 마스코트 systemPrompt 조회
-        String systemPrompt = buildSystemPrompt(command.getSiteId());
+        // 2. 마스코트 systemPrompt + promptConfig 조회
+        Mascot mascot = findMascot(command.getSiteId());
 
         // 3. DailyInfo context 조립
         List<QaRequest.DailyInfoSummary> dailyInfoSummaries = buildDailyInfoContext(command.getSiteId());
@@ -96,14 +96,14 @@ public class ChatService {
         QaRequest qaRequest = QaRequest.builder()
                 .sessionId(command.getSessionId())
                 .siteId(command.getSiteId())
-                .deviceId(command.getDeviceId())
+                .deviceId(session.getDeviceId())
                 .question(command.getMessage())
                 .language(command.getLanguage())
-                .systemPrompt(systemPrompt)
-                .deviceLocation(QaRequest.DeviceLocation.builder()
-                        .latitude(command.getLatitude())
-                        .longitude(command.getLongitude())
-                        .build())
+                .systemPrompt(mascot != null ? mascot.getSystemPrompt() : null)
+                .name(mascot != null ? mascot.getName() : null)
+                .greetingMsg(mascot != null ? mascot.getGreetingMsg() : null)
+                .promptConfig(mascot != null ? mascot.getPromptConfig() : null)
+                .deviceLocation(buildDeviceLocation(session.getDeviceId()))
                 .context(QaRequest.QaContext.builder()
                         .dailyInfos(dailyInfoSummaries)
                         .build())
@@ -118,7 +118,7 @@ public class ChatService {
         ChatMessage chatMessage = ChatMessage.builder()
                 .sessionId(command.getSessionId())
                 .siteId(command.getSiteId())
-                .deviceId(command.getDeviceId())
+                .deviceId(session.getDeviceId())
                 .question(command.getMessage())
                 .language(command.getLanguage())
                 .answer(qaResponse.getAnswer())
@@ -133,7 +133,7 @@ public class ChatService {
         chatMessageRepository.save(chatMessage);
 
         // 8. Display hint 조립
-        return buildChatResult(command.getSessionId(), qaResponse);
+        return buildChatResult(command.getSessionId(), command, qaResponse);
     }
 
     /**
@@ -159,6 +159,21 @@ public class ChatService {
         }
     }
 
+    private QaRequest.DeviceLocation buildDeviceLocation(String deviceId) {
+        try {
+            Device device = deviceRepository.findById(deviceId).orElse(null);
+            if (device != null && device.getLocation() != null) {
+                return QaRequest.DeviceLocation.builder()
+                        .latitude(device.getLocation().getY())
+                        .longitude(device.getLocation().getX())
+                        .build();
+            }
+        } catch (Exception e) {
+            log.warn("Device 위치 조회 실패: deviceId=***, {}", e.getMessage());
+        }
+        return null;
+    }
+
     private Long resolveInnerZoneId(Device device) {
         if (device.getZone() == null) return null;
         Zone zone = device.getZone();
@@ -169,16 +184,14 @@ public class ChatService {
     }
 
     /**
-     * 마스코트 systemPrompt 조회.
+     * 마스코트 조회.
      * 없으면 null 반환 (FastAPI 기본 프롬프트 사용).
      */
-    private String buildSystemPrompt(Long siteId) {
+    private Mascot findMascot(Long siteId) {
         try {
-            return mascotRepository.findBySite_SiteId(siteId)
-                    .map(Mascot::getSystemPrompt)
-                    .orElse(null);
+            return mascotRepository.findBySite_SiteId(siteId).orElse(null);
         } catch (Exception e) {
-            log.warn("마스코트 systemPrompt 조회 실패 (기본 프롬프트 사용): siteId={}", siteId);
+            log.warn("마스코트 조회 실패 (기본 프롬프트 사용): siteId={}", siteId);
             return null;
         }
     }
@@ -225,13 +238,15 @@ public class ChatService {
         }
     }
 
-    private ChatResult buildChatResult(String sessionId, QaResponse qaResponse) {
+    private ChatResult buildChatResult(String sessionId, ChatCommand command, QaResponse qaResponse) {
         ChatResult.ChatResultBuilder builder = ChatResult.builder()
                 .sessionId(sessionId)
                 .answer(qaResponse.getAnswer())
                 .emotion(qaResponse.getEmotion())
                 .language(qaResponse.getLanguage())
-                .category(qaResponse.getCategory());
+                .category(qaResponse.getCategory())
+                .deviceLatitude(command.getLatitude())
+                .deviceLongitude(command.getLongitude());
 
         if (qaResponse.getPlaceId() != null) {
             try {

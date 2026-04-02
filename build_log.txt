@@ -1,0 +1,48 @@
+> Task :compileJava NO-SOURCE
+> Task :processResources NO-SOURCE
+> Task :classes UP-TO-DATE
+> Task :jar UP-TO-DATE
+> Task :assemble UP-TO-DATE
+> Task :check
+> Task :build
+> Task :guideon-common:compileJava UP-TO-DATE
+> Task :guideon-common:processResources NO-SOURCE
+> Task :guideon-common:classes UP-TO-DATE
+> Task :guideon-common:jar UP-TO-DATE
+> Task :guideon-core:compileJava
+> Task :guideon-core:processResources UP-TO-DATE
+> Task :guideon-core:classes
+> Task :guideon-core:jar
+
+> Task :guideon-admin-bff:compileJava
+Note: C:\Users\Win10\Desktop\GuideON\guideon-backend\guideon-admin-bff\src\main\java\com\guideon\guideonbackend\domain\mascot\service\TripoApiService.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :guideon-admin-bff:processResources
+> Task :guideon-admin-bff:classes
+> Task :guideon-admin-bff:resolveMainClassName
+> Task :guideon-admin-bff:bootJar
+> Task :guideon-admin-bff:jar
+> Task :guideon-admin-bff:assemble
+> Task :guideon-admin-bff:check
+> Task :guideon-admin-bff:build
+> Task :guideon-common:assemble UP-TO-DATE
+> Task :guideon-common:check
+> Task :guideon-common:build
+> Task :guideon-core:resolveMainClassName
+> Task :guideon-core:bootJar
+> Task :guideon-core:assemble
+> Task :guideon-core:check
+> Task :guideon-core:build
+> Task :guideon-kiosk-bff:compileJava
+> Task :guideon-kiosk-bff:processResources
+> Task :guideon-kiosk-bff:classes
+> Task :guideon-kiosk-bff:resolveMainClassName
+> Task :guideon-kiosk-bff:bootJar
+> Task :guideon-kiosk-bff:jar
+> Task :guideon-kiosk-bff:assemble
+> Task :guideon-kiosk-bff:check
+> Task :guideon-kiosk-bff:build
+
+BUILD SUCCESSFUL in 6s
+18 actionable tasks: 14 executed, 4 up-to-date
