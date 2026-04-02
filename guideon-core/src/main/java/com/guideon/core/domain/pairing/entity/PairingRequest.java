@@ -45,9 +45,9 @@ public class PairingRequest extends BaseEntity {
     private LocalDateTime claimedAt;
 
     @Builder
-    public PairingRequest(String pairingCode, LocalDateTime expiresAt) {
+    public PairingRequest(String pairingCode, String secretHash, LocalDateTime expiresAt) {
         this.pairingCode = pairingCode;
-        this.secret = java.util.UUID.randomUUID().toString();
+        this.secret = secretHash;
         this.status = PairingStatus.WAITING;
         this.expiresAt = expiresAt;
     }

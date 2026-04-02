@@ -14,10 +14,10 @@ public class PairingCodeResponse {
     private String status;
     private LocalDateTime expiresAt;
 
-    public static PairingCodeResponse from(PairingRequest request) {
+    public static PairingCodeResponse of(PairingRequest request, String plainSecret) {
         return PairingCodeResponse.builder()
                 .pairingCode(request.getPairingCode())
-                .secret(request.getSecret())
+                .secret(plainSecret)
                 .status(request.getStatus().name())
                 .expiresAt(request.getExpiresAt())
                 .build();

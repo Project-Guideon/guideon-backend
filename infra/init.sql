@@ -391,7 +391,8 @@ CREATE TABLE IF NOT EXISTS tb_pairing_request (
   pairing_code VARCHAR(6)   NOT NULL UNIQUE
     CONSTRAINT ck_pairing_code_format CHECK (pairing_code ~ '^[A-HJ-NP-Z2-9]{6}$'),
   secret       VARCHAR(64)  NOT NULL,
-  status       VARCHAR(20)  NOT NULL,
+  status       VARCHAR(20)  NOT NULL
+    CONSTRAINT ck_pairing_status CHECK (status IN ('WAITING', 'PAIRED', 'CLAIMED', 'EXPIRED')),
   expires_at   TIMESTAMPTZ  NOT NULL,
   device_id    VARCHAR(50)  REFERENCES tb_device(device_id),
   paired_at    TIMESTAMPTZ,

@@ -44,6 +44,7 @@ public class PairingService {
     private final DeviceRepository deviceRepository;
     private final SiteRepository siteRepository;
     private final ZoneRepository zoneRepository;
+    private final org.springframework.transaction.PlatformTransactionManager transactionManager;
 
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
     private static final int CODE_LENGTH = 6;
@@ -55,23 +56,30 @@ public class PairingService {
      * 페어링 코드 생성
      * 키오스크 첫 부팅 시 호출 (인증 불필요)
      */
-    @Transactional
     public PairingCodeResponse requestPairingCode() {
+        org.springframework.transaction.support.TransactionTemplate txTemplate = 
+                new org.springframework.transaction.support.TransactionTemplate(transactionManager);
+        txTemplate.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+
         int maxAttempts = 5;
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
             try {
-                String code = generateCode();
+                return txTemplate.execute(status -> {
+                    String code = generateCode();
+                    String plainSecret = UUID.randomUUID().toString();
 
-                PairingRequest request = PairingRequest.builder()
-                        .pairingCode(code)
-                        .expiresAt(LocalDateTime.now().plusMinutes(CODE_EXPIRY_MINUTES))
-                        .build();
+                    PairingRequest request = PairingRequest.builder()
+                            .pairingCode(code)
+                            .secretHash(sha256Hex(plainSecret))
+                            .expiresAt(LocalDateTime.now().plusMinutes(CODE_EXPIRY_MINUTES))
+                            .build();
 
-                // DIVE 예외를 잡기 위해 saveAndFlush 사용
-                request = pairingRequestRepository.saveAndFlush(request);
-                log.info("페어링 코드 발급: code={}**", code.substring(0, 4));
+                    // DIVE 예외를 잡기 위해 saveAndFlush 사용
+                    request = pairingRequestRepository.saveAndFlush(request);
+                    log.info("페어링 코드 발급: code={}**", code.substring(0, 4));
 
-                return PairingCodeResponse.from(request);
+                    return PairingCodeResponse.of(request, plainSecret);
+                });
             } catch (org.springframework.dao.DataIntegrityViolationException e) {
                 if (attempt == maxAttempts - 1) {
                     log.error("페어링 코드 발급 최대 재시도 횟수 초과", e);
@@ -119,7 +127,11 @@ public class PairingService {
         }
 
         // Constant-time 대조 방식 활용
-        if (secret == null || !MessageDigest.isEqual(request.getSecret().getBytes(StandardCharsets.UTF_8), secret.getBytes(StandardCharsets.UTF_8))) {
+        if (secret == null) {
+            throw new CustomException(ErrorCode.PAIRING_AUTH_FAILED);
+        }
+        String incomingHash = sha256Hex(secret);
+        if (!MessageDigest.isEqual(request.getSecret().getBytes(StandardCharsets.UTF_8), incomingHash.getBytes(StandardCharsets.UTF_8))) {
             throw new CustomException(ErrorCode.PAIRING_AUTH_FAILED);
         }
 
@@ -167,11 +179,6 @@ public class PairingService {
             throw new CustomException(ErrorCode.SITE_INACTIVE);
         }
 
-        // Device ID 중복 검증
-        if (deviceRepository.existsByDeviceId(command.getDeviceId())) {
-            throw new CustomException(ErrorCode.DEVICE_ID_DUPLICATE);
-        }
-
         // 좌표 검증
         validateCoordinates(command.getLatitude(), command.getLongitude());
 
@@ -196,7 +203,11 @@ public class PairingService {
                 .isActive(true)
                 .build();
 
-        device = deviceRepository.save(device);
+        try {
+            device = deviceRepository.saveAndFlush(device);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new CustomException(ErrorCode.DEVICE_ID_DUPLICATE);
+        }
 
         // 페어링 완료 처리
         request.pair(device);
