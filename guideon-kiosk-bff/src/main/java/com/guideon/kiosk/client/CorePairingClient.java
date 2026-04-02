@@ -18,5 +18,5 @@ public interface CorePairingClient {
     PairingStatusResponse getPairingStatus(@PathVariable String pairingCode);
 
     @PostMapping("/internal/v1/pairing/{pairingCode}/claim")
-    PairingClaimResponse claimPairingResult(@PathVariable String pairingCode);
+    PairingClaimResponse claimPairingResult(@PathVariable("pairingCode") String pairingCode, @org.springframework.web.bind.annotation.RequestBody com.guideon.core.dto.pairing.PairingClaimCommand command);
 }

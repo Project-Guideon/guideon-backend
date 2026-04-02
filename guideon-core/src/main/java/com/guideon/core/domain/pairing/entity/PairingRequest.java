@@ -24,6 +24,9 @@ public class PairingRequest extends BaseEntity {
     @Column(name = "pairing_code", nullable = false, unique = true, length = 6)
     private String pairingCode;
 
+    @Column(name = "secret", nullable = false, length = 64)
+    private String secret;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private PairingStatus status;
@@ -44,6 +47,7 @@ public class PairingRequest extends BaseEntity {
     @Builder
     public PairingRequest(String pairingCode, LocalDateTime expiresAt) {
         this.pairingCode = pairingCode;
+        this.secret = java.util.UUID.randomUUID().toString();
         this.status = PairingStatus.WAITING;
         this.expiresAt = expiresAt;
     }

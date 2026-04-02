@@ -12,6 +12,10 @@ public interface PairingRequestRepository extends JpaRepository<PairingRequest, 
 
     Optional<PairingRequest> findByPairingCode(String pairingCode);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("SELECT p FROM PairingRequest p WHERE p.pairingCode = :pairingCode")
+    Optional<PairingRequest> findByPairingCodeForUpdate(@org.springframework.data.repository.query.Param("pairingCode") String pairingCode);
+
     Optional<PairingRequest> findByPairingCodeAndStatus(String pairingCode, PairingStatus status);
 
     boolean existsByPairingCodeAndStatus(String pairingCode, PairingStatus status);

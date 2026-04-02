@@ -57,17 +57,29 @@ public class PairingService {
      */
     @Transactional
     public PairingCodeResponse requestPairingCode() {
-        String code = generateUniqueCode();
+        int maxAttempts = 5;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            try {
+                String code = generateCode();
 
-        PairingRequest request = PairingRequest.builder()
-                .pairingCode(code)
-                .expiresAt(LocalDateTime.now().plusMinutes(CODE_EXPIRY_MINUTES))
-                .build();
+                PairingRequest request = PairingRequest.builder()
+                        .pairingCode(code)
+                        .expiresAt(LocalDateTime.now().plusMinutes(CODE_EXPIRY_MINUTES))
+                        .build();
 
-        pairingRequestRepository.save(request);
-        log.info("페어링 코드 발급: code={}**", code.substring(0, 4));
+                // DIVE 예외를 잡기 위해 saveAndFlush 사용
+                request = pairingRequestRepository.saveAndFlush(request);
+                log.info("페어링 코드 발급: code={}**", code.substring(0, 4));
 
-        return PairingCodeResponse.from(request);
+                return PairingCodeResponse.from(request);
+            } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                if (attempt == maxAttempts - 1) {
+                    log.error("페어링 코드 발급 최대 재시도 횟수 초과", e);
+                    throw new CustomException(ErrorCode.INTERNAL_ERROR, "페어링 코드 생성에 실패했습니다");
+                }
+            }
+        }
+        throw new CustomException(ErrorCode.INTERNAL_ERROR, "페어링 코드 생성에 실패했습니다");
     }
 
     /**
@@ -94,8 +106,8 @@ public class PairingService {
      * 토큰은 1회만 발급 — CLAIMED 상태에서 재호출 시 에러
      */
     @Transactional
-    public PairingClaimResponse claimPairingResult(String pairingCode) {
-        PairingRequest request = pairingRequestRepository.findByPairingCode(pairingCode)
+    public PairingClaimResponse claimPairingResult(String pairingCode, String secret) {
+        PairingRequest request = pairingRequestRepository.findByPairingCodeForUpdate(pairingCode)
                 .orElseThrow(() -> new CustomException(ErrorCode.PAIRING_CODE_NOT_FOUND));
 
         if (request.getStatus() == PairingStatus.CLAIMED) {
@@ -104,6 +116,11 @@ public class PairingService {
 
         if (request.getStatus() != PairingStatus.PAIRED) {
             throw new CustomException(ErrorCode.PAIRING_CODE_NOT_FOUND);
+        }
+
+        // Constant-time 대조 방식 활용
+        if (secret == null || !MessageDigest.isEqual(request.getSecret().getBytes(StandardCharsets.UTF_8), secret.getBytes(StandardCharsets.UTF_8))) {
+            throw new CustomException(ErrorCode.PAIRING_AUTH_FAILED);
         }
 
         Device device = request.getDevice();
@@ -130,10 +147,13 @@ public class PairingService {
      */
     @Transactional
     public DeviceDto pairDevice(Long siteId, PairDeviceCommand command) {
-        // 페어링 코드 검증
-        PairingRequest request = pairingRequestRepository.findByPairingCodeAndStatus(
-                        command.getPairingCode(), PairingStatus.WAITING)
+        // 페어링 코드 검증 (비관적 락으로 원자적 처리)
+        PairingRequest request = pairingRequestRepository.findByPairingCodeForUpdate(command.getPairingCode())
                 .orElseThrow(() -> new CustomException(ErrorCode.PAIRING_CODE_NOT_FOUND));
+
+        if (request.getStatus() == PairingStatus.PAIRED || request.getStatus() == PairingStatus.CLAIMED) {
+            throw new CustomException(ErrorCode.PAIRING_CODE_ALREADY_PAIRED);
+        }
 
         if (request.isExpired()) {
             request.expire();
@@ -184,16 +204,6 @@ public class PairingService {
         log.info("페어링 매칭 완료: deviceId={}, siteId={}", command.getDeviceId(), siteId);
 
         return DeviceDto.from(device);
-    }
-
-    private String generateUniqueCode() {
-        for (int attempt = 0; attempt < 10; attempt++) {
-            String code = generateCode();
-            if (!pairingRequestRepository.existsByPairingCodeAndStatus(code, PairingStatus.WAITING)) {
-                return code;
-            }
-        }
-        throw new CustomException(ErrorCode.INTERNAL_ERROR, "페어링 코드 생성에 실패했습니다");
     }
 
     private String generateCode() {

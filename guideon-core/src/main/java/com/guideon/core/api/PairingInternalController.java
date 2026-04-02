@@ -33,8 +33,9 @@ public class PairingInternalController {
     /** 키오스크 → PAIRED 확인 후 토큰 수령 (1회만 가능) */
     @PostMapping("/{pairingCode}/claim")
     public ResponseEntity<PairingClaimResponse> claimPairingResult(
-            @PathVariable String pairingCode) {
-        return ResponseEntity.ok(pairingService.claimPairingResult(pairingCode));
+            @PathVariable String pairingCode,
+            @RequestBody com.guideon.core.dto.pairing.PairingClaimCommand command) {
+        return ResponseEntity.ok(pairingService.claimPairingResult(pairingCode, command.getSecret()));
     }
 
     /** 관리자 → 페어링 코드로 디바이스 매칭 */

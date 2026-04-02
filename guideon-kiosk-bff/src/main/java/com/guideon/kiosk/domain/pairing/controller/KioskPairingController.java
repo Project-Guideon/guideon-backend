@@ -61,9 +61,10 @@ public class KioskPairingController {
     @PostMapping("/{pairingCode}/claim")
     public ResponseEntity<ApiResponse<PairingClaimResponse>> claimPairingResult(
             @PathVariable String pairingCode,
+            @RequestBody com.guideon.core.dto.pairing.PairingClaimCommand command,
             HttpServletRequest httpRequest
     ) {
-        PairingClaimResponse response = corePairingClient.claimPairingResult(pairingCode);
+        PairingClaimResponse response = corePairingClient.claimPairingResult(pairingCode, command);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
