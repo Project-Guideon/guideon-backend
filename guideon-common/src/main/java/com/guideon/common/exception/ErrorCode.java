@@ -50,7 +50,14 @@ public enum ErrorCode {
     // ── Device ──
     DEVICE_NOT_FOUND(HttpStatus.NOT_FOUND, "디바이스를 찾을 수 없습니다"),
     DEVICE_ID_DUPLICATE(HttpStatus.CONFLICT, "이미 사용 중인 디바이스 ID입니다"),
-    DEVICE_INACTIVE(HttpStatus.FORBIDDEN, "비활성화된 디바이스입니다");
+    DEVICE_INACTIVE(HttpStatus.FORBIDDEN, "비활성화된 디바이스입니다"),
+
+    // ── Pairing ──
+    PAIRING_CODE_NOT_FOUND(HttpStatus.NOT_FOUND, "페어링 코드를 찾을 수 없습니다"),
+    PAIRING_CODE_EXPIRED(HttpStatus.GONE, "만료된 페어링 코드입니다"),
+    PAIRING_CODE_ALREADY_PAIRED(HttpStatus.CONFLICT, "이미 매칭 완료된 페어링 코드입니다"),
+    PAIRING_ALREADY_CLAIMED(HttpStatus.CONFLICT, "이미 토큰이 수령된 페어링입니다"),
+    PAIRING_AUTH_FAILED(HttpStatus.UNAUTHORIZED, "페어링 인증 실패(Nonce 불일치)");
 
     private final HttpStatus httpStatus;
     private final String message;

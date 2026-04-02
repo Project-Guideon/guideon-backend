@@ -1,7 +1,6 @@
 package com.guideon.guideonbackend.client;
 
 import com.guideon.common.response.PageResponse;
-import com.guideon.core.dto.device.CreateDeviceCommand;
 import com.guideon.core.dto.device.DeviceDto;
 import com.guideon.core.dto.device.RotateTokenResult;
 import com.guideon.core.dto.device.UpdateDeviceCommand;
@@ -10,11 +9,6 @@ import org.springframework.web.bind.annotation.*;
 
 @FeignClient(name = "core-device", url = "${core.service.url}")
 public interface CoreDeviceClient {
-
-    @PostMapping("/internal/v1/sites/{siteId}/devices")
-    RotateTokenResult createDevice(
-            @PathVariable("siteId") Long siteId,
-            @RequestBody CreateDeviceCommand command);
 
     @GetMapping("/internal/v1/sites/{siteId}/devices")
     PageResponse<DeviceDto> getDevices(
