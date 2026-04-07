@@ -42,10 +42,11 @@ public class KioskChatController {
     @DeleteMapping("/sessions/{sessionId}")
     public ResponseEntity<ApiResponse<Void>> endSession(
             @PathVariable String sessionId,
+            @AuthenticationPrincipal DeviceDetails device,
             HttpServletRequest httpRequest
     ) {
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
-        chatService.endSession(sessionId);
+        chatService.endSession(sessionId, device.getDeviceId());
         return ResponseEntity.ok(ApiResponse.success(null, traceId));
     }
 

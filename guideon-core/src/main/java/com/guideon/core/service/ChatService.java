@@ -61,8 +61,18 @@ public class ChatService {
      * DB 롤백 시 Redis 삭제가 불필요하게 일어나는 것을 방지.
      */
     @Transactional
-    public void endSession(String sessionId) {
+    public void endSession(String sessionId, String deviceId) {
         chatSessionRepository.findById(sessionId).ifPresent(session -> {
+            // 호출자(deviceId)와 세션 소유자 일치 여부 검증
+            if (!session.getDeviceId().equals(deviceId)) {
+                log.warn("세션 소유권 불일치: sessionId={}, 요청 deviceId=***", sessionId);
+                throw new SecurityException("세션 소유권이 없습니다: " + sessionId);
+            }
+            // 이미 종료된 세션 재요청은 무시 (endedAt 덮어쓰기 방지)
+            if (session.getEndedAt() != null) {
+                log.info("이미 종료된 Chat 세션 재요청 무시: sessionId={}", sessionId);
+                return;
+            }
             session.endSession();
             log.info("Chat 세션 종료: sessionId={}", sessionId);
         });

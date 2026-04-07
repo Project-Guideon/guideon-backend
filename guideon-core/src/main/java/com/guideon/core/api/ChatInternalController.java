@@ -45,8 +45,11 @@ public class ChatInternalController {
      * 키오스크 종료 버튼 클릭 시 Kiosk BFF가 호출
      */
     @PostMapping("/sessions/{sessionId}/end")
-    public ResponseEntity<Void> endSession(@PathVariable String sessionId) {
-        chatService.endSession(sessionId);
+    public ResponseEntity<Void> endSession(
+            @PathVariable String sessionId,
+            @RequestParam String deviceId
+    ) {
+        chatService.endSession(sessionId, deviceId);
         return ResponseEntity.ok().build();
     }
 }

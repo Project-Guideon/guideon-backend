@@ -46,9 +46,9 @@ public class ChatService {
      * 세션 종료 — Core에 위임 (DB ended_at 기록 + Redis 대화 내역 삭제)
      * 키오스크 종료 버튼 클릭 시 호출
      */
-    public void endSession(String sessionId) {
+    public void endSession(String sessionId, String deviceId) {
         try {
-            coreChatClient.endSession(sessionId);
+            coreChatClient.endSession(sessionId, deviceId);
             log.info("Chat 세션 종료 요청: sessionId={}", sessionId);
         } catch (Exception e) {
             log.error("세션 종료 실패: sessionId={}, {}", sessionId, e.getMessage());

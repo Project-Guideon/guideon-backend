@@ -27,5 +27,8 @@ public interface CoreChatClient {
      * 키오스크 종료 버튼 클릭 시 호출
      */
     @PostMapping("/internal/v1/chat/sessions/{sessionId}/end")
-    void endSession(@PathVariable String sessionId);
+    void endSession(
+            @PathVariable String sessionId,
+            @RequestParam String deviceId
+    );
 }
