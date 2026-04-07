@@ -23,6 +23,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -49,6 +51,40 @@ public class ChatService {
     private final PlaceRepository placeRepository;
     private final DeviceRepository deviceRepository;
     private final MascotRepository mascotRepository;
+    private final ChatHistoryService chatHistoryService;
+
+    /**
+     * 세션 종료 — DB ended_at 기록 + Redis 대화 내역 삭제
+     * 키오스크 종료 버튼 클릭 시 호출
+     *
+     * Redis 삭제는 트랜잭션 커밋 이후 afterCommit() 콜백에서 실행.
+     * DB 롤백 시 Redis 삭제가 불필요하게 일어나는 것을 방지.
+     */
+    @Transactional
+    public void endSession(String sessionId, String deviceId) {
+        chatSessionRepository.findById(sessionId).ifPresent(session -> {
+            // 호출자(deviceId)와 세션 소유자 일치 여부 검증
+            if (!session.getDeviceId().equals(deviceId)) {
+                log.warn("세션 소유권 불일치: sessionId={}, 요청 deviceId=***", sessionId);
+                throw new SecurityException("세션 소유권이 없습니다: " + sessionId);
+            }
+            // 이미 종료된 세션 재요청은 무시 (endedAt 덮어쓰기 방지)
+            if (session.getEndedAt() != null) {
+                log.info("이미 종료된 Chat 세션 재요청 무시: sessionId={}", sessionId);
+                return;
+            }
+            session.endSession();
+            log.info("Chat 세션 종료: sessionId={}", sessionId);
+        });
+
+        // DB 커밋 완료 후 Redis 삭제 (트랜잭션 롤백 시 Redis 삭제 방지)
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                chatHistoryService.deleteHistory(sessionId);
+            }
+        });
+    }
 
     /**
      * 대화 세션 생성 — UUID 생성 + DB 저장
@@ -77,12 +113,19 @@ public class ChatService {
     public ChatResult sendMessage(ChatCommand command) {
         long startTime = System.currentTimeMillis();
 
-        // 1. 세션 조회 + 메시지 카운트 증가
+        // 1. 세션 조회 + 종료 여부 확인 + 메시지 카운트 증가
         ChatSession session = chatSessionRepository.findById(command.getSessionId())
                 .orElseThrow(() -> {
                     log.warn("세션 없음: sessionId={}", command.getSessionId());
                     return new IllegalArgumentException("유효하지 않은 세션입니다: " + command.getSessionId());
                 });
+
+        // 이미 종료된 세션으로 메시지가 들어오면 거부 (endedAt 기록 후 Redis 재생성 방지)
+        if (session.getEndedAt() != null) {
+            log.warn("종료된 세션으로 메시지 수신: sessionId={}", command.getSessionId());
+            throw new IllegalStateException("이미 종료된 세션입니다: " + command.getSessionId());
+        }
+
         session.incrementMessageCount();
 
         // 2. 마스코트 systemPrompt + promptConfig 조회
@@ -132,7 +175,17 @@ public class ChatService {
 
         chatMessageRepository.save(chatMessage);
 
-        // 8. Display hint 조립
+        // 8. DB 커밋 후 Redis 저장 (커밋 실패 시 Redis에만 데이터 남는 불일치 방지)
+        final String question = command.getMessage();
+        final String answer = qaResponse.getAnswer();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                chatHistoryService.saveTurn(command.getSessionId(), question, answer);
+            }
+        });
+
+        // 9. Display hint 조립
         return buildChatResult(command.getSessionId(), command, qaResponse);
     }
 
