@@ -35,6 +35,21 @@ public class KioskChatController {
     }
 
     /**
+     * DELETE /kiosk/chat/sessions/{sessionId}
+     * 세션 종료 — DB ended_at 기록 + Redis 대화 내역 즉시 삭제
+     * 키오스크 종료 버튼 클릭 시 호출
+     */
+    @DeleteMapping("/sessions/{sessionId}")
+    public ResponseEntity<ApiResponse<Void>> endSession(
+            @PathVariable String sessionId,
+            HttpServletRequest httpRequest
+    ) {
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        chatService.endSession(sessionId);
+        return ResponseEntity.ok(ApiResponse.success(null, traceId));
+    }
+
+    /**
      * POST /kiosk/chat/sessions/{sessionId}/messages
      * 대화 메시지 전송 → AI 응답 + display hint 반환
      */
