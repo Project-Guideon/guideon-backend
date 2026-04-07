@@ -103,12 +103,19 @@ public class ChatService {
     public ChatResult sendMessage(ChatCommand command) {
         long startTime = System.currentTimeMillis();
 
-        // 1. 세션 조회 + 메시지 카운트 증가
+        // 1. 세션 조회 + 종료 여부 확인 + 메시지 카운트 증가
         ChatSession session = chatSessionRepository.findById(command.getSessionId())
                 .orElseThrow(() -> {
                     log.warn("세션 없음: sessionId={}", command.getSessionId());
                     return new IllegalArgumentException("유효하지 않은 세션입니다: " + command.getSessionId());
                 });
+
+        // 이미 종료된 세션으로 메시지가 들어오면 거부 (endedAt 기록 후 Redis 재생성 방지)
+        if (session.getEndedAt() != null) {
+            log.warn("종료된 세션으로 메시지 수신: sessionId={}", command.getSessionId());
+            throw new IllegalStateException("이미 종료된 세션입니다: " + command.getSessionId());
+        }
+
         session.incrementMessageCount();
 
         // 2. 마스코트 systemPrompt + promptConfig 조회
@@ -158,8 +165,15 @@ public class ChatService {
 
         chatMessageRepository.save(chatMessage);
 
-        // 8. 대화 내역 Redis 저장
-        chatHistoryService.saveTurn(command.getSessionId(), command.getMessage(), qaResponse.getAnswer());
+        // 8. DB 커밋 후 Redis 저장 (커밋 실패 시 Redis에만 데이터 남는 불일치 방지)
+        final String question = command.getMessage();
+        final String answer = qaResponse.getAnswer();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                chatHistoryService.saveTurn(command.getSessionId(), question, answer);
+            }
+        });
 
         // 9. Display hint 조립
         return buildChatResult(command.getSessionId(), command, qaResponse);
