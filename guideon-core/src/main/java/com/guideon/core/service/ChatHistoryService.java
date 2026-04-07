@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * 대화 내역 Redis 관리 서비스
@@ -31,18 +30,35 @@ public class ChatHistoryService {
 
     /**
      * 대화 1턴(질문 + 답변) 저장
+     * - JSON 직렬화 실패 시 Redis 저장 생략 (chat 흐름은 유지)
+     * - Redis 연결 오류 등 런타임 예외는 별도 catch로 처리
+     * - TTL 적용 실패 시 경고 로그 (키가 이미 삭제된 경우 등)
      */
     public void saveTurn(String sessionId, String question, String answer) {
         String key = KEY_PREFIX + sessionId;
-        try {
-            String userMsg = objectMapper.writeValueAsString(Map.of("role", "user", "content", question));
-            String assistantMsg = objectMapper.writeValueAsString(Map.of("role", "assistant", "content", answer));
 
-            redisTemplate.opsForList().rightPush(key, Objects.requireNonNull(userMsg));
-            redisTemplate.opsForList().rightPush(key, Objects.requireNonNull(assistantMsg));
-            redisTemplate.expire(key, Objects.requireNonNull(TTL));
+        // JSON 직렬화 — 실패 시 Redis 저장 생략
+        final String userMsg;
+        final String assistantMsg;
+        try {
+            userMsg = objectMapper.writeValueAsString(Map.of("role", "user", "content", question));
+            assistantMsg = objectMapper.writeValueAsString(Map.of("role", "assistant", "content", answer));
         } catch (JsonProcessingException e) {
-            log.warn("[ChatHistory] 저장 실패: sessionId={}, {}", sessionId, e.getMessage());
+            log.warn("[ChatHistory] JSON 직렬화 실패: sessionId={}, {}", sessionId, e.getMessage());
+            return;
+        }
+
+        // Redis 저장 — 연결 오류 등 런타임 예외 처리
+        try {
+            // rightPushAll로 두 메시지를 한 번에 저장 (네트워크 왕복 1회 절감)
+            redisTemplate.opsForList().rightPushAll(key, userMsg, assistantMsg);
+
+            Boolean ttlApplied = redisTemplate.expire(key, TTL);
+            if (!Boolean.TRUE.equals(ttlApplied)) {
+                log.warn("[ChatHistory] TTL 적용 실패 (키 없음?): sessionId={}", sessionId);
+            }
+        } catch (Exception e) {
+            log.warn("[ChatHistory] Redis 저장 실패: sessionId={}, {}", sessionId, e.getMessage());
         }
     }
 
