@@ -37,6 +37,12 @@ public class ChatHistoryService {
     public void saveTurn(String sessionId, String question, String answer) {
         String key = KEY_PREFIX + sessionId;
 
+        // Map.of()는 null 값 허용 안 함 — 먼저 방어
+        if (question == null || answer == null) {
+            log.warn("[ChatHistory] 저장 생략: sessionId={}, null message payload", sessionId);
+            return;
+        }
+
         // JSON 직렬화 — 실패 시 Redis 저장 생략
         final String userMsg;
         final String assistantMsg;
@@ -64,8 +70,14 @@ public class ChatHistoryService {
 
     /**
      * 세션 종료 시 대화 내역 삭제
+     * afterCommit() 콜백에서 호출되므로 예외가 전파되면 DB 커밋 성공 후에도 실패처럼 보임.
+     * 예외를 흡수하고 경고 로그만 남긴다.
      */
     public void deleteHistory(String sessionId) {
-        redisTemplate.delete(KEY_PREFIX + sessionId);
+        try {
+            redisTemplate.delete(KEY_PREFIX + sessionId);
+        } catch (Exception e) {
+            log.warn("[ChatHistory] Redis 삭제 실패: sessionId={}, {}", sessionId, e.getMessage());
+        }
     }
 }
