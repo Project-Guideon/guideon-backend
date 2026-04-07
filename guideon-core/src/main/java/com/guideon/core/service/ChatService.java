@@ -23,6 +23,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -54,6 +56,9 @@ public class ChatService {
     /**
      * 세션 종료 — DB ended_at 기록 + Redis 대화 내역 삭제
      * 키오스크 종료 버튼 클릭 시 호출
+     *
+     * Redis 삭제는 트랜잭션 커밋 이후 afterCommit() 콜백에서 실행.
+     * DB 롤백 시 Redis 삭제가 불필요하게 일어나는 것을 방지.
      */
     @Transactional
     public void endSession(String sessionId) {
@@ -61,7 +66,14 @@ public class ChatService {
             session.endSession();
             log.info("Chat 세션 종료: sessionId={}", sessionId);
         });
-        chatHistoryService.deleteHistory(sessionId);
+
+        // DB 커밋 완료 후 Redis 삭제 (트랜잭션 롤백 시 Redis 삭제 방지)
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                chatHistoryService.deleteHistory(sessionId);
+            }
+        });
     }
 
     /**
