@@ -68,14 +68,20 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         DeviceDetails device = getDeviceDetails(session);
-        String sessionId = getSessionId(session);
+        Map<String, String> params = parseQueryParams(session);
+        String sessionId = params.get("sessionId");
+        if (sessionId == null || sessionId.isBlank()) {
+            log.warn("STT WS 연결 거부: sessionId 누락");
+            session.close(CloseStatus.BAD_DATA.withReason("sessionId is required"));
+            return;
+        }
+
         log.info("STT WS 연결: deviceId={}, sessionId={}",
                 device != null ? device.getDeviceId() : "unknown", sessionId);
 
-        Map<String, String> params = parseQueryParams(session);
-        int siteId = parseIntOrDefault(params.get("siteId"), 1);
+        int siteId = parsePositiveIntOrDefault(params.get("siteId"), 1);
         String languageCode = params.getOrDefault("languageCode", "ko-KR");
-        int sampleRate = parseIntOrDefault(params.get("sampleRate"), 16000);
+        int sampleRate = parsePositiveIntOrDefault(params.get("sampleRate"), 16000);
         boolean ttsStream = !"false".equalsIgnoreCase(params.get("ttsStream"));
 
         String startPayload = buildStartPayload(siteId, languageCode, sampleRate, ttsStream);
@@ -169,28 +175,16 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
         return params;
     }
 
-    private String getSessionId(WebSocketSession session) {
-        String query = session.getUri() != null ? session.getUri().getRawQuery() : null;
-        if (query != null) {
-            for (String param : query.split("&")) {
-                String[] kv = param.split("=", 2);
-                if ("sessionId".equals(kv[0]) && kv.length == 2) {
-                    return URLDecoder.decode(kv[1], StandardCharsets.UTF_8);
-                }
-            }
-        }
-        return session.getId();
-    }
-
     private DeviceDetails getDeviceDetails(WebSocketSession session) {
         return (DeviceDetails) session.getAttributes()
                 .get(DeviceTokenHandshakeInterceptor.DEVICE_DETAILS_ATTR);
     }
 
-    private int parseIntOrDefault(String value, int defaultValue) {
+    private int parsePositiveIntOrDefault(String value, int defaultValue) {
         if (value == null) return defaultValue;
         try {
-            return Integer.parseInt(value);
+            int parsed = Integer.parseInt(value);
+            return parsed > 0 ? parsed : defaultValue;
         } catch (NumberFormatException e) {
             return defaultValue;
         }
