@@ -124,16 +124,24 @@ public class FastApiStreamSession {
         private void sendErrorToUnity(String code, String message) {
             try {
                 if (unitySession.isOpen()) {
-                    String safeMsg = message != null ? message.replace("\"", "'") : "";
                     String errorJson = String.format(
                             "{\"type\":\"error\",\"code\":\"%s\",\"message\":\"%s\"}",
-                            code, safeMsg
+                            code, escapeJson(message)
                     );
                     unitySession.sendMessage(new TextMessage(errorJson));
                 }
             } catch (IOException e) {
                 log.debug("[FastApiStream] Unity 오류 메시지 전송 실패: sessionId={}, {}", sessionId, e.getMessage());
             }
+        }
+
+        private String escapeJson(String str) {
+            if (str == null) return "";
+            return str.replace("\\", "\\\\")
+                      .replace("\"", "\\\"")
+                      .replace("\n", "\\n")
+                      .replace("\r", "\\r")
+                      .replace("\t", "\\t");
         }
     }
 }
