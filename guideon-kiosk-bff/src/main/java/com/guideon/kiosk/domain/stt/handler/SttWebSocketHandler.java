@@ -69,7 +69,8 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         DeviceDetails device = getDeviceDetails(session);
         String sessionId = getSessionId(session);
-        log.info("STT WS 연결: deviceId={}, sessionId={}", device.getDeviceId(), sessionId);
+        log.info("STT WS 연결: deviceId={}, sessionId={}",
+                device != null ? device.getDeviceId() : "unknown", sessionId);
 
         Map<String, String> params = parseQueryParams(session);
         int siteId = parseIntOrDefault(params.get("siteId"), 1);
@@ -94,7 +95,10 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) {
         FastApiStreamSession fastApiSession = sessions.get(session.getId());
         if (fastApiSession != null) {
-            fastApiSession.relayBinary(message.getPayload().array());
+            java.nio.ByteBuffer payload = message.getPayload().asReadOnlyBuffer();
+            byte[] bytes = new byte[payload.remaining()];
+            payload.get(bytes);
+            fastApiSession.relayBinary(bytes);
         }
     }
 
@@ -151,7 +155,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
 
     private Map<String, String> parseQueryParams(WebSocketSession session) {
         Map<String, String> params = new HashMap<>();
-        String query = session.getUri() != null ? session.getUri().getQuery() : null;
+        String query = session.getUri() != null ? session.getUri().getRawQuery() : null;
         if (query == null) return params;
         for (String pair : query.split("&")) {
             String[] kv = pair.split("=", 2);
@@ -166,7 +170,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     }
 
     private String getSessionId(WebSocketSession session) {
-        String query = session.getUri() != null ? session.getUri().getQuery() : null;
+        String query = session.getUri() != null ? session.getUri().getRawQuery() : null;
         if (query != null) {
             for (String param : query.split("&")) {
                 String[] kv = param.split("=", 2);
