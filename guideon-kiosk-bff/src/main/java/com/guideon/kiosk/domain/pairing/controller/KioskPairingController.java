@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "키오스크 페어링", description = "키오스크 첫 부팅 시 페어링 코드 기반 등록")
 @RestController
-@RequestMapping("/kiosk/pairing")
+@RequestMapping("/api/v1/kiosk/pairing")
 @RequiredArgsConstructor
 public class KioskPairingController {
 

@@ -15,7 +15,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/kiosk/chat")
+@RequestMapping("/api/v1/kiosk/chat")
 @RequiredArgsConstructor
 public class KioskChatController {
 
