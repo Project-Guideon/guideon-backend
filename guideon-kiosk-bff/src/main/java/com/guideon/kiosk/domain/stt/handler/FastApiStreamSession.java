@@ -11,6 +11,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * FastAPI /ws/stream WebSocket 연결 관리
@@ -25,6 +26,9 @@ import java.io.IOException;
  * 2. binary PCM 청크 스트리밍
  * 3. {"type":"stop"} 전송 → FastAPI가 STT 종료 후 QA → TTS 처리
  * 4. FastAPI가 {"type":"done"} 전송하면 파이프라인 완료
+ *
+ * onOpen() 이전에 도착한 프레임은 pendingQueue에 누적했다가
+ * startPayload 전송 직후 flush하여 순서를 보장.
  */
 @Slf4j
 public class FastApiStreamSession {
@@ -33,6 +37,10 @@ public class FastApiStreamSession {
     private final String sessionId;
     private volatile WebSocket fastapiWs;
     private volatile boolean closed = false;
+    private volatile boolean ready = false;
+
+    /** onOpen() 전에 도착한 프레임을 임시 보관 (binary: byte[], text: String) */
+    private final ConcurrentLinkedQueue<Object> pendingQueue = new ConcurrentLinkedQueue<>();
 
     /**
      * @param okHttpClient   FastApiConfig에서 주입받은 OkHttpClient
@@ -58,22 +66,29 @@ public class FastApiStreamSession {
 
     /** Unity에서 수신한 PCM 오디오 청크를 FastAPI로 중계 */
     public void relayBinary(byte[] data) {
-        if (!closed && fastapiWs != null) {
-            fastapiWs.send(ByteString.of(data));
+        if (closed) return;
+        if (!ready) {
+            pendingQueue.add(data);
+            return;
         }
+        fastapiWs.send(ByteString.of(data));
     }
 
     /** Unity에서 수신한 텍스트 제어 메시지(예: {"type":"stop"})를 FastAPI로 중계 */
     public void relayText(String text) {
-        if (!closed && fastapiWs != null) {
-            fastapiWs.send(text);
+        if (closed) return;
+        if (!ready) {
+            pendingQueue.add(text);
+            return;
         }
+        fastapiWs.send(text);
     }
 
     /** Unity 연결 종료 시 FastAPI WS도 닫음 */
     public void close() {
         if (!closed) {
             closed = true;
+            pendingQueue.clear();
             if (fastapiWs != null) {
                 fastapiWs.close(1000, "Unity disconnected");
                 log.info("[FastApiStream] FastAPI WS 정상 종료: sessionId={}", sessionId);
@@ -94,6 +109,10 @@ public class FastApiStreamSession {
         public void onOpen(WebSocket webSocket, Response response) {
             log.info("[FastApiStream] FastAPI WS 연결 성공: sessionId={}", sessionId);
             webSocket.send(startPayload);
+
+            // startPayload 전송 후 ready 플래그 설정 → 큐에 쌓인 프레임 flush
+            ready = true;
+            flushPendingQueue(webSocket);
         }
 
         /** FastAPI → BFF 텍스트 메시지: STT 결과, TTS 청크, 상태 등 → Unity로 그대로 중계 */
@@ -113,12 +132,25 @@ public class FastApiStreamSession {
         public void onFailure(WebSocket webSocket, Throwable t, Response response) {
             log.error("[FastApiStream] FastAPI WS 오류: sessionId={}, error={}", sessionId, t.getMessage());
             closed = true;
+            pendingQueue.clear();
             sendErrorToUnity("FASTAPI_UNAVAILABLE", "FastAPI 연결 오류: " + t.getMessage());
         }
 
         @Override
         public void onClosed(WebSocket webSocket, int code, String reason) {
             log.info("[FastApiStream] FastAPI WS 종료: sessionId={}, code={}, reason={}", sessionId, code, reason);
+        }
+
+        private void flushPendingQueue(WebSocket webSocket) {
+            Object frame;
+            while ((frame = pendingQueue.poll()) != null) {
+                if (closed) break;
+                if (frame instanceof byte[] bytes) {
+                    webSocket.send(ByteString.of(bytes));
+                } else if (frame instanceof String text) {
+                    webSocket.send(text);
+                }
+            }
         }
 
         private void sendErrorToUnity(String code, String message) {
