@@ -15,14 +15,14 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/kiosk/chat")
+@RequestMapping("/api/v1/kiosk/chat")
 @RequiredArgsConstructor
 public class KioskChatController {
 
     private final ChatService chatService;
 
     /**
-     * POST /kiosk/chat/sessions
+     * POST /api/v1/kiosk/chat/sessions
      * 대화 세션 생성 (Core에서 UUID 생성 + DB 저장)
      */
     @PostMapping("/sessions")
@@ -35,7 +35,23 @@ public class KioskChatController {
     }
 
     /**
-     * POST /kiosk/chat/sessions/{sessionId}/messages
+     * DELETE /api/v1/kiosk/chat/sessions/{sessionId}
+     * 세션 종료 — DB ended_at 기록 + Redis 대화 내역 즉시 삭제
+     * 키오스크 종료 버튼 클릭 시 호출
+     */
+    @DeleteMapping("/sessions/{sessionId}")
+    public ResponseEntity<ApiResponse<Void>> endSession(
+            @PathVariable String sessionId,
+            @AuthenticationPrincipal DeviceDetails device,
+            HttpServletRequest httpRequest
+    ) {
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        chatService.endSession(sessionId, device.getDeviceId());
+        return ResponseEntity.ok(ApiResponse.success(null, traceId));
+    }
+
+    /**
+     * POST /api/v1/kiosk/chat/sessions/{sessionId}/messages
      * 대화 메시지 전송 → AI 응답 + display hint 반환
      */
     @PostMapping("/sessions/{sessionId}/messages")

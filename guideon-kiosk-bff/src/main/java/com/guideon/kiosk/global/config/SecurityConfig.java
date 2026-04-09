@@ -22,7 +22,8 @@ import java.util.List;
  * Kiosk BFF Security 설정
  *
  * JWT 없이 Device Token(X-DEVICE-TOKEN) 기반 인증.
- * 모든 /kiosk/** 엔드포인트는 DEVICE 역할 필요.
+ * 모든 /api/v1/kiosk/** 엔드포인트는 DEVICE 역할 필요.
+ * 단, /api/v1/kiosk/pairing/**는 토큰 없는 상태에서 호출되므로 permitAll.
  */
 @Configuration
 @EnableWebSecurity
@@ -51,9 +52,9 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**",
                                 "/ws/**",  // WS 핸드셰이크는 인터셉터에서 직접 인증
-                                "/kiosk/pairing/**"  // 페어링은 토큰 없는 상태에서 호출
+                                "/api/v1/kiosk/pairing/**"  // 페어링은 토큰 없는 상태에서 호출
                         ).permitAll()
-                        .requestMatchers("/kiosk/**").hasRole("DEVICE")
+                        .requestMatchers("/api/v1/kiosk/**").hasRole("DEVICE")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(

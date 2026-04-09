@@ -21,4 +21,14 @@ public interface CoreChatClient {
             @PathVariable String sessionId,
             @RequestBody ChatCommand command
     );
+
+    /**
+     * 세션 종료 — DB ended_at 기록 + Redis 대화 내역 삭제
+     * 키오스크 종료 버튼 클릭 시 호출
+     */
+    @PostMapping("/internal/v1/chat/sessions/{sessionId}/end")
+    void endSession(
+            @PathVariable String sessionId,
+            @RequestParam String deviceId
+    );
 }

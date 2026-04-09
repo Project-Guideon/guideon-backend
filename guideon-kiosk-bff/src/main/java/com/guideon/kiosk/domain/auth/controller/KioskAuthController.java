@@ -16,14 +16,14 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/kiosk")
+@RequestMapping("/api/v1/kiosk")
 @RequiredArgsConstructor
 public class KioskAuthController {
 
     private final CoreKioskClient coreKioskClient;
 
     /**
-     * POST /kiosk/auth/verify
+     * POST /api/v1/kiosk/auth/verify
      * 디바이스 토큰 유효성 확인 + lastAuthAt 갱신
      * DeviceTokenAuthFilter가 인증 처리 → 여기 도달 == 유효한 토큰
      */
@@ -38,7 +38,7 @@ public class KioskAuthController {
     }
 
     /**
-     * GET /kiosk/bootstrap
+     * GET /api/v1/kiosk/bootstrap
      * 디바이스 초기 설정 데이터 조회 (site/zone/mascot 컨텍스트)
      */
     @GetMapping("/bootstrap")
@@ -53,7 +53,7 @@ public class KioskAuthController {
     }
 
     /**
-     * GET /kiosk/mascot
+     * GET /api/v1/kiosk/mascot
      * 마스코트 상세 정보 조회 (2D 이미지 + 3D 모델 URL 포함)
      */
     @GetMapping("/mascot")
@@ -68,7 +68,7 @@ public class KioskAuthController {
     }
 
     /**
-     * POST /kiosk/heartbeat
+     * POST /api/v1/kiosk/heartbeat
      * 하트비트 전송 (lastPing 갱신)
      */
     @PostMapping("/heartbeat")
