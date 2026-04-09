@@ -22,7 +22,7 @@ public class KioskChatController {
     private final ChatService chatService;
 
     /**
-     * POST /kiosk/chat/sessions
+     * POST /api/v1/kiosk/chat/sessions
      * 대화 세션 생성 (Core에서 UUID 생성 + DB 저장)
      */
     @PostMapping("/sessions")
@@ -35,7 +35,7 @@ public class KioskChatController {
     }
 
     /**
-     * DELETE /kiosk/chat/sessions/{sessionId}
+     * DELETE /api/v1/kiosk/chat/sessions/{sessionId}
      * 세션 종료 — DB ended_at 기록 + Redis 대화 내역 즉시 삭제
      * 키오스크 종료 버튼 클릭 시 호출
      */
@@ -51,7 +51,7 @@ public class KioskChatController {
     }
 
     /**
-     * POST /kiosk/chat/sessions/{sessionId}/messages
+     * POST /api/v1/kiosk/chat/sessions/{sessionId}/messages
      * 대화 메시지 전송 → AI 응답 + display hint 반환
      */
     @PostMapping("/sessions/{sessionId}/messages")
