@@ -102,6 +102,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       CORE_SERVICE_URL: http://core:8080
       FASTAPI_SERVICE_URL: ${FASTAPI_SERVICE_URL:-http://host.docker.internal:8000}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - core
     networks:
