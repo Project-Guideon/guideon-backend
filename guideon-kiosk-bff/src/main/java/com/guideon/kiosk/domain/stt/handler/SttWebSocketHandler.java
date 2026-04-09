@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guideon.kiosk.global.config.FastApiConfig;
 import com.guideon.kiosk.global.security.DeviceDetails;
 import com.guideon.kiosk.global.security.DeviceTokenHandshakeInterceptor;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -12,6 +11,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,18 +46,24 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class SttWebSocketHandler extends AbstractWebSocketHandler {
 
     private final ObjectMapper objectMapper;
     private final FastApiConfig fastApiConfig;
-
-    // qualifier로 Feign용 OkHttpClient와 분리
-    @Qualifier("fastapiOkHttpClient")
     private final OkHttpClient okHttpClient;
 
     /** Spring WS session.getId() → FastApiStreamSession */
     private final ConcurrentHashMap<String, FastApiStreamSession> sessions = new ConcurrentHashMap<>();
+
+    public SttWebSocketHandler(
+            ObjectMapper objectMapper,
+            FastApiConfig fastApiConfig,
+            @Qualifier("fastapiOkHttpClient") OkHttpClient okHttpClient
+    ) {
+        this.objectMapper = objectMapper;
+        this.fastApiConfig = fastApiConfig;
+        this.okHttpClient = okHttpClient;
+    }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -133,7 +140,6 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
             start.put("realtime", true);
             return objectMapper.writeValueAsString(start);
         } catch (Exception e) {
-            // fallback: 수동 조립
             return String.format(
                     "{\"type\":\"start\",\"site_id\":%d,\"language_code\":\"%s\","
                             + "\"sample_rate_hz\":%d,\"interim_results\":true,"
@@ -150,7 +156,10 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
         for (String pair : query.split("&")) {
             String[] kv = pair.split("=", 2);
             if (kv.length == 2) {
-                params.put(kv[0], kv[1]);
+                params.put(
+                        URLDecoder.decode(kv[0], StandardCharsets.UTF_8),
+                        URLDecoder.decode(kv[1], StandardCharsets.UTF_8)
+                );
             }
         }
         return params;
@@ -162,7 +171,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
             for (String param : query.split("&")) {
                 String[] kv = param.split("=", 2);
                 if ("sessionId".equals(kv[0]) && kv.length == 2) {
-                    return kv[1];
+                    return URLDecoder.decode(kv[1], StandardCharsets.UTF_8);
                 }
             }
         }
