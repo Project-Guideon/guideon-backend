@@ -56,7 +56,7 @@ public class ChatMessage {
 
     // --- 통계/분석용 ---
     @Column(name = "category", length = 30)
-    private String category;          // DIRECTION, HOURS, FACILITY, HISTORY, GENERAL 등
+    private String category;          // DIRECTION(길안내), INFORMATION(시설·역사 정보), OPERATION(운영·이벤트), SMALLTALK(일상대화), GENERAL(기타), ERROR(오류)
 
     @Column(name = "answer_found", nullable = false)
     private boolean answerFound;      // AI가 의미 있는 답변을 찾았는지
