@@ -2,7 +2,9 @@ package com.guideon.core.api;
 
 import com.guideon.core.dto.chat.ChatCommand;
 import com.guideon.core.dto.chat.ChatResult;
+import com.guideon.core.dto.chat.QuestionTypeStatDto;
 import com.guideon.core.service.ChatService;
+import com.guideon.core.service.ChatStatsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +22,7 @@ import java.util.Map;
 public class ChatInternalController {
 
     private final ChatService chatService;
+    private final ChatStatsService chatStatsService;
 
     @PostMapping("/sessions")
     public ResponseEntity<Map<String, String>> createSession(
@@ -51,5 +54,16 @@ public class ChatInternalController {
     ) {
         chatService.endSession(sessionId, deviceId);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * GET /internal/v1/chat/stats/question-types?siteId={siteId}
+     * 사이트별 질문 유형 통계 조회 (Admin BFF에서 호출)
+     */
+    @GetMapping("/stats/question-types")
+    public ResponseEntity<QuestionTypeStatDto> getQuestionTypeStats(
+            @RequestParam Long siteId
+    ) {
+        return ResponseEntity.ok(chatStatsService.getQuestionTypeStats(siteId));
     }
 }
