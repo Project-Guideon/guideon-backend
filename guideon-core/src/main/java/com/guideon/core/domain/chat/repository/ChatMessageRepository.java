@@ -11,10 +11,10 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 
     List<ChatMessage> findBySessionIdOrderByCreatedAtAsc(String sessionId);
 
-    @Query("SELECT m.category AS category, COUNT(m) AS count " +
+    @Query("SELECT COALESCE(m.category, 'GENERAL') AS category, COUNT(m) AS count " +
            "FROM ChatMessage m " +
            "WHERE m.siteId = :siteId " +
-           "GROUP BY m.category")
+           "GROUP BY COALESCE(m.category, 'GENERAL')")
     List<CategoryCountProjection> countByCategoryForSite(@Param("siteId") Long siteId);
 
     interface CategoryCountProjection {
