@@ -38,3 +38,8 @@ core:
 fastapi:
   service:
     url: ${FASTAPI_SERVICE_URL:http://localhost:8000}
+  websocket:
+    connect-timeout: 5        # 초
+    read-timeout: 0           # 0 = 무제한 (WebSocket keepalive)
+    write-timeout: 10         # 초
+    ping-interval: 30         # 초
