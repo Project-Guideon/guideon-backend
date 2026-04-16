@@ -28,6 +28,14 @@ logging:
 
 # Feign
 spring.cloud.openfeign.okhttp.enabled: true
+spring:
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 5000
+            read-timeout: 10000
 
 # Core Service (Internal API)
 core:
