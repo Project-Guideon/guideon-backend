@@ -19,13 +19,18 @@ public class FastApiConfig {
     @Value("${fastapi.service.url:http://localhost:8000}")
     private String fastapiServiceUrl;
 
+    @Value("${fastapi.websocket.connect-timeout:5}") private int connectTimeout;
+    @Value("${fastapi.websocket.read-timeout:0}") private int readTimeout;
+    @Value("${fastapi.websocket.write-timeout:10}") private int writeTimeout;
+    @Value("${fastapi.websocket.ping-interval:30}") private int pingInterval;
+
     @Bean(name = "fastapiOkHttpClient")
     public OkHttpClient fastapiOkHttpClient() {
         return new OkHttpClient.Builder()
-                .connectTimeout(5, TimeUnit.SECONDS)
-                .readTimeout(0, TimeUnit.SECONDS)       // WebSocket: 읽기 타임아웃 없음
-                .writeTimeout(10, TimeUnit.SECONDS)
-                .pingInterval(30, TimeUnit.SECONDS)     // 서버 keepalive
+                .connectTimeout(connectTimeout, TimeUnit.SECONDS)
+                .readTimeout(readTimeout, TimeUnit.SECONDS)     // 0 = 무제한 (WebSocket keepalive)
+                .writeTimeout(writeTimeout, TimeUnit.SECONDS)
+                .pingInterval(pingInterval, TimeUnit.SECONDS)   // 서버 keepalive
                 .build();
     }
 
