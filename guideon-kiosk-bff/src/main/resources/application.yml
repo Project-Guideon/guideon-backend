@@ -21,21 +21,21 @@ spring:
       hibernate:
         default_batch_fetch_size: 100
 
-# Logging (production default)
-logging:
-  level:
-    org.springframework.web: info
-
-# Feign
-spring.cloud.openfeign.okhttp.enabled: true
-spring:
+  # Feign
   cloud:
     openfeign:
+      okhttp:
+        enabled: true
       client:
         config:
           default:
             connect-timeout: 5000
             read-timeout: 10000
+
+# Logging (production default)
+logging:
+  level:
+    org.springframework.web: info
 
 # Core Service (Internal API)
 core:
