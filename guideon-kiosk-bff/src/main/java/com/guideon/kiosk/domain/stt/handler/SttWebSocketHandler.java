@@ -2,8 +2,8 @@ package com.guideon.kiosk.domain.stt.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guideon.core.dto.chat.WsChatSaveCommand;
-import com.guideon.core.dto.mascot.MascotDto;
-import com.guideon.kiosk.client.CoreMascotClient;
+import com.guideon.core.dto.kiosk.KioskMascotDto;
+import com.guideon.kiosk.client.CoreKioskClient;
 import com.guideon.kiosk.client.CoreWsChatClient;
 import com.guideon.kiosk.global.config.FastApiConfig;
 import com.guideon.kiosk.global.security.DeviceDetails;
@@ -55,7 +55,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     private final ObjectMapper objectMapper;
     private final FastApiConfig fastApiConfig;
     private final OkHttpClient okHttpClient;
-    private final CoreMascotClient coreMascotClient;
+    private final CoreKioskClient coreKioskClient;
     private final CoreWsChatClient coreWsChatClient;
 
     /** Spring WS session.getId() → FastApiStreamSession */
@@ -65,13 +65,13 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
             ObjectMapper objectMapper,
             FastApiConfig fastApiConfig,
             @Qualifier("fastapiOkHttpClient") OkHttpClient okHttpClient,
-            CoreMascotClient coreMascotClient,
+            CoreKioskClient coreKioskClient,
             CoreWsChatClient coreWsChatClient
     ) {
         this.objectMapper = objectMapper;
         this.fastApiConfig = fastApiConfig;
         this.okHttpClient = okHttpClient;
-        this.coreMascotClient = coreMascotClient;
+        this.coreKioskClient = coreKioskClient;
         this.coreWsChatClient = coreWsChatClient;
     }
 
@@ -94,7 +94,8 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
         int sampleRate = parsePositiveIntOrDefault(params.get("sampleRate"), 16000);
         boolean ttsStream = !"false".equalsIgnoreCase(params.get("ttsStream"));
 
-        MascotDto mascot = fetchMascot((long) siteId);
+        String deviceId = device != null ? device.getDeviceId() : null;
+        KioskMascotDto mascot = fetchMascot(deviceId);
         String startPayload = buildStartPayload(siteId, languageCode, sampleRate, ttsStream, mascot);
 
         DeviceDetails deviceForCallback = device;
@@ -151,11 +152,12 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
 
     // ── helpers ─────────────────────────────────────────────────────────────
 
-    private MascotDto fetchMascot(Long siteId) {
+    private KioskMascotDto fetchMascot(String deviceId) {
+        if (deviceId == null) return null;
         try {
-            return coreMascotClient.getMascot(siteId);
+            return coreKioskClient.getMascot(deviceId);
         } catch (Exception e) {
-            log.warn("[SttWS] mascot 조회 실패 (기본 프롬프트 사용): siteId={}, error={}", siteId, e.getMessage());
+            log.warn("[SttWS] mascot 조회 실패 (기본 프롬프트 사용): deviceId={}, error={}", deviceId, e.getMessage());
             return null;
         }
     }
@@ -178,7 +180,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     }
 
     private String buildStartPayload(int siteId, String languageCode, int sampleRate,
-                                     boolean ttsStream, MascotDto mascot) {
+                                     boolean ttsStream, KioskMascotDto mascot) {
         try {
             Map<String, Object> start = new HashMap<>();
             start.put("type", "start");
@@ -201,8 +203,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> buildMascotPayload(MascotDto mascot) {
+    private Map<String, Object> buildMascotPayload(KioskMascotDto mascot) {
         Map<String, Object> m = new HashMap<>();
         if (mascot == null) return m;
 
