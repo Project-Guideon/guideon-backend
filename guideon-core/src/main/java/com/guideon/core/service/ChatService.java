@@ -16,6 +16,7 @@ import com.guideon.core.domain.zone.entity.Zone;
 import com.guideon.core.domain.zone.entity.ZoneType;
 import com.guideon.core.dto.chat.ChatCommand;
 import com.guideon.core.dto.chat.ChatResult;
+import com.guideon.core.dto.chat.WsChatSaveCommand;
 import com.guideon.core.dto.dailyinfo.DailyInfoDto;
 import com.guideon.core.dto.qa.QaRequest;
 import com.guideon.core.dto.qa.QaResponse;
@@ -296,6 +297,36 @@ public class ChatService {
                     .answerFound(false)
                     .build();
         }
+    }
+
+    /**
+     * WebSocket STT 파이프라인 완료 후 채팅 이력 저장.
+     * FastAPI QA 결과를 Kiosk BFF가 받아서 전달하는 경우에 사용.
+     */
+    @Transactional
+    public void saveWsMessage(WsChatSaveCommand command) {
+        ChatMessage chatMessage = ChatMessage.builder()
+                .sessionId(command.getSessionId())
+                .siteId(command.getSiteId())
+                .deviceId(command.getDeviceId())
+                .question(command.getQuestion())
+                .answer(command.getAnswer())
+                .language(command.getLanguage())
+                .answerFound(command.getAnswer() != null && !command.getAnswer().isBlank())
+                .category("GENERAL")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        chatMessageRepository.save(chatMessage);
+
+        final String question = command.getQuestion();
+        final String answer = command.getAnswer();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                chatHistoryService.saveTurn(command.getSessionId(), question, answer);
+            }
+        });
     }
 
     private ChatResult buildChatResult(String sessionId, ChatCommand command, QaResponse qaResponse) {

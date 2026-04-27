@@ -1,5 +1,7 @@
 package com.guideon.kiosk.domain.stt.handler;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -12,6 +14,7 @@ import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.BiConsumer;
 
 /**
  * FastAPI /ws/stream WebSocket 연결 관리
@@ -33,11 +36,16 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @Slf4j
 public class FastApiStreamSession {
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private final WebSocketSession unitySession;
     private final String sessionId;
     private volatile WebSocket fastapiWs;
     private volatile boolean closed = false;
     private volatile boolean ready = false;
+
+    /** final_text 수신 시 호출 — (query, answer) */
+    private final BiConsumer<String, String> onFinalText;
 
     /** onOpen() 전에 도착한 프레임을 임시 보관 (binary: byte[], text: String) */
     private final ConcurrentLinkedQueue<Object> pendingQueue = new ConcurrentLinkedQueue<>();
@@ -48,16 +56,19 @@ public class FastApiStreamSession {
      * @param unitySession   Unity ↔ BFF Spring WebSocket 세션
      * @param sessionId      채팅 sessionId (로깅용)
      * @param startPayload   FastAPI에 최초 전송할 JSON {"type":"start", ...}
+     * @param onFinalText    final_text 수신 시 콜백 (query, answer) — 채팅 이력 저장용
      */
     public FastApiStreamSession(
             OkHttpClient okHttpClient,
             String wsUrl,
             WebSocketSession unitySession,
             String sessionId,
-            String startPayload
+            String startPayload,
+            BiConsumer<String, String> onFinalText
     ) {
         this.unitySession = unitySession;
         this.sessionId = sessionId;
+        this.onFinalText = onFinalText != null ? onFinalText : (q, a) -> {};
 
         Request request = new Request.Builder().url(wsUrl).build();
         fastapiWs = okHttpClient.newWebSocket(request, new FastApiListener(startPayload));
@@ -120,11 +131,26 @@ public class FastApiStreamSession {
         public void onMessage(WebSocket webSocket, String text) {
             if (text == null) return;
             try {
+                interceptFinalText(text);
                 if (unitySession.isOpen()) {
                     unitySession.sendMessage(new TextMessage(text));
                 }
             } catch (IOException e) {
                 log.error("[FastApiStream] Unity 전송 실패: sessionId={}, error={}", sessionId, e.getMessage());
+            }
+        }
+
+        private void interceptFinalText(String text) {
+            try {
+                JsonNode node = MAPPER.readTree(text);
+                if (!"final_text".equals(node.path("type").asText())) return;
+                String query = node.path("query").asText(null);
+                String answer = node.path("answer").asText(null);
+                if (query != null && answer != null) {
+                    onFinalText.accept(query, answer);
+                }
+            } catch (Exception e) {
+                log.debug("[FastApiStream] final_text 파싱 실패 (무시): sessionId={}", sessionId);
             }
         }
 

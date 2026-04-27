@@ -1,6 +1,10 @@
 package com.guideon.kiosk.domain.stt.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.guideon.core.dto.chat.WsChatSaveCommand;
+import com.guideon.core.dto.mascot.MascotDto;
+import com.guideon.kiosk.client.CoreMascotClient;
+import com.guideon.kiosk.client.CoreWsChatClient;
 import com.guideon.kiosk.global.config.FastApiConfig;
 import com.guideon.kiosk.global.security.DeviceDetails;
 import com.guideon.kiosk.global.security.DeviceTokenHandshakeInterceptor;
@@ -51,6 +55,8 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     private final ObjectMapper objectMapper;
     private final FastApiConfig fastApiConfig;
     private final OkHttpClient okHttpClient;
+    private final CoreMascotClient coreMascotClient;
+    private final CoreWsChatClient coreWsChatClient;
 
     /** Spring WS session.getId() → FastApiStreamSession */
     private final ConcurrentHashMap<String, FastApiStreamSession> sessions = new ConcurrentHashMap<>();
@@ -58,11 +64,15 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     public SttWebSocketHandler(
             ObjectMapper objectMapper,
             FastApiConfig fastApiConfig,
-            @Qualifier("fastapiOkHttpClient") OkHttpClient okHttpClient
+            @Qualifier("fastapiOkHttpClient") OkHttpClient okHttpClient,
+            CoreMascotClient coreMascotClient,
+            CoreWsChatClient coreWsChatClient
     ) {
         this.objectMapper = objectMapper;
         this.fastApiConfig = fastApiConfig;
         this.okHttpClient = okHttpClient;
+        this.coreMascotClient = coreMascotClient;
+        this.coreWsChatClient = coreWsChatClient;
     }
 
     @Override
@@ -84,14 +94,17 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
         int sampleRate = parsePositiveIntOrDefault(params.get("sampleRate"), 16000);
         boolean ttsStream = !"false".equalsIgnoreCase(params.get("ttsStream"));
 
-        String startPayload = buildStartPayload(siteId, languageCode, sampleRate, ttsStream);
+        MascotDto mascot = fetchMascot((long) siteId);
+        String startPayload = buildStartPayload(siteId, languageCode, sampleRate, ttsStream, mascot);
 
+        DeviceDetails deviceForCallback = device;
         FastApiStreamSession fastApiSession = new FastApiStreamSession(
                 okHttpClient,
                 fastApiConfig.getWsStreamUrl(),
                 session,
                 sessionId,
-                startPayload
+                startPayload,
+                (query, answer) -> saveWsChatHistory(sessionId, deviceForCallback, siteId, languageCode, query, answer)
         );
         sessions.put(session.getId(), fastApiSession);
     }
@@ -138,7 +151,34 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
 
     // ── helpers ─────────────────────────────────────────────────────────────
 
-    private String buildStartPayload(int siteId, String languageCode, int sampleRate, boolean ttsStream) {
+    private MascotDto fetchMascot(Long siteId) {
+        try {
+            return coreMascotClient.getMascot(siteId);
+        } catch (Exception e) {
+            log.warn("[SttWS] mascot 조회 실패 (기본 프롬프트 사용): siteId={}, error={}", siteId, e.getMessage());
+            return null;
+        }
+    }
+
+    private void saveWsChatHistory(String sessionId, DeviceDetails device, int siteId,
+                                   String language, String query, String answer) {
+        try {
+            String deviceId = device != null ? device.getDeviceId() : "unknown";
+            coreWsChatClient.saveWsMessage(sessionId, WsChatSaveCommand.builder()
+                    .sessionId(sessionId)
+                    .deviceId(deviceId)
+                    .siteId((long) siteId)
+                    .question(query)
+                    .answer(answer)
+                    .language(language)
+                    .build());
+        } catch (Exception e) {
+            log.warn("[SttWS] 채팅 이력 저장 실패 (무시): sessionId={}, error={}", sessionId, e.getMessage());
+        }
+    }
+
+    private String buildStartPayload(int siteId, String languageCode, int sampleRate,
+                                     boolean ttsStream, MascotDto mascot) {
         try {
             Map<String, Object> start = new HashMap<>();
             start.put("type", "start");
@@ -148,8 +188,10 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
             start.put("interim_results", true);
             start.put("tts_stream", ttsStream);
             start.put("realtime", true);
+            start.put("mascot", buildMascotPayload(mascot));
             return objectMapper.writeValueAsString(start);
         } catch (Exception e) {
+            log.warn("[SttWS] startPayload 직렬화 실패, mascot 없이 전송: {}", e.getMessage());
             return String.format(
                     "{\"type\":\"start\",\"site_id\":%d,\"language_code\":\"%s\","
                             + "\"sample_rate_hz\":%d,\"interim_results\":true,"
@@ -157,6 +199,26 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
                     siteId, languageCode, sampleRate, ttsStream
             );
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> buildMascotPayload(MascotDto mascot) {
+        Map<String, Object> m = new HashMap<>();
+        if (mascot == null) return m;
+
+        m.put("system_prompt", mascot.getSystemPrompt() != null ? mascot.getSystemPrompt() : "");
+        m.put("mascot_name", mascot.getName() != null ? mascot.getName() : "");
+        m.put("mascot_greeting", mascot.getGreetingMsg() != null ? mascot.getGreetingMsg() : "");
+
+        Map<String, Object> config = mascot.getPromptConfig();
+        if (config != null) {
+            m.put("mascot_base_persona",    config.getOrDefault("mascot_base_persona", ""));
+            m.put("mascot_smalltalk_style", config.getOrDefault("mascot_smalltalk_style", ""));
+            m.put("mascot_struct_db_style", config.getOrDefault("mascot_struct_db_style", ""));
+            m.put("mascot_RAG_style",       config.getOrDefault("mascot_RAG_style", ""));
+            m.put("mascot_event_style",     config.getOrDefault("mascot_event_style", ""));
+        }
+        return m;
     }
 
     private Map<String, String> parseQueryParams(WebSocketSession session) {
