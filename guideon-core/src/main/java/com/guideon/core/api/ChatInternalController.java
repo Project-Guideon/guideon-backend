@@ -2,6 +2,7 @@ package com.guideon.core.api;
 
 import com.guideon.core.dto.chat.ChatCommand;
 import com.guideon.core.dto.chat.ChatResult;
+import com.guideon.core.dto.chat.WsChatSaveCommand;
 import com.guideon.core.dto.chat.QuestionTypeStatDto;
 import com.guideon.core.service.ChatService;
 import com.guideon.core.service.ChatStatsService;
@@ -53,6 +54,19 @@ public class ChatInternalController {
             @RequestParam String deviceId
     ) {
         chatService.endSession(sessionId, deviceId);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * POST /internal/v1/chat/sessions/{sessionId}/ws-message
+     * WebSocket STT 파이프라인 완료 후 채팅 이력 저장 (Kiosk BFF 호출)
+     */
+    @PostMapping("/sessions/{sessionId}/ws-message")
+    public ResponseEntity<Void> saveWsMessage(
+            @PathVariable String sessionId,
+            @RequestBody WsChatSaveCommand command
+    ) {
+        chatService.saveWsMessage(command);
         return ResponseEntity.ok().build();
     }
 

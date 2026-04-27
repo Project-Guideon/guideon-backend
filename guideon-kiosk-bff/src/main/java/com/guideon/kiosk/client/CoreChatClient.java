@@ -2,6 +2,7 @@ package com.guideon.kiosk.client;
 
 import com.guideon.core.dto.chat.ChatCommand;
 import com.guideon.core.dto.chat.ChatResult;
+import com.guideon.core.dto.chat.WsChatSaveCommand;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,5 +31,11 @@ public interface CoreChatClient {
     void endSession(
             @PathVariable String sessionId,
             @RequestParam String deviceId
+    );
+
+    @PostMapping("/internal/v1/chat/sessions/{sessionId}/ws-message")
+    void saveWsMessage(
+            @PathVariable String sessionId,
+            @RequestBody WsChatSaveCommand command
     );
 }

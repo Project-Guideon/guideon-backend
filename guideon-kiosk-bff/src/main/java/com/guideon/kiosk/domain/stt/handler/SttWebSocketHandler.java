@@ -3,8 +3,8 @@ package com.guideon.kiosk.domain.stt.handler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guideon.core.dto.chat.WsChatSaveCommand;
 import com.guideon.core.dto.kiosk.KioskMascotDto;
+import com.guideon.kiosk.client.CoreChatClient;
 import com.guideon.kiosk.client.CoreKioskClient;
-import com.guideon.kiosk.client.CoreWsChatClient;
 import com.guideon.kiosk.global.config.FastApiConfig;
 import com.guideon.kiosk.global.security.DeviceDetails;
 import com.guideon.kiosk.global.security.DeviceTokenHandshakeInterceptor;
@@ -56,7 +56,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     private final FastApiConfig fastApiConfig;
     private final OkHttpClient okHttpClient;
     private final CoreKioskClient coreKioskClient;
-    private final CoreWsChatClient coreWsChatClient;
+    private final CoreChatClient coreChatClient;
 
     /** Spring WS session.getId() → FastApiStreamSession */
     private final ConcurrentHashMap<String, FastApiStreamSession> sessions = new ConcurrentHashMap<>();
@@ -66,13 +66,13 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
             FastApiConfig fastApiConfig,
             @Qualifier("fastapiOkHttpClient") OkHttpClient okHttpClient,
             CoreKioskClient coreKioskClient,
-            CoreWsChatClient coreWsChatClient
+            CoreChatClient coreChatClient
     ) {
         this.objectMapper = objectMapper;
         this.fastApiConfig = fastApiConfig;
         this.okHttpClient = okHttpClient;
         this.coreKioskClient = coreKioskClient;
-        this.coreWsChatClient = coreWsChatClient;
+        this.coreChatClient = coreChatClient;
     }
 
     @Override
@@ -166,7 +166,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
                                    String language, String query, String answer) {
         try {
             String deviceId = device != null ? device.getDeviceId() : "unknown";
-            coreWsChatClient.saveWsMessage(sessionId, WsChatSaveCommand.builder()
+            coreChatClient.saveWsMessage(sessionId, WsChatSaveCommand.builder()
                     .sessionId(sessionId)
                     .deviceId(deviceId)
                     .siteId((long) siteId)
