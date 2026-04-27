@@ -105,7 +105,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
                 session,
                 sessionId,
                 startPayload,
-                (query, answer) -> saveWsChatHistory(sessionId, deviceForCallback, siteId, languageCode, query, answer)
+                (query, answer, category) -> saveWsChatHistory(sessionId, deviceForCallback, siteId, languageCode, query, answer, category)
         );
         sessions.put(session.getId(), fastApiSession);
     }
@@ -152,6 +152,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
 
     // ── helpers ─────────────────────────────────────────────────────────────
 
+    /** deviceId로 Core에서 마스코트 정보 조회. 실패 시 null 반환 → FastAPI 기본 프롬프트 사용 */
     private KioskMascotDto fetchMascot(String deviceId) {
         if (deviceId == null) return null;
         try {
@@ -162,8 +163,9 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
         }
     }
 
+    /** FastAPI final_text 수신 후 Core에 대화 이력 저장. 실패해도 WS 흐름을 끊지 않음 */
     private void saveWsChatHistory(String sessionId, DeviceDetails device, int siteId,
-                                   String language, String query, String answer) {
+                                   String language, String query, String answer, String category) {
         try {
             String deviceId = device != null ? device.getDeviceId() : "unknown";
             coreChatClient.saveWsMessage(sessionId, WsChatSaveCommand.builder()
@@ -173,12 +175,14 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
                     .question(query)
                     .answer(answer)
                     .language(language)
+                    .category(category)
                     .build());
         } catch (Exception e) {
             log.warn("[SttWS] 채팅 이력 저장 실패 (무시): sessionId={}, error={}", sessionId, e.getMessage());
         }
     }
 
+    /** FastAPI WS 연결 직후 전송할 start 메시지 JSON 생성. 직렬화 실패 시 mascot 없이 최소 JSON 반환 */
     private String buildStartPayload(int siteId, String languageCode, int sampleRate,
                                      boolean ttsStream, KioskMascotDto mascot) {
         try {
@@ -203,6 +207,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
         }
     }
 
+    /** 마스코트 DTO를 FastAPI가 기대하는 형태의 Map으로 변환. promptConfig 내 스타일 설정을 flat하게 꺼냄 */
     private Map<String, Object> buildMascotPayload(KioskMascotDto mascot) {
         Map<String, Object> m = new HashMap<>();
         if (mascot == null) return m;
@@ -222,9 +227,11 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
         return m;
     }
 
+    /** WS URI 쿼리 파라미터(?key=value&...)를 Map으로 파싱. URL 인코딩된 값도 디코딩 */
     private Map<String, String> parseQueryParams(WebSocketSession session) {
         Map<String, String> params = new HashMap<>();
-        String query = session.getUri() != null ? session.getUri().getRawQuery() : null;
+        java.net.URI uri = session.getUri();
+        String query = uri != null ? uri.getRawQuery() : null;
         if (query == null) return params;
         for (String pair : query.split("&")) {
             String[] kv = pair.split("=", 2);
@@ -238,11 +245,13 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
         return params;
     }
 
+    /** 핸드셰이크 인터셉터가 JWT 인증 후 세션 attributes에 저장해 둔 DeviceDetails 조회 */
     private DeviceDetails getDeviceDetails(WebSocketSession session) {
         return (DeviceDetails) session.getAttributes()
                 .get(DeviceTokenHandshakeInterceptor.DEVICE_DETAILS_ATTR);
     }
 
+    /** 문자열을 양의 정수로 파싱. 파싱 실패 또는 0 이하면 defaultValue 반환 */
     private int parsePositiveIntOrDefault(String value, int defaultValue) {
         if (value == null) return defaultValue;
         try {

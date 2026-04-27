@@ -21,4 +21,5 @@ public class WsChatSaveCommand {
     private String question;
     private String answer;
     private String language;
+    private String category;
 }

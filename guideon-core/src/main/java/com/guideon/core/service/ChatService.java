@@ -313,7 +313,7 @@ public class ChatService {
                 .answer(command.getAnswer())
                 .language(command.getLanguage())
                 .answerFound(command.getAnswer() != null && !command.getAnswer().isBlank())
-                .category("GENERAL")
+                .category(command.getCategory() != null ? command.getCategory() : "GENERAL")
                 .createdAt(LocalDateTime.now())
                 .build();
 
