@@ -21,13 +21,21 @@ spring:
       hibernate:
         default_batch_fetch_size: 100
 
+  # Feign
+  cloud:
+    openfeign:
+      okhttp:
+        enabled: true
+      client:
+        config:
+          default:
+            connect-timeout: 5000
+            read-timeout: 10000
+
 # Logging (production default)
 logging:
   level:
     org.springframework.web: info
-
-# Feign
-spring.cloud.openfeign.okhttp.enabled: true
 
 # Core Service (Internal API)
 core:
@@ -38,3 +46,8 @@ core:
 fastapi:
   service:
     url: ${FASTAPI_SERVICE_URL:http://localhost:8000}
+  websocket:
+    connect-timeout: 5        # 초
+    read-timeout: 0           # 0 = 무제한 (WebSocket keepalive)
+    write-timeout: 10         # 초
+    ping-interval: 30         # 초

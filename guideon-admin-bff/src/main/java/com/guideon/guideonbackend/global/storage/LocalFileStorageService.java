@@ -70,6 +70,44 @@ public class LocalFileStorageService implements FileStorageService {
     }
 
     @Override
+    public byte[] loadBytes(Long siteId, String storageUrl) {
+        if (storageUrl == null || storageUrl.isBlank()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "storageUrl이 비어있습니다.");
+        }
+
+        String filename = extractFilename(storageUrl, siteId);
+
+        Path siteDir = uploadDir.resolve(String.valueOf(siteId)).normalize();
+        Path filePath = siteDir.resolve(filename).normalize();
+
+        if (!filePath.startsWith(siteDir)) {
+            log.warn("파일 읽기 거부 - 허용된 디렉토리 외부: storageUrl={}", storageUrl);
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "허용되지 않은 파일 경로입니다.");
+        }
+
+        try {
+            return Files.readAllBytes(filePath);
+        } catch (IOException e) {
+            log.error("파일 읽기 실패: siteId={}, storageUrl={}", siteId, storageUrl, e);
+            throw new CustomException(ErrorCode.NOT_FOUND, "저장된 파일을 찾을 수 없습니다: " + storageUrl);
+        }
+    }
+
+    private String extractFilename(String storageUrl, Long siteId) {
+        String marker = "/internal/files/" + siteId + "/";
+        int idx = storageUrl.indexOf(marker);
+        if (idx < 0) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                    "이 사이트에 속하지 않는 파일 URL입니다.");
+        }
+        String filename = storageUrl.substring(idx + marker.length());
+        if (filename.isBlank() || filename.contains("/") || filename.contains("\\") || filename.contains("..")) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "잘못된 파일명입니다.");
+        }
+        return filename;
+    }
+
+    @Override
     public void delete(String storageUrl) {
         try {
             Path filePath = Paths.get(storageUrl).normalize();

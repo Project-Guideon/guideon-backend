@@ -17,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 마스코트 3D 모델 생성 파이프라인 오케스트레이션.
@@ -37,13 +36,12 @@ public class MascotGenerationService {
     private final FileStorageService fileStorageService;
 
     /**
-     * Step 1: 이미지 업로드 + Tripo 3D 생성 task 시작
+     * Step 1: 선업로드된 이미지 URL을 받아 Tripo 3D 생성 task 시작
      * 외부 API 호출 후 DB 저장 (트랜잭션 분리)
      */
-    public StartGenerationResponse startGeneration(Long siteId, MultipartFile imageFile,
+    public StartGenerationResponse startGeneration(Long siteId, String imageUrl,
                                                     CustomAdminDetails adminDetails) {
         validatePlatformAdmin(adminDetails);
-        FileValidator.validateImage(imageFile);
 
         Site site = siteRepository.findById(siteId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "존재하지 않는 관광지: " + siteId));
@@ -56,14 +54,15 @@ public class MascotGenerationService {
                             "이미 진행 중인 3D 생성 작업이 있습니다: " + gen.getGenerationId());
                 });
 
-        // 외부 IO (트랜잭션 밖)
-        String fileHash = FileValidator.computeFileHash(imageFile);
-        String sourceImageUrl = fileStorageService.store(siteId, fileHash, imageFile);
-        String imageToken = tripoApiService.uploadImage(imageFile);
+        // 선업로드된 이미지를 로컬에서 읽어 Tripo로 재전송
+        byte[] imageBytes = fileStorageService.loadBytes(siteId, imageUrl);
+        String filename = imageUrl.substring(imageUrl.lastIndexOf('/') + 1);
+
+        String imageToken = tripoApiService.uploadImage(imageBytes, filename);
         String modelTaskId = tripoApiService.createImageToModelTask(imageToken);
 
         // DB 저장 (별도 트랜잭션)
-        MascotGeneration generation = persistService.saveNewGeneration(site, sourceImageUrl, modelTaskId);
+        MascotGeneration generation = persistService.saveNewGeneration(site, imageUrl, modelTaskId);
 
         log.info("마스코트 3D 생성 시작: generationId={}, siteId={}, modelTaskId={}",
                 generation.getGenerationId(), siteId, modelTaskId);

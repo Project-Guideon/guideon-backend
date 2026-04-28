@@ -29,6 +29,19 @@ spring:
       host: ${SPRING_DATA_REDIS_HOST}
       port: ${SPRING_DATA_REDIS_PORT}
 
+  # Feign 타임아웃
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 5000
+            read-timeout: 30000
+          fastapi-qa:
+            read-timeout: 60000     # AI 응답 최대 60초
+          fastapi-document:
+            read-timeout: 10000     # 문서 처리 요청 (fire-and-forget)
+
 fastapi:
   service:
     url: ${FASTAPI_SERVICE_URL:http://host.docker.internal:8000}
