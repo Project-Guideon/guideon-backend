@@ -37,7 +37,7 @@ public class FastApiStreamSession {
 
     @FunctionalInterface
     public interface OnFinalText {
-        void accept(String query, String answer, String category);
+        void accept(String query, String answer, String category, Boolean answerFound);
     }
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -72,7 +72,7 @@ public class FastApiStreamSession {
     ) {
         this.unitySession = unitySession;
         this.sessionId = sessionId;
-        this.onFinalText = onFinalText != null ? onFinalText : (q, a, c) -> {};
+        this.onFinalText = onFinalText != null ? onFinalText : (q, a, c, f) -> {};
 
         Request request = new Request.Builder().url(wsUrl).build();
         fastapiWs = okHttpClient.newWebSocket(request, new FastApiListener(startPayload));
@@ -150,13 +150,30 @@ public class FastApiStreamSession {
                 if (!"final_text".equals(node.path("type").asText())) return;
                 String query = node.path("query").asText(null);
                 String answer = node.path("answer").asText(null);
-                String category = node.path("category").asText("GENERAL");
+                String category = normalizeCategory(node.path("category").asText(null));
+                Boolean answerFound = parseAnswerFound(node);
                 if (query != null && answer != null) {
-                    onFinalText.accept(query, answer, category);
+                    Thread.ofVirtual().start(() -> {
+                        try {
+                            onFinalText.accept(query, answer, category, answerFound);
+                        } catch (Exception e) {
+                            log.warn("[FastApiStream] final_text 후처리 실패: sessionId={}, error={}",
+                                    sessionId, e.getMessage());
+                        }
+                    });
                 }
             } catch (Exception e) {
                 log.debug("[FastApiStream] final_text 파싱 실패 (무시): sessionId={}", sessionId);
             }
+        }
+
+        private String normalizeCategory(String category) {
+            return category == null || category.isBlank() ? "GENERAL" : category;
+        }
+
+        private Boolean parseAnswerFound(JsonNode node) {
+            JsonNode answerFound = node.has("answerFound") ? node.get("answerFound") : node.get("answer_found");
+            return answerFound == null || answerFound.isNull() ? null : answerFound.asBoolean();
         }
 
         @Override

@@ -127,7 +127,8 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
                 session,
                 sessionId,
                 startPayload,
-                (query, answer, category) -> saveWsChatHistory(sessionId, deviceForCallback, siteId, languageCode, query, answer, category)
+                (query, answer, category, answerFound) -> saveWsChatHistory(
+                        sessionId, deviceForCallback, siteId, languageCode, query, answer, category, answerFound)
         );
         sessions.put(session.getId(), fastApiSession);
     }
@@ -197,7 +198,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
 
     /** FastAPI final_text 수신 후 Core에 대화 이력 저장. 실패해도 WS 흐름을 끊지 않음 */
     private void saveWsChatHistory(String sessionId, DeviceDetails device, Long siteId,
-                                   String language, String query, String answer, String category) {
+                                   String language, String query, String answer, String category, Boolean answerFound) {
         try {
             String deviceId = device != null ? device.getDeviceId() : "unknown";
             String normalizedLanguage = normalizeLanguage(language);
@@ -209,6 +210,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
                     .answer(answer)
                     .language(normalizedLanguage)
                     .category(category)
+                    .answerFound(answerFound)
                     .build());
         } catch (Exception e) {
             log.warn("[SttWS] 채팅 이력 저장 실패 (무시): sessionId={}, error={}", sessionId, e.getMessage());
