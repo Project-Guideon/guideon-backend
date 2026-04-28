@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -47,9 +46,9 @@ public class TripoApiService {
     }
 
     /**
-     * Step 1: 이미지 파일을 Tripo에 업로드 → file token 반환
+     * Step 1: 이미지 byte[]를 Tripo에 업로드 → file token 반환
      */
-    public String uploadImage(MultipartFile file) {
+    public String uploadImage(byte[] imageBytes, String filename) {
         String url = baseUrl + "/upload";
 
         HttpHeaders headers = new HttpHeaders();
@@ -57,17 +56,13 @@ public class TripoApiService {
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        try {
-            ByteArrayResource resource = new ByteArrayResource(file.getBytes()) {
-                @Override
-                public String getFilename() {
-                    return file.getOriginalFilename();
-                }
-            };
-            body.add("file", resource);
-        } catch (Exception e) {
-            throw new CustomException(ErrorCode.TRIPO_API_ERROR, "이미지 읽기 실패: " + e.getMessage());
-        }
+        ByteArrayResource resource = new ByteArrayResource(imageBytes) {
+            @Override
+            public String getFilename() {
+                return filename;
+            }
+        };
+        body.add("file", resource);
 
         HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
 

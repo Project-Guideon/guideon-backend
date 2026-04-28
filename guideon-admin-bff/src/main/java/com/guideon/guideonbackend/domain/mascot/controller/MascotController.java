@@ -79,15 +79,16 @@ public class MascotController {
 
     // ── 3D 모델 생성 (Tripo AI) ──
 
-    @Operation(summary = "3D 모델 생성 시작", description = "이미지를 업로드하여 Tripo AI 3D 모델 생성을 시작합니다. PLATFORM_ADMIN 권한 필요")
-    @PostMapping(value = "/generate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "3D 모델 생성 시작",
+            description = "선업로드된 이미지 URL(POST /mascot/image 응답)을 받아 Tripo AI 3D 모델 생성을 시작합니다. PLATFORM_ADMIN 권한 필요")
+    @PostMapping("/generate")
     public ResponseEntity<ApiResponse<StartGenerationResponse>> startGeneration(
             @PathVariable Long siteId,
-            @RequestPart("file") MultipartFile file,
+            @Valid @RequestBody StartGenerationRequest request,
             @AuthenticationPrincipal CustomAdminDetails adminDetails,
             HttpServletRequest httpRequest
     ) {
-        StartGenerationResponse response = generationService.startGeneration(siteId, file, adminDetails);
+        StartGenerationResponse response = generationService.startGeneration(siteId, request.getImageUrl(), adminDetails);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
