@@ -343,6 +343,15 @@ public class ChatService {
 
         session.incrementMessageCount();
 
+        String category = (command.getCategory() == null || command.getCategory().isBlank())
+                ? "GENERAL"
+                : command.getCategory();
+        boolean answerFound = command.getAnswerFound() != null
+                ? command.getAnswerFound()
+                : command.getAnswer() != null
+                && !command.getAnswer().isBlank()
+                && !"ERROR".equalsIgnoreCase(category);
+
         ChatMessage chatMessage = ChatMessage.builder()
                 .sessionId(sessionId)
                 .siteId(session.getSiteId())
@@ -350,8 +359,8 @@ public class ChatService {
                 .question(command.getQuestion())
                 .answer(command.getAnswer())
                 .language(command.getLanguage())
-                .answerFound(command.getAnswer() != null && !command.getAnswer().isBlank())
-                .category(command.getCategory() != null ? command.getCategory() : "GENERAL")
+                .answerFound(answerFound)
+                .category(category)
                 .createdAt(LocalDateTime.now())
                 .build();
 
