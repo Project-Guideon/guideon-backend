@@ -31,6 +31,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -304,11 +305,43 @@ public class ChatService {
      * FastAPI QA 결과를 Kiosk BFF가 받아서 전달하는 경우에 사용.
      */
     @Transactional
-    public void saveWsMessage(WsChatSaveCommand command) {
+    public void saveWsMessage(String sessionId, WsChatSaveCommand command) {
+        if (command == null) {
+            throw new IllegalArgumentException("WS chat save command is required");
+        }
+
+        if (command.getSessionId() != null && !Objects.equals(sessionId, command.getSessionId())) {
+            log.warn("WS chat save rejected: path/body sessionId mismatch. pathSessionId={}", sessionId);
+            throw new IllegalArgumentException("sessionId mismatch");
+        }
+
+        ChatSession session = chatSessionRepository.findById(sessionId)
+                .orElseThrow(() -> {
+                    log.warn("WS chat save rejected: session not found. sessionId={}", sessionId);
+                    return new IllegalArgumentException("invalid session: " + sessionId);
+                });
+
+        if (session.getEndedAt() != null) {
+            log.warn("WS chat save rejected: session already ended. sessionId={}", sessionId);
+            throw new IllegalStateException("session already ended: " + sessionId);
+        }
+
+        if (command.getSiteId() != null && !Objects.equals(session.getSiteId(), command.getSiteId())) {
+            log.warn("WS chat save rejected: siteId mismatch. sessionId={}", sessionId);
+            throw new SecurityException("siteId mismatch for session: " + sessionId);
+        }
+
+        if (command.getDeviceId() != null && !Objects.equals(session.getDeviceId(), command.getDeviceId())) {
+            log.warn("WS chat save rejected: deviceId mismatch. sessionId={}", sessionId);
+            throw new SecurityException("deviceId mismatch for session: " + sessionId);
+        }
+
+        session.incrementMessageCount();
+
         ChatMessage chatMessage = ChatMessage.builder()
-                .sessionId(command.getSessionId())
-                .siteId(command.getSiteId())
-                .deviceId(command.getDeviceId())
+                .sessionId(sessionId)
+                .siteId(session.getSiteId())
+                .deviceId(session.getDeviceId())
                 .question(command.getQuestion())
                 .answer(command.getAnswer())
                 .language(command.getLanguage())
@@ -324,7 +357,7 @@ public class ChatService {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                chatHistoryService.saveTurn(command.getSessionId(), question, answer);
+                chatHistoryService.saveTurn(sessionId, question, answer);
             }
         });
     }

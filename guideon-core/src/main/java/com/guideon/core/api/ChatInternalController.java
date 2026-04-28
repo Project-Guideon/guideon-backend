@@ -66,7 +66,7 @@ public class ChatInternalController {
             @PathVariable String sessionId,
             @RequestBody WsChatSaveCommand command
     ) {
-        chatService.saveWsMessage(command);
+        chatService.saveWsMessage(sessionId, command);
         return ResponseEntity.ok().build();
     }
 
