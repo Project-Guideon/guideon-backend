@@ -1,9 +1,11 @@
 package com.guideon.kiosk.domain.stt.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.guideon.core.dto.dailyinfo.DailyInfoDto;
 import com.guideon.core.dto.chat.WsChatSaveCommand;
 import com.guideon.core.dto.kiosk.KioskMascotDto;
 import com.guideon.kiosk.client.CoreChatClient;
+import com.guideon.kiosk.client.CoreDailyInfoClient;
 import com.guideon.kiosk.client.CoreKioskClient;
 import com.guideon.kiosk.global.config.FastApiConfig;
 import com.guideon.kiosk.global.security.DeviceDetails;
@@ -18,6 +20,8 @@ import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -37,7 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * - {"type":"stt_interim", "text":"...", "language_code":"...", "confidence":0.9}
  * - {"type":"stt_final",   "text":"...", "language_code":"...", "confidence":0.9}
  * - {"type":"tts_chunk",   "seq":0, "text":"...", "audio_b64":"...", "is_final":true}
- * - {"type":"final_text",  "query":"...", "answer":"..."}
+ * - {"type":"final_text",  "query":"...", "answer":"...", "category":"..."}
  * - {"type":"done"}
  * - {"type":"error",   "code":"...", "message":"..."}
  *
@@ -57,6 +61,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     private final OkHttpClient okHttpClient;
     private final CoreKioskClient coreKioskClient;
     private final CoreChatClient coreChatClient;
+    private final CoreDailyInfoClient coreDailyInfoClient;
 
     /** Spring WS session.getId() → FastApiStreamSession */
     private final ConcurrentHashMap<String, FastApiStreamSession> sessions = new ConcurrentHashMap<>();
@@ -66,13 +71,15 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
             FastApiConfig fastApiConfig,
             @Qualifier("fastapiOkHttpClient") OkHttpClient okHttpClient,
             CoreKioskClient coreKioskClient,
-            CoreChatClient coreChatClient
+            CoreChatClient coreChatClient,
+            CoreDailyInfoClient coreDailyInfoClient
     ) {
         this.objectMapper = objectMapper;
         this.fastApiConfig = fastApiConfig;
         this.okHttpClient = okHttpClient;
         this.coreKioskClient = coreKioskClient;
         this.coreChatClient = coreChatClient;
+        this.coreDailyInfoClient = coreDailyInfoClient;
     }
 
     @Override
@@ -93,7 +100,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
         }
 
         log.info("STT WS 연결: deviceId={}, sessionId={}",
-                device != null ? device.getDeviceId() : "unknown", sessionId);
+                device.getDeviceId(), sessionId);
 
         Long siteId = device.getSiteId();
         String languageCode = params.getOrDefault("languageCode", "ko-KR");
@@ -108,7 +115,10 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
 
         String deviceId = device.getDeviceId();
         KioskMascotDto mascot = fetchMascot(deviceId);
-        String startPayload = buildStartPayload(siteId, deviceId, languageCode, sampleRate, ttsStream, mascot);
+        List<DailyInfoDto> dailyInfos = fetchDailyInfos(siteId);
+        Map<String, Object> deviceLocation = buildDeviceLocationPayload(device);
+        String startPayload = buildStartPayload(
+                sessionId, siteId, deviceId, languageCode, sampleRate, ttsStream, mascot, dailyInfos, deviceLocation);
 
         DeviceDetails deviceForCallback = device;
         FastApiStreamSession fastApiSession = new FastApiStreamSession(
@@ -175,18 +185,29 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
         }
     }
 
+    private List<DailyInfoDto> fetchDailyInfos(Long siteId) {
+        if (siteId == null) return List.of();
+        try {
+            return coreDailyInfoClient.getDailyInfos(siteId);
+        } catch (Exception e) {
+            log.warn("[SttWS] dailyInfos 조회 실패 (빈 context 사용): siteId={}, error={}", siteId, e.getMessage());
+            return List.of();
+        }
+    }
+
     /** FastAPI final_text 수신 후 Core에 대화 이력 저장. 실패해도 WS 흐름을 끊지 않음 */
     private void saveWsChatHistory(String sessionId, DeviceDetails device, Long siteId,
                                    String language, String query, String answer, String category) {
         try {
             String deviceId = device != null ? device.getDeviceId() : "unknown";
+            String normalizedLanguage = normalizeLanguage(language);
             coreChatClient.saveWsMessage(sessionId, WsChatSaveCommand.builder()
                     .sessionId(sessionId)
                     .deviceId(deviceId)
                     .siteId(siteId)
                     .question(query)
                     .answer(answer)
-                    .language(language)
+                    .language(normalizedLanguage)
                     .category(category)
                     .build());
         } catch (Exception e) {
@@ -195,32 +216,70 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     }
 
     /** FastAPI WS 연결 직후 전송할 start 메시지 JSON 생성. 직렬화 실패 시 mascot 없이 최소 JSON 반환 */
-    private String buildStartPayload(Long siteId, String deviceId, String languageCode, int sampleRate,
-                                     boolean ttsStream, KioskMascotDto mascot) {
+    private String buildStartPayload(String sessionId, Long siteId, String deviceId, String languageCode, int sampleRate,
+                                     boolean ttsStream, KioskMascotDto mascot, List<DailyInfoDto> dailyInfos,
+                                     Map<String, Object> deviceLocation) {
         try {
             Map<String, Object> start = new HashMap<>();
             start.put("type", "start");
-            start.put("site_id", siteId);
-            start.put("device_id", deviceId);
-            start.put("language_code", languageCode);
-            start.put("sample_rate_hz", sampleRate);
-            start.put("interim_results", true);
-            start.put("tts_stream", ttsStream);
+            start.put("sessionId", sessionId);
+            start.put("siteId", siteId);
+            start.put("deviceId", deviceId);
+            start.put("language", languageCode);
+            start.put("systemPrompt", mascot != null ? mascot.getSystemPrompt() : null);
+            start.put("name", mascot != null ? mascot.getName() : null);
+            start.put("greetingMsg", mascot != null ? mascot.getGreetingMsg() : null);
+            start.put("promptConfig", mascot != null && mascot.getPromptConfig() != null ? mascot.getPromptConfig() : Map.of());
+            if (deviceLocation != null) {
+                start.put("deviceLocation", deviceLocation);
+            }
+            start.put("sampleRateHz", sampleRate);
+            start.put("interimResults", true);
+            start.put("ttsStream", ttsStream);
             start.put("realtime", true);
-            start.put("mascot", buildMascotPayload(mascot));
+            start.put("context", buildContextPayload(dailyInfos));
             return objectMapper.writeValueAsString(start);
         } catch (Exception e) {
             log.warn("[SttWS] startPayload 직렬화 실패, mascot 없이 전송: {}", e.getMessage());
             return String.format(
-                    "{\"type\":\"start\",\"site_id\":%d,\"device_id\":\"%s\",\"language_code\":\"%s\","
-                            + "\"sample_rate_hz\":%d,\"interim_results\":true,"
-                            + "\"tts_stream\":%b,\"realtime\":true}",
-                    siteId, escapeJson(deviceId), escapeJson(languageCode), sampleRate, ttsStream
+                    "{\"type\":\"start\",\"sessionId\":\"%s\",\"siteId\":%d,\"deviceId\":\"%s\",\"language\":\"%s\","
+                            + "\"sampleRateHz\":%d,\"interimResults\":true,"
+                            + "\"ttsStream\":%b,\"realtime\":true}",
+                    escapeJson(sessionId), siteId, escapeJson(deviceId), escapeJson(languageCode), sampleRate, ttsStream
             );
         }
     }
 
-    /** 마스코트 DTO를 FastAPI가 기대하는 형태의 Map으로 변환. promptConfig 내 스타일 설정을 flat하게 꺼냄 */
+    /** WebSocket start 메시지에 실을 QaRequest context payload 생성 */
+    private Map<String, Object> buildContextPayload(List<DailyInfoDto> dailyInfos) {
+        Map<String, Object> context = new HashMap<>();
+        context.put("dailyInfos", buildDailyInfosPayload(dailyInfos));
+        return context;
+    }
+
+    private List<Map<String, Object>> buildDailyInfosPayload(List<DailyInfoDto> dailyInfos) {
+        if (dailyInfos == null || dailyInfos.isEmpty()) return List.of();
+        return dailyInfos.stream()
+                .map(di -> {
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("placeName", di.getPlaceName());
+                    item.put("infoType", di.getInfoType());
+                    item.put("content", di.getContent());
+                    return item;
+                })
+                .toList();
+    }
+
+    private Map<String, Object> buildDeviceLocationPayload(DeviceDetails device) {
+        if (device == null || device.getLatitude() == null || device.getLongitude() == null) {
+            return null;
+        }
+        Map<String, Object> location = new HashMap<>();
+        location.put("latitude", device.getLatitude());
+        location.put("longitude", device.getLongitude());
+        return location;
+    }
+
     // Fallback JSON escaping for manual start payload assembly.
     private String escapeJson(String value) {
         if (value == null) return "";
@@ -231,24 +290,12 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
                 .replace("\t", "\\t");
     }
 
-    /** Builds the mascot payload shape expected by FastAPI. */
-    private Map<String, Object> buildMascotPayload(KioskMascotDto mascot) {
-        Map<String, Object> m = new HashMap<>();
-        if (mascot == null) return m;
-
-        m.put("system_prompt", mascot.getSystemPrompt() != null ? mascot.getSystemPrompt() : "");
-        m.put("mascot_name", mascot.getName() != null ? mascot.getName() : "");
-        m.put("mascot_greeting", mascot.getGreetingMsg() != null ? mascot.getGreetingMsg() : "");
-
-        Map<String, Object> config = mascot.getPromptConfig();
-        if (config != null) {
-            m.put("mascot_base_persona",    config.getOrDefault("mascot_base_persona", ""));
-            m.put("mascot_smalltalk_style", config.getOrDefault("mascot_smalltalk_style", ""));
-            m.put("mascot_struct_db_style", config.getOrDefault("mascot_struct_db_style", ""));
-            m.put("mascot_RAG_style",       config.getOrDefault("mascot_RAG_style", ""));
-            m.put("mascot_event_style",     config.getOrDefault("mascot_event_style", ""));
+    private String normalizeLanguage(String language) {
+        if (language == null || language.isBlank()) {
+            return "ko";
         }
-        return m;
+        String normalized = language.split("-", 2)[0].trim().toLowerCase(Locale.ROOT);
+        return normalized.isBlank() ? "ko" : normalized;
     }
 
     /** WS URI 쿼리 파라미터(?key=value&...)를 Map으로 파싱. URL 인코딩된 값도 디코딩 */

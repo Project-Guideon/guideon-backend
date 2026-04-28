@@ -205,8 +205,13 @@ public class ChatService {
     public List<NearbyPlaceProjection> getNearbyPlacesByCategory(Long siteId, String deviceId, String category) {
         try {
             Device device = deviceRepository.findById(deviceId).orElse(null);
-            if (device == null || device.getLocation() == null) {
-                log.warn("Device 없음 또는 위치 미설정: deviceId=***");
+            if (device == null || device.getSite() == null || !Objects.equals(device.getSite().getSiteId(), siteId)) {
+                log.warn("Device 없음 또는 siteId 불일치: deviceId=***");
+                return List.of();
+            }
+
+            if (device.getLocation() == null) {
+                log.warn("Device 위치 미설정: deviceId=***");
                 return List.of();
             }
 
