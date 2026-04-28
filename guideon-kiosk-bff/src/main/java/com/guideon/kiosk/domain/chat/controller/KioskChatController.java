@@ -23,7 +23,7 @@ public class KioskChatController {
 
     /**
      * POST /api/v1/kiosk/chat/sessions
-     * 대화 세션 생성 (Core에서 UUID 생성 + DB 저장)
+     * 대화 세션 생성 (Core에서 UUID 생성 + DB 저장)git commit -m "fix(storage): 파일 응답 Content-Type 확장자 기반 동적 결정 (#138)
      */
     @PostMapping("/sessions")
     public ResponseEntity<ApiResponse<CreateSessionResponse>> createSession(

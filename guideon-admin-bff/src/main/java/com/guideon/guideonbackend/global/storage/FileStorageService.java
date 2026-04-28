@@ -12,5 +12,11 @@ public interface FileStorageService {
 
     String store(Long siteId, String fileHash, byte[] fileBytes, String originalName);
 
+    /**
+     * 저장된 파일을 URL로부터 다시 읽어 byte[]로 반환.
+     * 외부 API(Tripo 등)에 재전송할 때 사용.
+     */
+    byte[] loadBytes(Long siteId, String storageUrl);
+
     void delete(String storageUrl);
 }
