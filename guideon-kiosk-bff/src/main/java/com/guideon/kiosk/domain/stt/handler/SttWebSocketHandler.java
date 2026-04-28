@@ -78,6 +78,12 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         DeviceDetails device = getDeviceDetails(session);
+        if (device == null || device.getSiteId() == null || device.getDeviceId() == null) {
+            log.warn("STT WS connection rejected: missing authenticated device context");
+            session.close(CloseStatus.POLICY_VIOLATION.withReason("device authentication is required"));
+            return;
+        }
+
         Map<String, String> params = parseQueryParams(session);
         String sessionId = params.get("sessionId");
         if (sessionId == null || sessionId.isBlank()) {
@@ -89,14 +95,20 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
         log.info("STT WS 연결: deviceId={}, sessionId={}",
                 device != null ? device.getDeviceId() : "unknown", sessionId);
 
-        int siteId = parsePositiveIntOrDefault(params.get("siteId"), 1);
+        Long siteId = device.getSiteId();
         String languageCode = params.getOrDefault("languageCode", "ko-KR");
         int sampleRate = parsePositiveIntOrDefault(params.get("sampleRate"), 16000);
         boolean ttsStream = !"false".equalsIgnoreCase(params.get("ttsStream"));
 
-        String deviceId = device != null ? device.getDeviceId() : null;
+        String requestedSiteId = params.get("siteId");
+        if (requestedSiteId != null && !requestedSiteId.equals(String.valueOf(siteId))) {
+            log.warn("STT WS siteId query ignored: deviceId={}, requestedSiteId={}, authenticatedSiteId={}",
+                    device.getDeviceId(), requestedSiteId, siteId);
+        }
+
+        String deviceId = device.getDeviceId();
         KioskMascotDto mascot = fetchMascot(deviceId);
-        String startPayload = buildStartPayload(siteId, languageCode, sampleRate, ttsStream, mascot);
+        String startPayload = buildStartPayload(siteId, deviceId, languageCode, sampleRate, ttsStream, mascot);
 
         DeviceDetails deviceForCallback = device;
         FastApiStreamSession fastApiSession = new FastApiStreamSession(
@@ -164,14 +176,14 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     }
 
     /** FastAPI final_text 수신 후 Core에 대화 이력 저장. 실패해도 WS 흐름을 끊지 않음 */
-    private void saveWsChatHistory(String sessionId, DeviceDetails device, int siteId,
+    private void saveWsChatHistory(String sessionId, DeviceDetails device, Long siteId,
                                    String language, String query, String answer, String category) {
         try {
             String deviceId = device != null ? device.getDeviceId() : "unknown";
             coreChatClient.saveWsMessage(sessionId, WsChatSaveCommand.builder()
                     .sessionId(sessionId)
                     .deviceId(deviceId)
-                    .siteId((long) siteId)
+                    .siteId(siteId)
                     .question(query)
                     .answer(answer)
                     .language(language)
@@ -183,12 +195,13 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     }
 
     /** FastAPI WS 연결 직후 전송할 start 메시지 JSON 생성. 직렬화 실패 시 mascot 없이 최소 JSON 반환 */
-    private String buildStartPayload(int siteId, String languageCode, int sampleRate,
+    private String buildStartPayload(Long siteId, String deviceId, String languageCode, int sampleRate,
                                      boolean ttsStream, KioskMascotDto mascot) {
         try {
             Map<String, Object> start = new HashMap<>();
             start.put("type", "start");
             start.put("site_id", siteId);
+            start.put("device_id", deviceId);
             start.put("language_code", languageCode);
             start.put("sample_rate_hz", sampleRate);
             start.put("interim_results", true);
@@ -199,15 +212,26 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
         } catch (Exception e) {
             log.warn("[SttWS] startPayload 직렬화 실패, mascot 없이 전송: {}", e.getMessage());
             return String.format(
-                    "{\"type\":\"start\",\"site_id\":%d,\"language_code\":\"%s\","
+                    "{\"type\":\"start\",\"site_id\":%d,\"device_id\":\"%s\",\"language_code\":\"%s\","
                             + "\"sample_rate_hz\":%d,\"interim_results\":true,"
                             + "\"tts_stream\":%b,\"realtime\":true}",
-                    siteId, languageCode, sampleRate, ttsStream
+                    siteId, escapeJson(deviceId), escapeJson(languageCode), sampleRate, ttsStream
             );
         }
     }
 
     /** 마스코트 DTO를 FastAPI가 기대하는 형태의 Map으로 변환. promptConfig 내 스타일 설정을 flat하게 꺼냄 */
+    // Fallback JSON escaping for manual start payload assembly.
+    private String escapeJson(String value) {
+        if (value == null) return "";
+        return value.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
+    }
+
+    /** Builds the mascot payload shape expected by FastAPI. */
     private Map<String, Object> buildMascotPayload(KioskMascotDto mascot) {
         Map<String, Object> m = new HashMap<>();
         if (mascot == null) return m;
