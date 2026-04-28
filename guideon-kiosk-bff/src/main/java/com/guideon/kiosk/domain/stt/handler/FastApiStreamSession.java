@@ -135,13 +135,13 @@ public class FastApiStreamSession {
         public void onMessage(WebSocket webSocket, String text) {
             if (text == null) return;
             try {
-                interceptFinalText(text);
                 if (unitySession.isOpen()) {
                     unitySession.sendMessage(new TextMessage(text));
                 }
             } catch (IOException e) {
                 log.error("[FastApiStream] Unity 전송 실패: sessionId={}, error={}", sessionId, e.getMessage());
             }
+            interceptFinalText(text);
         }
 
         private void interceptFinalText(String text) {
