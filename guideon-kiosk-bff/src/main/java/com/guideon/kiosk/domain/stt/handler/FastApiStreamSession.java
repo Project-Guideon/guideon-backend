@@ -48,7 +48,7 @@ public class FastApiStreamSession {
     private volatile boolean closed = false;
     private volatile boolean ready = false;
 
-    /** final_text 수신 시 호출 — (query, answer, category) */
+    /** final_text 수신 시 호출 — (query, answer, category, answerFound, responseTimeMs) */
     private final OnFinalText onFinalText;
 
     /** onOpen() 전에 도착한 프레임을 임시 보관 (binary: byte[], text: String) */
@@ -60,7 +60,7 @@ public class FastApiStreamSession {
      * @param unitySession   Unity ↔ BFF Spring WebSocket 세션
      * @param sessionId      채팅 sessionId (로깅용)
      * @param startPayload   FastAPI에 최초 전송할 JSON {"type":"start", ...}
-     * @param onFinalText    final_text 수신 시 콜백 (query, answer, category) — 채팅 이력 저장용
+     * @param onFinalText    final_text 수신 시 콜백 (query, answer, category, answerFound, responseTimeMs) — 채팅 이력 저장용
      */
     public FastApiStreamSession(
             OkHttpClient okHttpClient,
