@@ -361,6 +361,7 @@ public class ChatService {
                 .language(command.getLanguage())
                 .answerFound(answerFound)
                 .category(category)
+                .responseTimeMs(command.getResponseTimeMs())
                 .createdAt(LocalDateTime.now())
                 .build();
 

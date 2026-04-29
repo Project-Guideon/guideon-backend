@@ -19,6 +19,7 @@ import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -120,15 +121,14 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
         String startPayload = buildStartPayload(
                 sessionId, siteId, deviceId, languageCode, sampleRate, ttsStream, mascot, dailyInfos, deviceLocation);
 
-        DeviceDetails deviceForCallback = device;
         FastApiStreamSession fastApiSession = new FastApiStreamSession(
                 okHttpClient,
                 fastApiConfig.getWsStreamUrl(),
                 session,
                 sessionId,
                 startPayload,
-                (query, answer, category, answerFound) -> saveWsChatHistory(
-                        sessionId, deviceForCallback, siteId, languageCode, query, answer, category, answerFound)
+                (query, answer, category, answerFound, responseTimeMs) -> saveWsChatHistory(
+                        sessionId, device, siteId, languageCode, query, answer, category, answerFound, responseTimeMs)
         );
         sessions.put(session.getId(), fastApiSession);
     }
@@ -189,7 +189,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     private List<DailyInfoDto> fetchDailyInfos(Long siteId) {
         if (siteId == null) return List.of();
         try {
-            return coreDailyInfoClient.getDailyInfos(siteId);
+            return coreDailyInfoClient.getDailyInfos(siteId, LocalDate.now());
         } catch (Exception e) {
             log.warn("[SttWS] dailyInfos 조회 실패 (빈 context 사용): siteId={}, error={}", siteId, e.getMessage());
             return List.of();
@@ -198,9 +198,10 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
 
     /** FastAPI final_text 수신 후 Core에 대화 이력 저장. 실패해도 WS 흐름을 끊지 않음 */
     private void saveWsChatHistory(String sessionId, DeviceDetails device, Long siteId,
-                                   String language, String query, String answer, String category, Boolean answerFound) {
+                                   String language, String query, String answer, String category,
+                                   Boolean answerFound, Long responseTimeMs) {
         try {
-            String deviceId = device != null ? device.getDeviceId() : "unknown";
+            String deviceId = device.getDeviceId();
             String normalizedLanguage = normalizeLanguage(language);
             coreChatClient.saveWsMessage(sessionId, WsChatSaveCommand.builder()
                     .sessionId(sessionId)
@@ -211,6 +212,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
                     .language(normalizedLanguage)
                     .category(category)
                     .answerFound(answerFound)
+                    .responseTimeMs(responseTimeMs)
                     .build());
         } catch (Exception e) {
             log.warn("[SttWS] 채팅 이력 저장 실패 (무시): sessionId={}, error={}", sessionId, e.getMessage());
@@ -246,7 +248,8 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
             return String.format(
                     "{\"type\":\"start\",\"sessionId\":\"%s\",\"siteId\":%d,\"deviceId\":\"%s\",\"language\":\"%s\","
                             + "\"sampleRateHz\":%d,\"interimResults\":true,"
-                            + "\"ttsStream\":%b,\"realtime\":true}",
+                            + "\"ttsStream\":%b,\"realtime\":true,"
+                            + "\"context\":{\"dailyInfos\":[]}}",
                     escapeJson(sessionId), siteId, escapeJson(deviceId), escapeJson(languageCode), sampleRate, ttsStream
             );
         }

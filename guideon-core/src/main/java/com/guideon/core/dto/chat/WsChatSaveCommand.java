@@ -23,4 +23,5 @@ public class WsChatSaveCommand {
     private String language;
     private String category;
     private Boolean answerFound;
+    private Long responseTimeMs;
 }

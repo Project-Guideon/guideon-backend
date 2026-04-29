@@ -37,7 +37,7 @@ public class FastApiStreamSession {
 
     @FunctionalInterface
     public interface OnFinalText {
-        void accept(String query, String answer, String category, Boolean answerFound);
+        void accept(String query, String answer, String category, Boolean answerFound, Long responseTimeMs);
     }
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -72,7 +72,7 @@ public class FastApiStreamSession {
     ) {
         this.unitySession = unitySession;
         this.sessionId = sessionId;
-        this.onFinalText = onFinalText != null ? onFinalText : (q, a, c, f) -> {};
+        this.onFinalText = onFinalText != null ? onFinalText : (q, a, c, f, r) -> {};
 
         Request request = new Request.Builder().url(wsUrl).build();
         fastapiWs = okHttpClient.newWebSocket(request, new FastApiListener(startPayload));
@@ -152,10 +152,11 @@ public class FastApiStreamSession {
                 String answer = node.path("answer").asText(null);
                 String category = normalizeCategory(node.path("category").asText(null));
                 Boolean answerFound = parseAnswerFound(node);
+                Long responseTimeMs = parseResponseTimeMs(node);
                 if (query != null && answer != null) {
                     Thread.ofVirtual().start(() -> {
                         try {
-                            onFinalText.accept(query, answer, category, answerFound);
+                            onFinalText.accept(query, answer, category, answerFound, responseTimeMs);
                         } catch (Exception e) {
                             log.warn("[FastApiStream] final_text 후처리 실패: sessionId={}, error={}",
                                     sessionId, e.getMessage());
@@ -174,6 +175,13 @@ public class FastApiStreamSession {
         private Boolean parseAnswerFound(JsonNode node) {
             JsonNode answerFound = node.has("answerFound") ? node.get("answerFound") : node.get("answer_found");
             return answerFound == null || answerFound.isNull() ? null : answerFound.asBoolean();
+        }
+
+        private Long parseResponseTimeMs(JsonNode node) {
+            JsonNode responseTimeMs = node.has("responseTimeMs")
+                    ? node.get("responseTimeMs")
+                    : node.get("response_time_ms");
+            return responseTimeMs == null || responseTimeMs.isNull() ? null : responseTimeMs.asLong();
         }
 
         @Override
