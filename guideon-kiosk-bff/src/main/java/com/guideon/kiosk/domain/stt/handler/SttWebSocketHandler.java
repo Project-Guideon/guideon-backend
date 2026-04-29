@@ -104,7 +104,10 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
                 device.getDeviceId(), sessionId);
 
         Long siteId = device.getSiteId();
-        String languageCode = params.getOrDefault("languageCode", "ko-KR");
+        String requestedLanguageCode = params.get("languageCode");
+        String languageCode = (requestedLanguageCode == null || requestedLanguageCode.isBlank())
+                ? "ko-KR"
+                : requestedLanguageCode.trim();
         int sampleRate = parsePositiveIntOrDefault(params.get("sampleRate"), 16000);
         boolean ttsStream = !"false".equalsIgnoreCase(params.get("ttsStream"));
 
