@@ -10,6 +10,10 @@ spring:
         format_sql: true
         show_sql: true
 
+fastapi:
+  service:
+    url: http://localhost:8000
+
 logging:
   level:
     org.hibernate.SQL: debug
