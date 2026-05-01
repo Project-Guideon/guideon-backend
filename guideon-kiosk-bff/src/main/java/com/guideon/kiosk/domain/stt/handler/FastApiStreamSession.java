@@ -148,8 +148,8 @@ public class FastApiStreamSession {
             try {
                 JsonNode node = MAPPER.readTree(text);
                 if (!"final_text".equals(node.path("type").asText())) return;
-                String query = node.path("query").asText(null);
-                String answer = node.path("answer").asText(null);
+                String query = trimToNull(node.path("query").asText(null));
+                String answer = trimToNull(node.path("answer").asText(null));
                 String category = normalizeCategory(node.path("category").asText(null));
                 Boolean answerFound = parseAnswerFound(node);
                 Long responseTimeMs = parseResponseTimeMs(node);
@@ -189,14 +189,24 @@ public class FastApiStreamSession {
                     ? node.get("responseTimeMs")
                     : node.get("response_time_ms");
             if (responseTimeMs == null || responseTimeMs.isNull()) return null;
-            if (responseTimeMs.canConvertToLong()) return responseTimeMs.longValue();
+            if (responseTimeMs.canConvertToLong()) {
+                long value = responseTimeMs.longValue();
+                return value >= 0 ? value : null;
+            }
             if (responseTimeMs.isTextual()) {
                 try {
-                    return Long.parseLong(responseTimeMs.asText().trim());
+                    long value = Long.parseLong(responseTimeMs.asText().trim());
+                    return value >= 0 ? value : null;
                 } catch (NumberFormatException ignored) {
                 }
             }
             return null;
+        }
+
+        private String trimToNull(String value) {
+            if (value == null) return null;
+            String trimmed = value.trim();
+            return trimmed.isEmpty() ? null : trimmed;
         }
 
         @Override
