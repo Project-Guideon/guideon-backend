@@ -315,6 +315,12 @@ public class ChatService {
             throw new IllegalArgumentException("WS chat save command is required");
         }
 
+        if (command.getQuestion() == null || command.getQuestion().isBlank()
+                || command.getAnswer() == null || command.getAnswer().isBlank()) {
+            log.warn("WS chat save rejected: blank question/answer. sessionId={}", sessionId);
+            throw new IllegalArgumentException("question/answer must not be blank");
+        }
+
         if (command.getSessionId() != null && !Objects.equals(sessionId, command.getSessionId())) {
             log.warn("WS chat save rejected: path/body sessionId mismatch. pathSessionId={}", sessionId);
             throw new IllegalArgumentException("sessionId mismatch");
@@ -345,12 +351,10 @@ public class ChatService {
 
         String category = (command.getCategory() == null || command.getCategory().isBlank())
                 ? "GENERAL"
-                : command.getCategory();
+                : command.getCategory().trim();
         boolean answerFound = command.getAnswerFound() != null
                 ? command.getAnswerFound()
-                : command.getAnswer() != null
-                && !command.getAnswer().isBlank()
-                && !"ERROR".equalsIgnoreCase(category);
+                : !"ERROR".equalsIgnoreCase(category);
 
         ChatMessage chatMessage = ChatMessage.builder()
                 .sessionId(sessionId)

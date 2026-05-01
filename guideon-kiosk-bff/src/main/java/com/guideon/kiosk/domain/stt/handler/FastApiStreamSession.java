@@ -174,14 +174,29 @@ public class FastApiStreamSession {
 
         private Boolean parseAnswerFound(JsonNode node) {
             JsonNode answerFound = node.has("answerFound") ? node.get("answerFound") : node.get("answer_found");
-            return answerFound == null || answerFound.isNull() ? null : answerFound.asBoolean();
+            if (answerFound == null || answerFound.isNull()) return null;
+            if (answerFound.isBoolean()) return answerFound.booleanValue();
+            if (answerFound.isTextual()) {
+                String v = answerFound.asText().trim();
+                if ("true".equalsIgnoreCase(v)) return true;
+                if ("false".equalsIgnoreCase(v)) return false;
+            }
+            return null;
         }
 
         private Long parseResponseTimeMs(JsonNode node) {
             JsonNode responseTimeMs = node.has("responseTimeMs")
                     ? node.get("responseTimeMs")
                     : node.get("response_time_ms");
-            return responseTimeMs == null || responseTimeMs.isNull() ? null : responseTimeMs.asLong();
+            if (responseTimeMs == null || responseTimeMs.isNull()) return null;
+            if (responseTimeMs.canConvertToLong()) return responseTimeMs.longValue();
+            if (responseTimeMs.isTextual()) {
+                try {
+                    return Long.parseLong(responseTimeMs.asText().trim());
+                } catch (NumberFormatException ignored) {
+                }
+            }
+            return null;
         }
 
         @Override
