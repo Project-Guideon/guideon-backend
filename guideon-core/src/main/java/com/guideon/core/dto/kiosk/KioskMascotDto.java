@@ -21,6 +21,8 @@ public class KioskMascotDto {
     private String modelFormat;
     private String defaultAnim;
     private String greetingMsg;
+    private String systemPrompt;
+    private Map<String, Object> promptConfig;
     private String ttsVoiceId;
     private Map<String, Object> ttsVoiceJson;
 
@@ -33,6 +35,8 @@ public class KioskMascotDto {
                 .modelFormat(mascot.getModelFormat())
                 .defaultAnim(mascot.getDefaultAnim())
                 .greetingMsg(mascot.getGreetingMsg())
+                .systemPrompt(mascot.getSystemPrompt())
+                .promptConfig(mascot.getPromptConfig())
                 .ttsVoiceId(mascot.getTtsVoiceId())
                 .ttsVoiceJson(mascot.getTtsVoiceJson())
                 .build();

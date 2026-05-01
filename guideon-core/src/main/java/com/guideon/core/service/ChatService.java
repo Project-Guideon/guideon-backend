@@ -16,6 +16,7 @@ import com.guideon.core.domain.zone.entity.Zone;
 import com.guideon.core.domain.zone.entity.ZoneType;
 import com.guideon.core.dto.chat.ChatCommand;
 import com.guideon.core.dto.chat.ChatResult;
+import com.guideon.core.dto.chat.WsChatSaveCommand;
 import com.guideon.core.dto.dailyinfo.DailyInfoDto;
 import com.guideon.core.dto.qa.QaRequest;
 import com.guideon.core.dto.qa.QaResponse;
@@ -30,6 +31,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -203,8 +205,13 @@ public class ChatService {
     public List<NearbyPlaceProjection> getNearbyPlacesByCategory(Long siteId, String deviceId, String category) {
         try {
             Device device = deviceRepository.findById(deviceId).orElse(null);
-            if (device == null || device.getLocation() == null) {
-                log.warn("Device 없음 또는 위치 미설정: deviceId=***");
+            if (device == null || device.getSite() == null || !Objects.equals(device.getSite().getSiteId(), siteId)) {
+                log.warn("Device 없음 또는 siteId 불일치: deviceId=***");
+                return List.of();
+            }
+
+            if (device.getLocation() == null) {
+                log.warn("Device 위치 미설정: deviceId=***");
                 return List.of();
             }
 
@@ -296,6 +303,82 @@ public class ChatService {
                     .answerFound(false)
                     .build();
         }
+    }
+
+    /**
+     * WebSocket STT 파이프라인 완료 후 채팅 이력 저장.
+     * FastAPI QA 결과를 Kiosk BFF가 받아서 전달하는 경우에 사용.
+     */
+    @Transactional
+    public void saveWsMessage(String sessionId, WsChatSaveCommand command) {
+        if (command == null) {
+            throw new IllegalArgumentException("WS chat save command is required");
+        }
+
+        if (command.getQuestion() == null || command.getQuestion().isBlank()
+                || command.getAnswer() == null || command.getAnswer().isBlank()) {
+            log.warn("WS chat save rejected: blank question/answer. sessionId={}", sessionId);
+            throw new IllegalArgumentException("question/answer must not be blank");
+        }
+
+        if (command.getSessionId() != null && !Objects.equals(sessionId, command.getSessionId())) {
+            log.warn("WS chat save rejected: path/body sessionId mismatch. pathSessionId={}", sessionId);
+            throw new IllegalArgumentException("sessionId mismatch");
+        }
+
+        ChatSession session = chatSessionRepository.findById(sessionId)
+                .orElseThrow(() -> {
+                    log.warn("WS chat save rejected: session not found. sessionId={}", sessionId);
+                    return new IllegalArgumentException("invalid session: " + sessionId);
+                });
+
+        if (session.getEndedAt() != null) {
+            log.warn("WS chat save rejected: session already ended. sessionId={}", sessionId);
+            throw new IllegalStateException("session already ended: " + sessionId);
+        }
+
+        if (command.getSiteId() != null && !Objects.equals(session.getSiteId(), command.getSiteId())) {
+            log.warn("WS chat save rejected: siteId mismatch. sessionId={}", sessionId);
+            throw new SecurityException("siteId mismatch for session: " + sessionId);
+        }
+
+        if (command.getDeviceId() != null && !Objects.equals(session.getDeviceId(), command.getDeviceId())) {
+            log.warn("WS chat save rejected: deviceId mismatch. sessionId={}", sessionId);
+            throw new SecurityException("deviceId mismatch for session: " + sessionId);
+        }
+
+        session.incrementMessageCount();
+
+        String category = (command.getCategory() == null || command.getCategory().isBlank())
+                ? "GENERAL"
+                : command.getCategory().trim();
+        boolean answerFound = command.getAnswerFound() != null
+                ? command.getAnswerFound()
+                : !"ERROR".equalsIgnoreCase(category);
+
+        ChatMessage chatMessage = ChatMessage.builder()
+                .sessionId(sessionId)
+                .siteId(session.getSiteId())
+                .deviceId(session.getDeviceId())
+                .question(command.getQuestion())
+                .answer(command.getAnswer())
+                .language(command.getLanguage())
+                .answerFound(answerFound)
+                .category(category)
+                .responseTimeMs(command.getResponseTimeMs())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        chatMessageRepository.save(chatMessage);
+
+        final String question = command.getQuestion();
+        final String answer = command.getAnswer();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                chatHistoryService.saveTurn(sessionId, question, answer);
+            }
+        });
     }
 
     private ChatResult buildChatResult(String sessionId, ChatCommand command, QaResponse qaResponse) {

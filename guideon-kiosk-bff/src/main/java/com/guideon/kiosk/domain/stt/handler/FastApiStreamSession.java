@@ -1,5 +1,7 @@
 package com.guideon.kiosk.domain.stt.handler;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -33,11 +35,21 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @Slf4j
 public class FastApiStreamSession {
 
+    @FunctionalInterface
+    public interface OnFinalText {
+        void accept(String query, String answer, String category, Boolean answerFound, Long responseTimeMs);
+    }
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private final WebSocketSession unitySession;
     private final String sessionId;
     private volatile WebSocket fastapiWs;
     private volatile boolean closed = false;
     private volatile boolean ready = false;
+
+    /** final_text 수신 시 호출 — (query, answer, category, answerFound, responseTimeMs) */
+    private final OnFinalText onFinalText;
 
     /** onOpen() 전에 도착한 프레임을 임시 보관 (binary: byte[], text: String) */
     private final ConcurrentLinkedQueue<Object> pendingQueue = new ConcurrentLinkedQueue<>();
@@ -48,16 +60,19 @@ public class FastApiStreamSession {
      * @param unitySession   Unity ↔ BFF Spring WebSocket 세션
      * @param sessionId      채팅 sessionId (로깅용)
      * @param startPayload   FastAPI에 최초 전송할 JSON {"type":"start", ...}
+     * @param onFinalText    final_text 수신 시 콜백 (query, answer, category, answerFound, responseTimeMs) — 채팅 이력 저장용
      */
     public FastApiStreamSession(
             OkHttpClient okHttpClient,
             String wsUrl,
             WebSocketSession unitySession,
             String sessionId,
-            String startPayload
+            String startPayload,
+            OnFinalText onFinalText
     ) {
         this.unitySession = unitySession;
         this.sessionId = sessionId;
+        this.onFinalText = onFinalText != null ? onFinalText : (q, a, c, f, r) -> {};
 
         Request request = new Request.Builder().url(wsUrl).build();
         fastapiWs = okHttpClient.newWebSocket(request, new FastApiListener(startPayload));
@@ -126,6 +141,72 @@ public class FastApiStreamSession {
             } catch (IOException e) {
                 log.error("[FastApiStream] Unity 전송 실패: sessionId={}, error={}", sessionId, e.getMessage());
             }
+            interceptFinalText(text);
+        }
+
+        private void interceptFinalText(String text) {
+            try {
+                JsonNode node = MAPPER.readTree(text);
+                if (!"final_text".equals(node.path("type").asText())) return;
+                String query = trimToNull(node.path("query").asText(null));
+                String answer = trimToNull(node.path("answer").asText(null));
+                String category = normalizeCategory(node.path("category").asText(null));
+                Boolean answerFound = parseAnswerFound(node);
+                Long responseTimeMs = parseResponseTimeMs(node);
+                if (query != null && answer != null) {
+                    Thread.ofVirtual().start(() -> {
+                        try {
+                            onFinalText.accept(query, answer, category, answerFound, responseTimeMs);
+                        } catch (Exception e) {
+                            log.warn("[FastApiStream] final_text 후처리 실패: sessionId={}, error={}",
+                                    sessionId, e.getMessage());
+                        }
+                    });
+                }
+            } catch (Exception e) {
+                log.debug("[FastApiStream] final_text 파싱 실패 (무시): sessionId={}", sessionId);
+            }
+        }
+
+        private String normalizeCategory(String category) {
+            return category == null || category.isBlank() ? "GENERAL" : category;
+        }
+
+        private Boolean parseAnswerFound(JsonNode node) {
+            JsonNode answerFound = node.has("answerFound") ? node.get("answerFound") : node.get("answer_found");
+            if (answerFound == null || answerFound.isNull()) return null;
+            if (answerFound.isBoolean()) return answerFound.booleanValue();
+            if (answerFound.isTextual()) {
+                String v = answerFound.asText().trim();
+                if ("true".equalsIgnoreCase(v)) return true;
+                if ("false".equalsIgnoreCase(v)) return false;
+            }
+            return null;
+        }
+
+        private Long parseResponseTimeMs(JsonNode node) {
+            JsonNode responseTimeMs = node.has("responseTimeMs")
+                    ? node.get("responseTimeMs")
+                    : node.get("response_time_ms");
+            if (responseTimeMs == null || responseTimeMs.isNull()) return null;
+            if (responseTimeMs.canConvertToLong()) {
+                long value = responseTimeMs.longValue();
+                return value >= 0 ? value : null;
+            }
+            if (responseTimeMs.isTextual()) {
+                try {
+                    long value = Long.parseLong(responseTimeMs.asText().trim());
+                    return value >= 0 ? value : null;
+                } catch (NumberFormatException ignored) {
+                }
+            }
+            return null;
+        }
+
+        private String trimToNull(String value) {
+            if (value == null) return null;
+            String trimmed = value.trim();
+            return trimmed.isEmpty() ? null : trimmed;
         }
 
         @Override
