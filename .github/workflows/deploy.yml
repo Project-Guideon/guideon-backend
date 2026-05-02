@@ -3,6 +3,7 @@ name: Deploy Backend
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -55,6 +56,7 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
 
     steps:
       - uses: actions/checkout@v4
@@ -79,6 +81,8 @@ jobs:
             cd ~/guideon-deploy
             mv docker-compose.prod.yml docker-compose.yml
             echo "${{ secrets.ENV_FILE_CONTENT }}" > .env
+            umask 077
+            echo "${{ secrets.GOOGLE_KEY_BASE64 }}" | base64 -d > google_key.json
             docker compose pull
             docker compose up -d
             docker exec guideon-nginx nginx -s reload
