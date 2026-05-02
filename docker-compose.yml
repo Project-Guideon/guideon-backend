@@ -101,11 +101,43 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       CORE_SERVICE_URL: http://core:8080
-      FASTAPI_SERVICE_URL: ${FASTAPI_SERVICE_URL:-http://host.docker.internal:8000}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      FASTAPI_SERVICE_URL: http://fastapi:8000
     depends_on:
       - core
+      - fastapi
+    networks:
+      - guideon-net
+    restart: always
+
+  # 6. FastAPI (AI 서비스 - 내부망 전용)
+  fastapi:
+    build:
+      context: ../guideon-AI
+      dockerfile: Dockerfile
+    container_name: guideon-fastapi
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GOOGLE_APPLICATION_CREDENTIALS: /app/google_key.json
+      GOOGLE_PROJECT_ID: ${GOOGLE_PROJECT_ID}
+      LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
+      LANGSMITH_ENDPOINT: ${LANGSMITH_ENDPOINT:-https://api.smith.langchain.com}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY}
+      LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-guideon_ai}
+      RAG_VERSION: ${RAG_VERSION:-v2}
+      CORE_BASE_URL: http://core:8080
+    volumes:
+      - ../guideon-AI/google_key.json:/app/google_key.json:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      core:
+        condition: service_started
     networks:
       - guideon-net
     restart: always

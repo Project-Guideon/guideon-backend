@@ -44,7 +44,7 @@ spring:
 
 fastapi:
   service:
-    url: ${FASTAPI_SERVICE_URL:http://host.docker.internal:8000}
+    url: ${FASTAPI_SERVICE_URL:http://fastapi:8000}
 
 # Logging (production default)
 logging:
