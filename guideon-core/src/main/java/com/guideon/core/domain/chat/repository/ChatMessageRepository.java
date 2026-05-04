@@ -17,8 +17,42 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
            "GROUP BY COALESCE(m.category, 'GENERAL')")
     List<CategoryCountProjection> countByCategoryForSite(@Param("siteId") Long siteId);
 
+    @Query("SELECT COUNT(m) AS total, " +
+           "SUM(CASE WHEN m.answerFound = true THEN 1 ELSE 0 END) AS found " +
+           "FROM ChatMessage m WHERE m.siteId = :siteId")
+    AnswerRateProjection countAnswerRateForSite(@Param("siteId") Long siteId);
+
+    @Query(value = "SELECT CAST(EXTRACT(HOUR FROM created_at) AS INTEGER) AS hour, COUNT(*) AS msg_count " +
+                   "FROM tb_chat_message " +
+                   "WHERE site_id = :siteId AND created_at::date = CURRENT_DATE " +
+                   "GROUP BY hour ORDER BY hour", nativeQuery = true)
+    List<HourCountProjection> countByHourForSite(@Param("siteId") Long siteId);
+
+    @Query(value = "SELECT m.site_id AS site_id, s.name AS site_name, COUNT(*) AS msg_count " +
+                   "FROM tb_chat_message m " +
+                   "JOIN tb_site s ON s.site_id = m.site_id " +
+                   "GROUP BY m.site_id, s.name " +
+                   "ORDER BY msg_count DESC LIMIT 5", nativeQuery = true)
+    List<SiteTrafficProjection> countTop5BySite();
+
     interface CategoryCountProjection {
         String getCategory();
         Long getCount();
+    }
+
+    interface AnswerRateProjection {
+        Long getTotal();
+        Long getFound();
+    }
+
+    interface HourCountProjection {
+        Integer getHour();
+        Long getMsgCount();
+    }
+
+    interface SiteTrafficProjection {
+        Long getSiteId();
+        String getSiteName();
+        Long getMsgCount();
     }
 }
