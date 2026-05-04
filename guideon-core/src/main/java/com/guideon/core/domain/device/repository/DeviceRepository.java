@@ -43,4 +43,22 @@ public interface DeviceRepository extends JpaRepository<Device, String> {
      * site 내 AUTO zone 할당된 Device 목록 조회 (재계산 대상)
      */
     List<Device> findBySite_SiteIdAndZoneSource(Long siteId, ZoneSource zoneSource);
+
+    @Query(value = """
+            SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN is_active = true  AND last_ping >= NOW() - INTERVAL '30 minutes' THEN 1 ELSE 0 END) AS normal,
+                SUM(CASE WHEN is_active = false THEN 1 ELSE 0 END) AS maintenance,
+                SUM(CASE WHEN is_active = true  AND (last_ping IS NULL OR last_ping < NOW() - INTERVAL '30 minutes') THEN 1 ELSE 0 END) AS failure
+            FROM tb_device
+            WHERE site_id = :siteId
+            """, nativeQuery = true)
+    DeviceStatusProjection countDeviceStatusBySite(@Param("siteId") Long siteId);
+
+    interface DeviceStatusProjection {
+        Long getTotal();
+        Long getNormal();
+        Long getMaintenance();
+        Long getFailure();
+    }
 }
