@@ -22,17 +22,17 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
            "FROM ChatMessage m WHERE m.siteId = :siteId")
     AnswerRateProjection countAnswerRateForSite(@Param("siteId") Long siteId);
 
-    @Query(value = "SELECT CAST(EXTRACT(HOUR FROM created_at) AS INTEGER) AS hour, COUNT(*) AS msg_count " +
+    @Query(value = "SELECT CAST(EXTRACT(HOUR FROM created_at) AS INTEGER) AS \"hour\", COUNT(*) AS \"count\" " +
                    "FROM tb_chat_message " +
-                   "WHERE site_id = :siteId AND created_at::date = CURRENT_DATE " +
-                   "GROUP BY hour ORDER BY hour", nativeQuery = true)
+                   "WHERE site_id = :siteId AND CAST(created_at AS DATE) = CURRENT_DATE " +
+                   "GROUP BY \"hour\" ORDER BY \"hour\"", nativeQuery = true)
     List<HourCountProjection> countByHourForSite(@Param("siteId") Long siteId);
 
-    @Query(value = "SELECT m.site_id AS site_id, s.name AS site_name, COUNT(*) AS msg_count " +
+    @Query(value = "SELECT m.site_id AS \"siteId\", s.name AS \"siteName\", COUNT(*) AS \"count\" " +
                    "FROM tb_chat_message m " +
                    "JOIN tb_site s ON s.site_id = m.site_id " +
                    "GROUP BY m.site_id, s.name " +
-                   "ORDER BY msg_count DESC LIMIT 5", nativeQuery = true)
+                   "ORDER BY \"count\" DESC LIMIT 5", nativeQuery = true)
     List<SiteTrafficProjection> countTop5BySite();
 
     interface CategoryCountProjection {
@@ -47,12 +47,12 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 
     interface HourCountProjection {
         Integer getHour();
-        Long getMsgCount();
+        Long getCount();
     }
 
     interface SiteTrafficProjection {
         Long getSiteId();
         String getSiteName();
-        Long getMsgCount();
+        Long getCount();
     }
 }

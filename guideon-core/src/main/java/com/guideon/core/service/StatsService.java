@@ -12,6 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -65,8 +68,16 @@ public class StatsService {
         List<ChatMessageRepository.HourCountProjection> rows =
                 chatMessageRepository.countByHourForSite(siteId);
 
-        List<HourlyTrafficStatDto.HourStat> hours = rows.stream()
-                .map(r -> new HourlyTrafficStatDto.HourStat(r.getHour(), r.getMsgCount()))
+        Map<Integer, Long> countByHour = rows.stream()
+                .filter(r -> r.getHour() != null)
+                .collect(Collectors.toMap(
+                        ChatMessageRepository.HourCountProjection::getHour,
+                        r -> r.getCount() != null ? r.getCount() : 0L,
+                        Long::sum
+                ));
+
+        List<HourlyTrafficStatDto.HourStat> hours = IntStream.range(0, 24)
+                .mapToObj(hour -> new HourlyTrafficStatDto.HourStat(hour, countByHour.getOrDefault(hour, 0L)))
                 .toList();
 
         return new HourlyTrafficStatDto(hours);
@@ -80,7 +91,11 @@ public class StatsService {
                 chatMessageRepository.countTop5BySite();
 
         List<SiteTrafficTop5Dto.SiteStat> sites = rows.stream()
-                .map(r -> new SiteTrafficTop5Dto.SiteStat(r.getSiteId(), r.getSiteName(), r.getMsgCount()))
+                .map(r -> new SiteTrafficTop5Dto.SiteStat(
+                        r.getSiteId(),
+                        r.getSiteName(),
+                        r.getCount() != null ? r.getCount() : 0L
+                ))
                 .toList();
 
         return new SiteTrafficTop5Dto(sites);
