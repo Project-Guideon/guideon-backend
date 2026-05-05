@@ -24,13 +24,17 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 
     @Query(value = "SELECT CAST(EXTRACT(HOUR FROM created_at) AS INTEGER) AS \"hour\", COUNT(*) AS \"count\" " +
                    "FROM tb_chat_message " +
-                   "WHERE site_id = :siteId AND CAST(created_at AS DATE) = CURRENT_DATE " +
+                   "WHERE site_id = :siteId " +
+                   "  AND created_at >= CURRENT_DATE " +
+                   "  AND created_at < CURRENT_DATE + INTERVAL '1 day' " +
                    "GROUP BY \"hour\" ORDER BY \"hour\"", nativeQuery = true)
     List<HourCountProjection> countByHourForSite(@Param("siteId") Long siteId);
 
     @Query(value = "SELECT m.site_id AS \"siteId\", s.name AS \"siteName\", COUNT(*) AS \"count\" " +
                    "FROM tb_chat_message m " +
                    "JOIN tb_site s ON s.site_id = m.site_id " +
+                   "WHERE m.created_at >= CURRENT_DATE " +
+                   "  AND m.created_at < CURRENT_DATE + INTERVAL '1 day' " +
                    "GROUP BY m.site_id, s.name " +
                    "ORDER BY \"count\" DESC LIMIT 5", nativeQuery = true)
     List<SiteTrafficProjection> countTop5BySite();
