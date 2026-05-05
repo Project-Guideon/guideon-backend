@@ -46,10 +46,18 @@ public class StatsService {
     }
 
     private void validateSiteAccess(CustomAdminDetails adminDetails, Long siteId) {
+        if (adminDetails == null || adminDetails.getRole() == null) {
+            throw new CustomException(ErrorCode.ADMIN_SITE_FORBIDDEN);
+        }
+        if (AdminRole.PLATFORM_ADMIN.name().equals(adminDetails.getRole())) {
+            return;
+        }
         if (AdminRole.SITE_ADMIN.name().equals(adminDetails.getRole())) {
             if (!adminSiteRepository.existsById_AdminIdAndId_SiteId(adminDetails.getAdminId(), siteId)) {
                 throw new CustomException(ErrorCode.ADMIN_SITE_FORBIDDEN);
             }
+            return;
         }
+        throw new CustomException(ErrorCode.ADMIN_SITE_FORBIDDEN);
     }
 }
