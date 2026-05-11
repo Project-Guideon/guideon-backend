@@ -104,7 +104,7 @@ public class ChatService {
     public String createSession(String deviceId, Long siteId) {
         Device device = deviceRepository.findById(deviceId)
                 .orElseThrow(() -> new CustomException(ErrorCode.DEVICE_NOT_FOUND));
-        if (!device.isActive()) {
+        if (!Boolean.TRUE.equals(device.getIsActive())) {
             throw new CustomException(ErrorCode.DEVICE_INACTIVE);
         }
         if (!device.getSite().getSiteId().equals(siteId)) {
