@@ -1,6 +1,8 @@
 package com.guideon.guideonbackend.domain.chat.controller;
 
 import com.guideon.common.response.ApiResponse;
+import com.guideon.core.dto.chat.ChatResult;
+import com.guideon.guideonbackend.domain.chat.dto.AdminChatMessageRequest;
 import com.guideon.guideonbackend.domain.chat.dto.AdminChatStartRequest;
 import com.guideon.guideonbackend.domain.chat.service.ChatTestService;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
@@ -32,5 +34,16 @@ public class ChatTestController {
             HttpServletRequest httpRequest) {
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(chatTestService.startSession(request, adminDetails), traceId));
+    }
+
+    @Operation(summary = "채팅 메시지 전송", description = "세션에 메시지를 전송하고 AI 응답을 받습니다.")
+    @PostMapping("/sessions/{sessionId}/messages")
+    public ResponseEntity<ApiResponse<ChatResult>> sendMessage(
+            @PathVariable String sessionId,
+            @RequestBody @Valid AdminChatMessageRequest request,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest) {
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(chatTestService.sendMessage(sessionId, request, adminDetails), traceId));
     }
 }

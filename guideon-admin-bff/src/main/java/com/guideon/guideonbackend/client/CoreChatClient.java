@@ -13,4 +13,8 @@ public interface CoreChatClient {
     @PostMapping("/internal/v1/chat/sessions")
     Map<String, String> createSession(@RequestParam("deviceId") String deviceId,
                                       @RequestParam("siteId") Long siteId);
+
+    @PostMapping("/internal/v1/chat/sessions/{sessionId}/messages")
+    ChatResult sendMessage(@PathVariable("sessionId") String sessionId,
+                           @RequestBody ChatCommand command);
 }
