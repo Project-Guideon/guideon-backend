@@ -17,4 +17,8 @@ public interface CoreChatClient {
     @PostMapping("/internal/v1/chat/sessions/{sessionId}/messages")
     ChatResult sendMessage(@PathVariable("sessionId") String sessionId,
                            @RequestBody ChatCommand command);
+
+    @PostMapping("/internal/v1/chat/sessions/{sessionId}/end")
+    void endSession(@PathVariable("sessionId") String sessionId,
+                    @RequestParam("deviceId") String deviceId);
 }

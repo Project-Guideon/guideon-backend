@@ -7,6 +7,7 @@ import com.guideon.core.domain.admin.repository.AdminSiteRepository;
 import com.guideon.core.dto.chat.ChatCommand;
 import com.guideon.core.dto.chat.ChatResult;
 import com.guideon.guideonbackend.client.CoreChatClient;
+import com.guideon.guideonbackend.domain.chat.dto.AdminChatEndRequest;
 import com.guideon.guideonbackend.domain.chat.dto.AdminChatMessageRequest;
 import com.guideon.guideonbackend.domain.chat.dto.AdminChatStartRequest;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
@@ -39,6 +40,11 @@ public class ChatTestService {
                 .longitude(request.getLongitude())
                 .build();
         return coreChatClient.sendMessage(sessionId, command);
+    }
+
+    public void endSession(String sessionId, AdminChatEndRequest request, CustomAdminDetails adminDetails) {
+        validateSiteAccess(adminDetails, request.getSiteId());
+        coreChatClient.endSession(sessionId, request.getDeviceId());
     }
 
     private void validateSiteAccess(CustomAdminDetails adminDetails, Long siteId) {

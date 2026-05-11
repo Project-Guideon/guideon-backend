@@ -2,6 +2,7 @@ package com.guideon.guideonbackend.domain.chat.controller;
 
 import com.guideon.common.response.ApiResponse;
 import com.guideon.core.dto.chat.ChatResult;
+import com.guideon.guideonbackend.domain.chat.dto.AdminChatEndRequest;
 import com.guideon.guideonbackend.domain.chat.dto.AdminChatMessageRequest;
 import com.guideon.guideonbackend.domain.chat.dto.AdminChatStartRequest;
 import com.guideon.guideonbackend.domain.chat.service.ChatTestService;
@@ -45,5 +46,17 @@ public class ChatTestController {
             HttpServletRequest httpRequest) {
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(chatTestService.sendMessage(sessionId, request, adminDetails), traceId));
+    }
+
+    @Operation(summary = "채팅 세션 종료", description = "채팅 세션을 종료합니다.")
+    @PostMapping("/sessions/{sessionId}/end")
+    public ResponseEntity<ApiResponse<Void>> endSession(
+            @PathVariable String sessionId,
+            @RequestBody @Valid AdminChatEndRequest request,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest) {
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        chatTestService.endSession(sessionId, request, adminDetails);
+        return ResponseEntity.ok(ApiResponse.success(null, traceId));
     }
 }
