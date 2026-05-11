@@ -23,6 +23,7 @@ public enum ErrorCode {
 
     // ── Site ──
     ADMIN_SITE_FORBIDDEN(HttpStatus.FORBIDDEN, "관리자 site 스코프(scope) 위반"),
+    SITE_NOT_FOUND(HttpStatus.NOT_FOUND, "사이트를 찾을 수 없습니다"),
     SITE_INACTIVE(HttpStatus.FORBIDDEN, "site 비활성(kill switch)"),
 
     // ── Zone ──
@@ -51,6 +52,10 @@ public enum ErrorCode {
     DEVICE_NOT_FOUND(HttpStatus.NOT_FOUND, "디바이스를 찾을 수 없습니다"),
     DEVICE_ID_DUPLICATE(HttpStatus.CONFLICT, "이미 사용 중인 디바이스 ID입니다"),
     DEVICE_INACTIVE(HttpStatus.FORBIDDEN, "비활성화된 디바이스입니다"),
+
+    // ── Chat ──
+    CHAT_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "채팅 세션을 찾을 수 없습니다"),
+    CHAT_SESSION_ENDED(HttpStatus.CONFLICT, "이미 종료된 채팅 세션입니다"),
 
     // ── Pairing ──
     PAIRING_CODE_NOT_FOUND(HttpStatus.NOT_FOUND, "페어링 코드를 찾을 수 없습니다"),
