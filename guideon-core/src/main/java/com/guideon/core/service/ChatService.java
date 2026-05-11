@@ -65,7 +65,7 @@ public class ChatService {
      * DB 롤백 시 Redis 삭제가 불필요하게 일어나는 것을 방지.
      */
     @Transactional
-    public void endSession(String sessionId, String deviceId) {
+    public void endSession(String sessionId, String deviceId, Long siteId) {
         ChatSession session = chatSessionRepository.findById(sessionId).orElse(null);
 
         if (session == null) {
@@ -73,9 +73,13 @@ public class ChatService {
             return;
         }
 
-        // 호출자(deviceId)와 세션 소유자 일치 여부 검증
         if (!session.getDeviceId().equals(deviceId)) {
             log.warn("세션 소유권 불일치: sessionId={}, 요청 deviceId=***", sessionId);
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
+
+        if (!session.getSiteId().equals(siteId)) {
+            log.warn("세션 siteId 불일치: sessionId={}", sessionId);
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
 
@@ -107,7 +111,7 @@ public class ChatService {
         if (!Boolean.TRUE.equals(device.getIsActive())) {
             throw new CustomException(ErrorCode.DEVICE_INACTIVE);
         }
-        if (!device.getSite().getSiteId().equals(siteId)) {
+        if (device.getSite() == null || !device.getSite().getSiteId().equals(siteId)) {
             throw new CustomException(ErrorCode.ADMIN_SITE_FORBIDDEN);
         }
 
@@ -143,6 +147,11 @@ public class ChatService {
         if (session.getEndedAt() != null) {
             log.warn("종료된 세션으로 메시지 수신: sessionId={}", command.getSessionId());
             throw new CustomException(ErrorCode.CHAT_SESSION_ENDED);
+        }
+
+        if (!session.getSiteId().equals(command.getSiteId())) {
+            log.warn("세션 siteId 불일치: sessionId={}", command.getSessionId());
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
 
         session.incrementMessageCount();

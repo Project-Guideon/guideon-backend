@@ -44,7 +44,7 @@ public class ChatTestService {
 
     public void endSession(String sessionId, AdminChatEndRequest request, CustomAdminDetails adminDetails) {
         validateSiteAccess(adminDetails, request.getSiteId());
-        coreChatClient.endSession(sessionId, request.getDeviceId());
+        coreChatClient.endSession(sessionId, request.getDeviceId(), request.getSiteId());
     }
 
     private void validateSiteAccess(CustomAdminDetails adminDetails, Long siteId) {

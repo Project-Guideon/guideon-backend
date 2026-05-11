@@ -20,5 +20,6 @@ public interface CoreChatClient {
 
     @PostMapping("/internal/v1/chat/sessions/{sessionId}/end")
     void endSession(@PathVariable("sessionId") String sessionId,
-                    @RequestParam("deviceId") String deviceId);
+                    @RequestParam("deviceId") String deviceId,
+                    @RequestParam("siteId") Long siteId);
 }
