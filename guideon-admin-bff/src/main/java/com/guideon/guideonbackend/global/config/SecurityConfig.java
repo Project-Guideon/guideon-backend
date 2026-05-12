@@ -85,6 +85,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/admin/sites/*/mascot").hasRole("PLATFORM_ADMIN")
                         // Device 관리 API는 PLATFORM_ADMIN + SITE_ADMIN 접근 가능
                         .requestMatchers("/api/v1/admin/sites/*/devices/**").hasAnyRole("PLATFORM_ADMIN", "SITE_ADMIN")
+                        // 채팅 테스트 API는 PLATFORM_ADMIN + SITE_ADMIN 접근 가능
+                        .requestMatchers("/api/v1/admin/chat/**").hasAnyRole("PLATFORM_ADMIN", "SITE_ADMIN")
                         // 통계 API — 사이트별: PLATFORM_ADMIN + SITE_ADMIN / 플랫폼 전체: PLATFORM_ADMIN
                         .requestMatchers(HttpMethod.GET, "/api/v1/admin/sites/*/stats/**").hasAnyRole("PLATFORM_ADMIN", "SITE_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/admin/stats/**").hasRole("PLATFORM_ADMIN")

@@ -46,7 +46,7 @@ public class KioskChatController {
             HttpServletRequest httpRequest
     ) {
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
-        chatService.endSession(sessionId, device.getDeviceId());
+        chatService.endSession(sessionId, device.getDeviceId(), device.getSiteId());
         return ResponseEntity.ok(ApiResponse.success(null, traceId));
     }
 
