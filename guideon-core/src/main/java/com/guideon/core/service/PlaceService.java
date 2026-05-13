@@ -2,15 +2,20 @@ package com.guideon.core.service;
 
 import com.guideon.common.exception.CustomException;
 import com.guideon.common.exception.ErrorCode;
+import com.guideon.core.domain.device.entity.Device;
+import com.guideon.core.domain.device.repository.DeviceRepository;
 import com.guideon.core.domain.place.entity.Place;
 import com.guideon.core.domain.place.entity.ZoneSource;
 import com.guideon.core.domain.place.repository.PlaceRepository;
 import com.guideon.core.domain.site.entity.Site;
 import com.guideon.core.domain.site.repository.SiteRepository;
 import com.guideon.core.domain.zone.entity.Zone;
+import com.guideon.core.domain.zone.entity.ZoneType;
 import com.guideon.core.domain.zone.repository.ZoneRepository;
 import com.guideon.core.dto.place.CreatePlaceCommand;
+import com.guideon.core.dto.place.NearbyPlaceResponse;
 import com.guideon.core.dto.place.PlaceDto;
+import com.guideon.core.dto.place.PlaceSearchResponse;
 import com.guideon.core.dto.place.UpdatePlaceCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +28,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Objects;
+
 @Slf4j
 @Service("corePlaceService")
 @RequiredArgsConstructor
@@ -32,6 +40,7 @@ public class PlaceService {
     private final PlaceRepository placeRepository;
     private final SiteRepository siteRepository;
     private final ZoneRepository zoneRepository;
+    private final DeviceRepository deviceRepository;
 
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
 
@@ -155,6 +164,80 @@ public class PlaceService {
 
         log.info("장소 수정 완료: placeId={}, siteId={}", placeId, siteId);
         return PlaceDto.from(place);
+    }
+
+    /**
+     * FastAPI fetch_places_node 전용 — category 필터 근처 장소 조회.
+     * deviceId로 device 위치 + zone 조회 후 findNearbyPlacesByCategory 실행.
+     */
+    public List<NearbyPlaceResponse> getNearbyPlacesByCategory(Long siteId, String deviceId, String category) {
+        try {
+            Device device = deviceRepository.findById(deviceId).orElse(null);
+            if (device == null || device.getSite() == null || !Objects.equals(device.getSite().getSiteId(), siteId)) {
+                log.warn("Device 없음 또는 siteId 불일치: deviceId=***");
+                return List.of();
+            }
+
+            if (device.getLocation() == null) {
+                log.warn("Device 위치 미설정: deviceId=***");
+                return List.of();
+            }
+
+            double lat = device.getLocation().getY();
+            double lng = device.getLocation().getX();
+            Long innerZoneId = resolveInnerZoneId(device);
+
+            return placeRepository.findNearbyPlacesByCategory(siteId, lat, lng, innerZoneId, category, 30)
+                    .stream()
+                    .map(p -> NearbyPlaceResponse.builder()
+                            .placeId(p.getPlaceId())
+                            .name(p.getName())
+                            .category(p.getCategory())
+                            .description(p.getDescription() != null ? p.getDescription() : "")
+                            .distanceM(p.getDistanceM())
+                            .sameZone(p.getZonePriority() != null && p.getZonePriority() == 0)
+                            .build())
+                    .toList();
+        } catch (Exception e) {
+            log.warn("getNearbyPlacesByCategory 실패: deviceId=***, category={}", category, e);
+            return List.of();
+        }
+    }
+
+    private Long resolveInnerZoneId(Device device) {
+        if (device.getZone() == null) return null;
+        Zone zone = device.getZone();
+        if (zone.getZoneType() == ZoneType.INNER) return zone.getZoneId();
+        if (zone.getZoneType() == ZoneType.SUB && zone.getParentZone() != null)
+            return zone.getParentZone().getZoneId();
+        return null;
+    }
+
+    /**
+     * pg_trgm 유사도 기반 장소명 검색 (FastAPI navigation_node 전용)
+     *
+     * 유사도가 threshold 미만이면 null 반환 → FastAPI가 nearest 로직으로 fallback.
+     */
+    public PlaceSearchResponse searchByName(Long siteId, String q, double threshold) {
+        if (q == null || q.trim().isEmpty()) {
+            log.warn("장소명 검색 쿼리가 비어있음: siteId={}", siteId);
+            return null;
+        }
+        if (threshold < 0.0 || threshold > 1.0) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                    "threshold는 0.0 ~ 1.0 범위여야 합니다: " + threshold);
+        }
+        return placeRepository.findTopByNameSimilarity(siteId, q)
+                .filter(p -> p.getSimilarity() != null && p.getSimilarity() >= threshold)
+                .map(p -> PlaceSearchResponse.builder()
+                        .placeId(p.getPlaceId())
+                        .name(p.getName())
+                        .category(p.getCategory())
+                        .latitude(p.getLatitude())
+                        .longitude(p.getLongitude())
+                        .similarity(p.getSimilarity())
+                        .build())
+                .orElse(null);
     }
 
     /**
