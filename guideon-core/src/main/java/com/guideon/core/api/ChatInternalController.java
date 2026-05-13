@@ -48,9 +48,10 @@ public class ChatInternalController {
     @PostMapping("/sessions/{sessionId}/end")
     public ResponseEntity<Void> endSession(
             @PathVariable String sessionId,
-            @RequestParam String deviceId
+            @RequestParam String deviceId,
+            @RequestParam Long siteId
     ) {
-        chatService.endSession(sessionId, deviceId);
+        chatService.endSession(sessionId, deviceId, siteId);
         return ResponseEntity.ok().build();
     }
 

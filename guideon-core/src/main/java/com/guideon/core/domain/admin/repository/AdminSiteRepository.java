@@ -14,7 +14,8 @@ public interface AdminSiteRepository extends JpaRepository<AdminSite, AdminSiteI
     @Query("SELECT a.id.siteId FROM AdminSite a WHERE a.id.adminId = :adminId")
     List<Long> findSiteIdsByAdminId(@Param("adminId") Long adminId);
 
-    boolean existsById_AdminIdAndId_SiteId(Long adminId, Long siteId);
+    @Query("SELECT COUNT(a) > 0 FROM AdminSite a WHERE a.id.adminId = :adminId AND a.id.siteId = :siteId")
+    boolean existsById_AdminIdAndId_SiteId(@Param("adminId") Long adminId, @Param("siteId") Long siteId);
 
     @Query("SELECT a.admin FROM AdminSite a WHERE a.id.siteId = :siteId")
     List<Admin> findAdminsBySiteId(@Param("siteId") Long siteId);

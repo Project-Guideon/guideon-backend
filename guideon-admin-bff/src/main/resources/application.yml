@@ -65,6 +65,9 @@ spring:
           default:
             connect-timeout: 5000
             read-timeout: 10000
+          core-chat:
+            connect-timeout: 5000
+            read-timeout: 90000
 
 # Logging (production default)
 logging:
