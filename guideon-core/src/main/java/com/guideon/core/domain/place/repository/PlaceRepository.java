@@ -94,6 +94,39 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
     );
 
     /**
+     * pg_trgm 유사도 기반 장소명 검색 (FastAPI navigation_node 전용)
+     *
+     * similarity() 내림차순으로 가장 유사한 장소 1개 반환.
+     * 유사도가 threshold 미만이면 서비스 레이어에서 null 처리.
+     */
+    @Query(value = """
+            SELECT p.place_id AS placeId,
+                   p.name AS name,
+                   p.category AS category,
+                   ST_Y(CAST(p.location AS geometry)) AS latitude,
+                   ST_X(CAST(p.location AS geometry)) AS longitude,
+                   similarity(p.name, :q) AS similarity
+            FROM tb_place p
+            WHERE p.site_id = :siteId
+              AND p.is_active = true
+            ORDER BY similarity(p.name, :q) DESC
+            LIMIT 1
+            """, nativeQuery = true)
+    Optional<PlaceSearchProjection> findTopByNameSimilarity(
+            @Param("siteId") Long siteId,
+            @Param("q") String q
+    );
+
+    interface PlaceSearchProjection {
+        Long getPlaceId();
+        String getName();
+        String getCategory();
+        Double getLatitude();
+        Double getLongitude();
+        Double getSimilarity();
+    }
+
+    /**
      * 좌표가 포함된 Zone ID 조회 (AUTO zone 할당용)
      * 가장 작은 레벨(SUB 다음 INNER 다음 outer)의 Zone을 반환
      * 어떤 Zone에도 포함되지 않으면 null 반환 (OUTER)
