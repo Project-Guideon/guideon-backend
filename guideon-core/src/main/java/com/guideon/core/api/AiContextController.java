@@ -1,7 +1,8 @@
 package com.guideon.core.api;
 
-import com.guideon.core.domain.place.repository.NearbyPlaceProjection;
-import com.guideon.core.service.ChatService;
+import com.guideon.core.dto.place.NearbyPlaceResponse;
+import com.guideon.core.dto.place.PlaceSearchResponse;
+import com.guideon.core.service.PlaceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,8 +11,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * FastAPI → Spring Boot 콜백 API
@@ -24,7 +23,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AiContextController {
 
-    private final ChatService chatService;
+    private final PlaceService placeService;
 
     /**
      * FastAPI fetch_places_node 가 호출하는 근처 장소 조회 API.
@@ -33,26 +32,26 @@ public class AiContextController {
      * category 가 null 이면 전체 카테고리 반환.
      */
     @GetMapping("/places/nearby")
-    public ResponseEntity<List<Map<String, Object>>> getNearbyPlaces(
+    public ResponseEntity<List<NearbyPlaceResponse>> getNearbyPlaces(
             @RequestParam Long siteId,
             @RequestParam String deviceId,
             @RequestParam(required = false) String category
     ) {
-        List<NearbyPlaceProjection> places = chatService.getNearbyPlacesByCategory(siteId, deviceId, category);
+        return ResponseEntity.ok(placeService.getNearbyPlacesByCategory(siteId, deviceId, category));
+    }
 
-        List<Map<String, Object>> response = places.stream()
-                .map(p -> {
-                    Map<String, Object> map = new java.util.HashMap<>();
-                    map.put("placeId",     p.getPlaceId());
-                    map.put("name",        p.getName());
-                    map.put("category",    p.getCategory());
-                    map.put("description", p.getDescription() != null ? p.getDescription() : "");
-                    map.put("distanceM",   p.getDistanceM());   // null 허용 (Map.of 는 null 불가)
-                    map.put("sameZone",    p.getZonePriority() != null && p.getZonePriority() == 0);
-                    return map;
-                })
-                .collect(Collectors.toList());
-
-        return ResponseEntity.ok(response);
+    /**
+     * FastAPI navigation_node 가 호출하는 장소명 유사도 검색 API.
+     *
+     * pg_trgm similarity() 로 가장 유사한 장소 1개 반환.
+     * 유사도가 threshold 미만이면 null 반환 → FastAPI가 nearest 로직으로 fallback.
+     */
+    @GetMapping("/places/search")
+    public ResponseEntity<PlaceSearchResponse> searchPlaceByName(
+            @RequestParam Long siteId,
+            @RequestParam String q,
+            @RequestParam(defaultValue = "0.3") double threshold
+    ) {
+        return ResponseEntity.ok(placeService.searchByName(siteId, q, threshold));
     }
 }

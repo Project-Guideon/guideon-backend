@@ -12,7 +12,6 @@ import com.guideon.core.domain.device.repository.DeviceRepository;
 import com.guideon.core.domain.mascot.entity.Mascot;
 import com.guideon.core.domain.mascot.repository.MascotRepository;
 import com.guideon.core.domain.place.entity.Place;
-import com.guideon.core.domain.place.repository.NearbyPlaceProjection;
 import com.guideon.core.domain.place.repository.PlaceRepository;
 import com.guideon.core.domain.zone.entity.Zone;
 import com.guideon.core.domain.zone.entity.ZoneType;
@@ -217,34 +216,6 @@ public class ChatService {
         return buildChatResult(command.getSessionId(), command, qaResponse);
     }
 
-    /**
-     * FastAPI fetch_places_node 전용 — category 필터 근처 장소 조회.
-     * deviceId로 device 위치 + zone 조회 후 findNearbyPlacesByCategory 실행.
-     */
-    public List<NearbyPlaceProjection> getNearbyPlacesByCategory(Long siteId, String deviceId, String category) {
-        try {
-            Device device = deviceRepository.findById(deviceId).orElse(null);
-            if (device == null || device.getSite() == null || !Objects.equals(device.getSite().getSiteId(), siteId)) {
-                log.warn("Device 없음 또는 siteId 불일치: deviceId=***");
-                return List.of();
-            }
-
-            if (device.getLocation() == null) {
-                log.warn("Device 위치 미설정: deviceId=***");
-                return List.of();
-            }
-
-            double lat = device.getLocation().getY();
-            double lng = device.getLocation().getX();
-            Long innerZoneId = resolveInnerZoneId(device);
-
-            return placeRepository.findNearbyPlacesByCategory(siteId, lat, lng, innerZoneId, category, 30);
-        } catch (Exception e) {
-            log.warn("getNearbyPlacesByCategory 실패: deviceId=***, category={}", category, e);
-            return List.of();
-        }
-    }
-
     private QaRequest.DeviceLocation buildDeviceLocation(String deviceId) {
         try {
             Device device = deviceRepository.findById(deviceId).orElse(null);
@@ -260,14 +231,6 @@ public class ChatService {
         return null;
     }
 
-    private Long resolveInnerZoneId(Device device) {
-        if (device.getZone() == null) return null;
-        Zone zone = device.getZone();
-        if (zone.getZoneType() == ZoneType.INNER) return zone.getZoneId();
-        if (zone.getZoneType() == ZoneType.SUB && zone.getParentZone() != null)
-            return zone.getParentZone().getZoneId();
-        return null;
-    }
 
     /**
      * 마스코트 조회.
