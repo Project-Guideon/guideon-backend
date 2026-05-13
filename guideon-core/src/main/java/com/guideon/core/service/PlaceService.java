@@ -219,6 +219,14 @@ public class PlaceService {
      * 유사도가 threshold 미만이면 null 반환 → FastAPI가 nearest 로직으로 fallback.
      */
     public PlaceSearchResponse searchByName(Long siteId, String q, double threshold) {
+        if (q == null || q.trim().isEmpty()) {
+            log.warn("장소명 검색 쿼리가 비어있음: siteId={}", siteId);
+            return null;
+        }
+        if (threshold < 0.0 || threshold > 1.0) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                    "threshold는 0.0 ~ 1.0 범위여야 합니다: " + threshold);
+        }
         return placeRepository.findTopByNameSimilarity(siteId, q)
                 .filter(p -> p.getSimilarity() != null && p.getSimilarity() >= threshold)
                 .map(p -> PlaceSearchResponse.builder()
