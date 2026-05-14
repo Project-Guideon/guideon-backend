@@ -370,6 +370,7 @@ public class ChatService {
                 .emotion(qaResponse.getEmotion())
                 .language(qaResponse.getLanguage())
                 .category(qaResponse.getCategory())
+                .mapUrl(qaResponse.getMapUrl())
                 .deviceLatitude(command.getLatitude())
                 .deviceLongitude(command.getLongitude());
 

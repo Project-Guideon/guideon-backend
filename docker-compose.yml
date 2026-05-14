@@ -129,6 +129,7 @@ services:
       LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-guideon_ai}
       RAG_VERSION: ${RAG_VERSION:-v2}
       CORE_BASE_URL: http://core:8080
+      KAKAO_API_KEY: ${KAKAO_API_KEY}
     volumes:
       - ../guideon-AI/google_key.json:/app/google_key.json:ro
     depends_on:

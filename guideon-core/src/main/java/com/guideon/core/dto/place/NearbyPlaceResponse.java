@@ -11,6 +11,8 @@ public class NearbyPlaceResponse {
     private String name;
     private String category;
     private String description;
+    private Double latitude;
+    private Double longitude;
     private Double distanceM;
     private boolean sameZone;
 }

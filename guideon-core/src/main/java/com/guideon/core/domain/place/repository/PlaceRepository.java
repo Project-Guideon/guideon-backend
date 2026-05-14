@@ -66,6 +66,8 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
                    p.category AS category,
                    p.description AS description,
                    p.image_url AS imageUrl,
+                   ST_Y(CAST(p.location AS geometry)) AS latitude,
+                   ST_X(CAST(p.location AS geometry)) AS longitude,
                    ST_Distance(p.location, ST_MakePoint(:lng, :lat)\\:\\:geography) AS distanceM,
                    CASE
                      WHEN CAST(:innerZoneId AS BIGINT) IS NOT NULL AND (

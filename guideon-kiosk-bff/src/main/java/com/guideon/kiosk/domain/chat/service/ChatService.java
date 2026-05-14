@@ -94,6 +94,7 @@ public class ChatService {
                 .answer(result.getAnswer())
                 .emotion(result.getEmotion())
                 .language(result.getLanguage())
+                .mapUrl(result.getMapUrl())
                 .display(displayHint)
                 .build();
     }
