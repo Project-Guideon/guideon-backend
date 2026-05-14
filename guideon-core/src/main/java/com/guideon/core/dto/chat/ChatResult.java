@@ -20,6 +20,7 @@ public class ChatResult {
     private String emotion;
     private String language;
     private String category;      // 질문 유형 (통계용, BFF→Unity에도 전달 가능)
+    private String mapUrl;        // 카카오맵 도보 길찾기 URL (DIRECTION일 때만, nullable)
 
     // 키오스크(디바이스) 좌표
     private Double deviceLatitude;

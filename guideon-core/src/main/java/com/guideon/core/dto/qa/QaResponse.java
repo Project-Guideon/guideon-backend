@@ -17,6 +17,7 @@ public class QaResponse {
 
     private String answer;
     private Long placeId;         // 언급된 장소 ID (nullable, display hint용)
+    private String mapUrl;        // 카카오맵 도보 길찾기 URL (nullable, DIRECTION일 때만)
     private String emotion;       // 캐릭터 감정 태그 (GUIDING, HAPPY, THINKING 등)
     private String language;      // 실제 응답 언어
 
