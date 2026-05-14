@@ -194,6 +194,8 @@ public class PlaceService {
                             .name(p.getName())
                             .category(p.getCategory())
                             .description(p.getDescription() != null ? p.getDescription() : "")
+                            .latitude(p.getLatitude())
+                            .longitude(p.getLongitude())
                             .distanceM(p.getDistanceM())
                             .sameZone(p.getZonePriority() != null && p.getZonePriority() == 0)
                             .build())
