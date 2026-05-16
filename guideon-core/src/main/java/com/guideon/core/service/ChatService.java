@@ -28,11 +28,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.net.URI;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -46,6 +48,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ChatService {
+
+    private static final Set<String> ALLOWED_MAP_HOSTS = Set.of("map.kakao.com", "m.map.kakao.com");
 
     private final ChatSessionRepository chatSessionRepository;
     private final ChatMessageRepository chatMessageRepository;
@@ -370,7 +374,7 @@ public class ChatService {
                 .emotion(qaResponse.getEmotion())
                 .language(qaResponse.getLanguage())
                 .category(qaResponse.getCategory())
-                .mapUrl(qaResponse.getMapUrl())
+                .mapUrl(resolveMapUrl(qaResponse))
                 .deviceLatitude(command.getLatitude())
                 .deviceLongitude(command.getLongitude());
 
@@ -390,5 +394,25 @@ public class ChatService {
         }
 
         return builder.build();
+    }
+
+    private String resolveMapUrl(QaResponse qaResponse) {
+        if (!"DIRECTION".equalsIgnoreCase(qaResponse.getCategory())) {
+            return null;
+        }
+        String mapUrl = qaResponse.getMapUrl();
+        if (mapUrl == null || mapUrl.isBlank()) {
+            return null;
+        }
+        try {
+            URI uri = URI.create(mapUrl);
+            String host = uri.getHost();
+            if (!"https".equalsIgnoreCase(uri.getScheme()) || host == null) {
+                return null;
+            }
+            return ALLOWED_MAP_HOSTS.contains(host.toLowerCase()) ? mapUrl : null;
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 }
