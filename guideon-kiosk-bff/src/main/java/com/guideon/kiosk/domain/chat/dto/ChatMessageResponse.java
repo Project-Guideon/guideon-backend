@@ -15,6 +15,7 @@ public class ChatMessageResponse {
     private String answer;
     private String emotion;
     private String language;
+    private String mapUrl;        // 카카오맵 도보 길찾기 URL (nullable)
     private DisplayHint display;  // nullable (장소 언급 없으면 null)
 
     @Getter

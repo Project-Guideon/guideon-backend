@@ -10,6 +10,8 @@ public interface NearbyPlaceProjection {
     String getCategory();
     String getDescription();
     String getImageUrl();
+    Double getLatitude();
+    Double getLongitude();
     Double getDistanceM();
     Integer getZonePriority();
 }
