@@ -237,6 +237,8 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
             start.put("name", mascot != null ? mascot.getName() : null);
             start.put("greetingMsg", mascot != null ? mascot.getGreetingMsg() : null);
             start.put("promptConfig", mascot != null && mascot.getPromptConfig() != null ? mascot.getPromptConfig() : Map.of());
+            // Cartesia TTS 음성 ID — FastAPI에서 마스코트별 음성 합성에 사용
+            start.put("ttsVoiceId", mascot != null ? mascot.getTtsVoiceId() : null);
             if (deviceLocation != null) {
                 start.put("deviceLocation", deviceLocation);
             }
