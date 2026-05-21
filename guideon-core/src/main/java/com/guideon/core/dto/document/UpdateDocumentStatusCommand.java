@@ -3,6 +3,8 @@ package com.guideon.core.dto.document;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.util.StringUtils;
@@ -13,7 +15,9 @@ import org.springframework.util.StringUtils;
  * FAILED 시 failed_reason 필수
  */
 @Getter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class UpdateDocumentStatusCommand {
 
     @NotBlank(message = "status는 필수입니다.")
