@@ -4,6 +4,10 @@ import com.guideon.common.exception.CustomException;
 import com.guideon.common.exception.ErrorCode;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
@@ -12,6 +16,16 @@ import java.util.HexFormat;
 import java.util.Set;
 
 public class FileValidator {
+
+    private static final Set<String> ALLOWED_AUDIO_CONTENT_TYPES = Set.of(
+            "audio/wav", "audio/wave", "audio/x-wav",
+            "audio/mpeg", "audio/mp3", "audio/mp4", "audio/ogg", "audio/webm"
+    );
+    private static final Set<String> ALLOWED_AUDIO_EXTENSIONS = Set.of(
+            ".wav", ".mp3", ".m4a", ".m4r", ".ogg", ".webm"
+    );
+    // MP3 등 비WAV 포맷: 320kbps 기준 10초 ≈ 400KB, 여유 2배 = 800KB
+    private static final long MAX_NON_WAV_AUDIO_BYTES = 800_000L;
 
     private static final Set<String> ALLOWED_PDF_CONTENT_TYPES = Set.of("application/pdf");
     private static final Set<String> ALLOWED_PDF_EXTENSIONS = Set.of(".pdf");
@@ -22,6 +36,57 @@ public class FileValidator {
     private static final Set<String> ALLOWED_IMAGE_EXTENSIONS = Set.of(
             ".jpg", ".jpeg", ".png", ".webp"
     );
+
+    /**
+     * 음성 샘플 파일 검증: 형식 + 10초 이하 길이 제한
+     *
+     * 스트림 이중 소비를 막기 위해 호출부에서 미리 읽은 byte[]를 받습니다.
+     * - WAV: javax.sound.sampled 로 정확한 길이 계산
+     * - MP3 등: 파일 크기로 근사 (320kbps × 10s × 2 = 800KB 이하)
+     */
+    public static void validateAudio(String originalName, byte[] audioBytes, double maxDurationSeconds) {
+        if (audioBytes == null || audioBytes.length == 0) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "빈 파일은 업로드할 수 없습니다.");
+        }
+        if (originalName == null) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "파일명이 없습니다.");
+        }
+
+        String lowerName = originalName.toLowerCase();
+        boolean validExt = ALLOWED_AUDIO_EXTENSIONS.stream().anyMatch(lowerName::endsWith);
+        if (!validExt) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                    "지원하지 않는 오디오 형식입니다. WAV, MP3, M4A, M4R, OGG, WEBM만 가능합니다.");
+        }
+
+        if (lowerName.endsWith(".wav")) {
+            // WAV: AudioSystem으로 정확한 재생 시간 계산
+            try (AudioInputStream ais = AudioSystem.getAudioInputStream(
+                    new BufferedInputStream(new java.io.ByteArrayInputStream(audioBytes)))) {
+                AudioFormat format = ais.getFormat();
+                long frames = ais.getFrameLength();
+                if (frames > 0 && format.getFrameRate() > 0) {
+                    double duration = frames / format.getFrameRate();
+                    if (duration > maxDurationSeconds) {
+                        throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                                String.format("오디오가 너무 깁니다. %.0f초 이하로 업로드해 주세요. (현재: %.1f초)",
+                                        maxDurationSeconds, duration));
+                    }
+                }
+            } catch (CustomException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new CustomException(ErrorCode.VALIDATION_ERROR, "WAV 파일을 읽을 수 없습니다.");
+            }
+        } else {
+            // MP3 등: 파일 크기 근사 검증 (320kbps 기준 10s ≈ 400KB, 여유 2배 = 800KB)
+            if (audioBytes.length > MAX_NON_WAV_AUDIO_BYTES) {
+                throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                        String.format("오디오 파일이 너무 큽니다. %.0f초 분량(약 800KB) 이하로 업로드해 주세요.",
+                                maxDurationSeconds));
+            }
+        }
+    }
 
     public static void validatePdf(MultipartFile file) {
         if (file == null || file.isEmpty()) {
