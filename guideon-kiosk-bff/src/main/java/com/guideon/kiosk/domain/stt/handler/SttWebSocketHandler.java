@@ -250,12 +250,17 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
             return objectMapper.writeValueAsString(start);
         } catch (Exception e) {
             log.warn("[SttWS] startPayload 직렬화 실패, mascot 없이 전송: {}", e.getMessage());
+            String ttsVoiceId = (mascot != null && mascot.getTtsVoiceId() != null)
+                    ? "\"" + escapeJson(mascot.getTtsVoiceId()) + "\""
+                    : "null";
             return String.format(
                     "{\"type\":\"start\",\"sessionId\":\"%s\",\"siteId\":%d,\"deviceId\":\"%s\",\"language\":\"%s\","
+                            + "\"ttsVoiceId\":%s,"
                             + "\"sampleRateHz\":%d,\"interimResults\":true,"
                             + "\"ttsStream\":%b,\"realtime\":true,"
                             + "\"context\":{\"dailyInfos\":[]}}",
-                    escapeJson(sessionId), siteId, escapeJson(deviceId), escapeJson(languageCode), sampleRate, ttsStream
+                    escapeJson(sessionId), siteId, escapeJson(deviceId), escapeJson(languageCode),
+                    ttsVoiceId, sampleRate, ttsStream
             );
         }
     }
