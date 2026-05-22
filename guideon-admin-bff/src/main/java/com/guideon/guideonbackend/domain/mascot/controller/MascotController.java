@@ -1,5 +1,7 @@
 package com.guideon.guideonbackend.domain.mascot.controller;
 
+import com.guideon.common.exception.CustomException;
+import com.guideon.common.exception.ErrorCode;
 import com.guideon.common.response.ApiResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.*;
 import com.guideon.guideonbackend.domain.mascot.service.MascotGenerationService;
@@ -92,6 +94,12 @@ public class MascotController {
             @AuthenticationPrincipal CustomAdminDetails adminDetails,
             HttpServletRequest httpRequest
     ) {
+        if (name == null || name.isBlank()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "보이스 이름은 필수입니다.");
+        }
+        if (language == null || language.isBlank()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "언어 코드는 필수입니다.");
+        }
         VoiceCloneResponse response = mascotService.cloneVoice(siteId, audioFile, name, language, adminDetails);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
