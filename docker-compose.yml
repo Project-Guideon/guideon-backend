@@ -133,7 +133,6 @@ services:
       CORE_BASE_URL: http://core:8080
       KAKAO_API_KEY: ${KAKAO_API_KEY}
       CARTESIA_API_KEY: ${CARTESIA_API_KEY}
-      CARTESIA_VOICE_ID: ${CARTESIA_VOICE_ID}
     volumes:
       - ../guideon-AI/google_key.json:/app/google_key.json:ro
     depends_on:
