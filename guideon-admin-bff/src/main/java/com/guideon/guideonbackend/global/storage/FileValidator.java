@@ -24,8 +24,9 @@ public class FileValidator {
     private static final Set<String> ALLOWED_AUDIO_EXTENSIONS = Set.of(
             ".wav", ".mp3", ".m4a", ".m4r", ".ogg", ".webm"
     );
-    // MP3 등 비WAV 포맷: 320kbps 기준 10초 ≈ 400KB, 여유 2배 = 800KB
-    private static final long MAX_NON_WAV_AUDIO_BYTES = 800_000L;
+    // MP3 등 비WAV 포맷: 320kbps 기준으로 크기 추정, 여유 2배 적용
+    private static final int ASSUMED_MAX_BITRATE_BPS = 320_000;
+    private static final double SIZE_SAFETY_FACTOR = 2.0;
 
     private static final Set<String> ALLOWED_PDF_CONTENT_TYPES = Set.of("application/pdf");
     private static final Set<String> ALLOWED_PDF_EXTENSIONS = Set.of(".pdf");
@@ -79,11 +80,12 @@ public class FileValidator {
                 throw new CustomException(ErrorCode.VALIDATION_ERROR, "WAV 파일을 읽을 수 없습니다.");
             }
         } else {
-            // MP3 등: 파일 크기 근사 검증 (320kbps 기준 10s ≈ 400KB, 여유 2배 = 800KB)
-            if (audioBytes.length > MAX_NON_WAV_AUDIO_BYTES) {
+            // MP3 등: 파일 크기 근사 검증 (320kbps × maxDurationSeconds × 2배 여유)
+            long maxBytes = (long) ((ASSUMED_MAX_BITRATE_BPS / 8.0) * maxDurationSeconds * SIZE_SAFETY_FACTOR);
+            if (audioBytes.length > maxBytes) {
                 throw new CustomException(ErrorCode.VALIDATION_ERROR,
-                        String.format("오디오 파일이 너무 큽니다. %.0f초 분량(약 800KB) 이하로 업로드해 주세요.",
-                                maxDurationSeconds));
+                        String.format("오디오 파일이 너무 큽니다. %.0f초 분량(약 %.0fKB) 이하로 업로드해 주세요.",
+                                maxDurationSeconds, maxBytes / 1024.0));
             }
         }
     }
