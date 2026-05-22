@@ -94,8 +94,23 @@ public class FastApiVoiceService {
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            log.error("FastAPI 음성 클로닝 실패: url={}, error={}", url, e.getMessage());
-            throw new CustomException(ErrorCode.VOICE_CLONE_FAILED, "음성 클로닝 실패: " + e.getMessage());
+            log.error("FastAPI 음성 클로닝 실패: url={}", url, e);
+            throw new CustomException(ErrorCode.VOICE_CLONE_FAILED, "음성 클로닝에 실패했습니다.");
+        }
+    }
+
+    /**
+     * Cartesia 보이스를 삭제합니다. Core 저장 실패 시 보상 처리용으로 호출됩니다.
+     *
+     * 삭제 실패는 과금 정합성 문제이므로 예외를 던지지 않고 에러 로그만 남깁니다.
+     */
+    public void deleteVoice(String voiceId) {
+        String url = fastapiUrl + "/v1/voices/" + voiceId;
+        try {
+            restTemplate.delete(url);
+            log.info("Cartesia 보이스 삭제 완료 (보상 처리): voice_id={}", voiceId);
+        } catch (Exception e) {
+            log.error("Cartesia 보이스 삭제 실패 — 수동 정리 필요: voice_id={}, error={}", voiceId, e.getMessage());
         }
     }
 
