@@ -128,7 +128,6 @@ services:
       ALLOWED_STORAGE_HOSTS: ${DOMAIN}
       LLAMA_CLOUD_API_KEY: ${LLAMA_CLOUD_API_KEY}
       CARTESIA_API_KEY: ${CARTESIA_API_KEY}
-      CARTESIA_VOICE_ID: ${CARTESIA_VOICE_ID}
     volumes:
       - ./google_key.json:/app/google_key.json:ro
     depends_on:
