@@ -117,11 +117,17 @@ public class MascotService {
         FastApiVoiceService.VoiceCloneResult result =
                 fastApiVoiceService.cloneVoice(audioBytes, audioFile.getOriginalFilename(), name, language);
 
-        // 생성된 voice_id를 마스코트에 저장
-        UpdateMascotCommand command = UpdateMascotCommand.builder()
-                .ttsVoiceId(result.voiceId())
-                .build();
-        coreMascotClient.updateMascot(siteId, command);
+        // 생성된 voice_id를 마스코트에 저장 — 실패 시 Cartesia 보이스 삭제(보상 처리)
+        try {
+            UpdateMascotCommand command = UpdateMascotCommand.builder()
+                    .ttsVoiceId(result.voiceId())
+                    .build();
+            coreMascotClient.updateMascot(siteId, command);
+        } catch (Exception e) {
+            log.error("Core 마스코트 업데이트 실패, Cartesia 보이스 삭제 시도: siteId={}, voice_id={}", siteId, result.voiceId());
+            fastApiVoiceService.deleteVoice(result.voiceId());
+            throw e;
+        }
 
         log.info("보이스 클로닝 완료 및 마스코트 저장: siteId={}, voice_id={}", siteId, result.voiceId());
         return VoiceCloneResponse.builder()
