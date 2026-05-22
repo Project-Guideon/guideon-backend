@@ -77,6 +77,26 @@ public class MascotController {
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
 
+    // ── 음성 클로닝 (Cartesia) ──
+
+    @Operation(
+            summary = "마스코트 음성 클로닝",
+            description = "음성 샘플 파일을 업로드하여 Cartesia 커스텀 보이스를 생성합니다. " +
+                    "생성된 voice_id는 마스코트 ttsVoiceId에 자동 저장됩니다. PLATFORM_ADMIN 권한 필요")
+    @PostMapping(value = "/voice/clone", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<VoiceCloneResponse>> cloneVoice(
+            @PathVariable Long siteId,
+            @RequestPart("file") MultipartFile audioFile,
+            @RequestParam("name") String name,
+            @RequestParam(value = "language", defaultValue = "ko") String language,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        VoiceCloneResponse response = mascotService.cloneVoice(siteId, audioFile, name, language, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
     // ── 3D 모델 생성 (Tripo AI) ──
 
     @Operation(summary = "3D 모델 생성 시작",
