@@ -237,6 +237,8 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
             start.put("name", mascot != null ? mascot.getName() : null);
             start.put("greetingMsg", mascot != null ? mascot.getGreetingMsg() : null);
             start.put("promptConfig", mascot != null && mascot.getPromptConfig() != null ? mascot.getPromptConfig() : Map.of());
+            // Cartesia TTS 음성 ID — FastAPI에서 마스코트별 음성 합성에 사용
+            start.put("ttsVoiceId", mascot != null ? mascot.getTtsVoiceId() : null);
             if (deviceLocation != null) {
                 start.put("deviceLocation", deviceLocation);
             }
@@ -248,12 +250,17 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
             return objectMapper.writeValueAsString(start);
         } catch (Exception e) {
             log.warn("[SttWS] startPayload 직렬화 실패, mascot 없이 전송: {}", e.getMessage());
+            String ttsVoiceId = (mascot != null && mascot.getTtsVoiceId() != null)
+                    ? "\"" + escapeJson(mascot.getTtsVoiceId()) + "\""
+                    : "null";
             return String.format(
                     "{\"type\":\"start\",\"sessionId\":\"%s\",\"siteId\":%d,\"deviceId\":\"%s\",\"language\":\"%s\","
+                            + "\"ttsVoiceId\":%s,"
                             + "\"sampleRateHz\":%d,\"interimResults\":true,"
                             + "\"ttsStream\":%b,\"realtime\":true,"
                             + "\"context\":{\"dailyInfos\":[]}}",
-                    escapeJson(sessionId), siteId, escapeJson(deviceId), escapeJson(languageCode), sampleRate, ttsStream
+                    escapeJson(sessionId), siteId, escapeJson(deviceId), escapeJson(languageCode),
+                    ttsVoiceId, sampleRate, ttsStream
             );
         }
     }

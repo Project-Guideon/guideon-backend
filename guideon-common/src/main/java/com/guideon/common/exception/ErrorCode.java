@@ -47,6 +47,7 @@ public enum ErrorCode {
     MASCOT_GENERATION_NOT_FOUND(HttpStatus.NOT_FOUND, "마스코트 생성 작업을 찾을 수 없습니다"),
     MASCOT_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "3D 모델 생성에 실패했습니다"),
     TRIPO_API_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "Tripo AI API 호출에 실패했습니다"),
+    VOICE_CLONE_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "음성 클로닝에 실패했습니다"),
 
     // ── Device ──
     DEVICE_NOT_FOUND(HttpStatus.NOT_FOUND, "디바이스를 찾을 수 없습니다"),

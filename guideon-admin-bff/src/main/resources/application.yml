@@ -101,6 +101,14 @@ core:
   service:
     url: ${CORE_SERVICE_URL:http://localhost:8080}
 
+# FastAPI (AI Service — 음성 클로닝)
+fastapi:
+  service:
+    url: ${FASTAPI_SERVICE_URL:http://localhost:8000}
+  voice:
+    connect-timeout: 10000    # 연결 타임아웃 (ms)
+    read-timeout: 120000      # Cartesia 처리 시간 고려
+
 # Tripo AI (3D Model Generation)
 tripo:
   api-key: ${TRIPO_API_KEY}
