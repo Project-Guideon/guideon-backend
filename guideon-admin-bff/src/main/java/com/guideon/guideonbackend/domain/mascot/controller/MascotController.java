@@ -1,5 +1,7 @@
 package com.guideon.guideonbackend.domain.mascot.controller;
 
+import com.guideon.common.exception.CustomException;
+import com.guideon.common.exception.ErrorCode;
 import com.guideon.common.response.ApiResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.*;
 import com.guideon.guideonbackend.domain.mascot.service.MascotGenerationService;
@@ -73,6 +75,32 @@ public class MascotController {
             HttpServletRequest httpRequest
     ) {
         MascotResponse response = mascotService.updateMascot(siteId, request, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    // ── 음성 클로닝 (Cartesia) ──
+
+    @Operation(
+            summary = "마스코트 음성 클로닝",
+            description = "음성 샘플 파일을 업로드하여 Cartesia 커스텀 보이스를 생성합니다. " +
+                    "생성된 voice_id는 마스코트 ttsVoiceId에 자동 저장됩니다. PLATFORM_ADMIN 권한 필요")
+    @PostMapping(value = "/voice/clone", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<VoiceCloneResponse>> cloneVoice(
+            @PathVariable Long siteId,
+            @RequestPart("file") MultipartFile audioFile,
+            @RequestParam("name") String name,
+            @RequestParam(value = "language", defaultValue = "ko") String language,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        if (name == null || name.isBlank()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "보이스 이름은 필수입니다.");
+        }
+        if (language == null || language.isBlank()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "언어 코드는 필수입니다.");
+        }
+        VoiceCloneResponse response = mascotService.cloneVoice(siteId, audioFile, name, language, adminDetails);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
