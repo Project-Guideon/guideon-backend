@@ -96,6 +96,11 @@ file:
   upload-dir: ${FILE_UPLOAD_DIR:./uploads}
   base-url: ${FILE_BASE_URL:http://localhost:8081}
 
+# Document Scheduler
+document:
+  timeout-scheduler:
+    enabled: false
+
 # Core Service (Internal API)
 core:
   service:
