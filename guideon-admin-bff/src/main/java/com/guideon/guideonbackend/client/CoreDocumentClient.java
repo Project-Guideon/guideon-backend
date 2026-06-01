@@ -11,6 +11,10 @@ import java.util.List;
 @FeignClient(name = "core-document", url = "${core.service.url}")
 public interface CoreDocumentClient {
 
+    @GetMapping("/internal/v1/documents/pending")
+    List<DocumentDto> getPendingDocuments(
+            @RequestParam(value = "olderThanMinutes", defaultValue = "5") int olderThanMinutes);
+
     @PostMapping("/internal/v1/sites/{siteId}/documents")
     DocumentDto createDocument(
             @PathVariable("siteId") Long siteId,
