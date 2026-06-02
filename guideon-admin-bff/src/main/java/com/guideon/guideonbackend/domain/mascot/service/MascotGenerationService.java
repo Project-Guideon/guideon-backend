@@ -21,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 마스코트 3D 모델 생성 파이프라인 오케스트레이션.
  *
+ * 파이프라인: image_to_model → animate_rig → animate_retarget(5클립 배열) → GLB 저장
+ *
  * 외부 API 호출은 트랜잭션 밖에서 수행하고,
  * DB 저장/업데이트는 MascotGenerationPersistService를 통해 별도 트랜잭션으로 처리.
  */
@@ -37,7 +39,6 @@ public class MascotGenerationService {
 
     /**
      * Step 1: 선업로드된 이미지 URL을 받아 Tripo 3D 생성 task 시작
-     * 외부 API 호출 후 DB 저장 (트랜잭션 분리)
      */
     public StartGenerationResponse startGeneration(Long siteId, String imageUrl,
                                                     CustomAdminDetails adminDetails) {
@@ -54,14 +55,12 @@ public class MascotGenerationService {
                             "이미 진행 중인 3D 생성 작업이 있습니다: " + gen.getGenerationId());
                 });
 
-        // 선업로드된 이미지를 로컬에서 읽어 Tripo로 재전송
         byte[] imageBytes = fileStorageService.loadBytes(siteId, imageUrl);
         String filename = imageUrl.substring(imageUrl.lastIndexOf('/') + 1);
 
         String imageToken = tripoApiService.uploadImage(imageBytes, filename);
         String modelTaskId = tripoApiService.createImageToModelTask(imageToken);
 
-        // DB 저장 (별도 트랜잭션)
         MascotGeneration generation = persistService.saveNewGeneration(site, imageUrl, modelTaskId);
 
         log.info("마스코트 3D 생성 시작: generationId={}, siteId={}, modelTaskId={}",
@@ -75,24 +74,24 @@ public class MascotGenerationService {
     }
 
     /**
-     * Step 2: 생성 상태 폴링 — model task → rig task → GLB 다운로드 자동 진행
-     * 외부 API 호출은 트랜잭션 밖, 상태 변경은 별도 트랜잭션
+     * Step 2: 생성 상태 폴링
+     *
+     * Phase 1 (model)  → success: animate_rig 시작
+     * Phase 2 (rig)    → success: base GLB 저장 + animate_retarget(5클립 배열) 시작
+     * Phase 3 (retarget) → success: anim GLB 저장 (5클립 내장)
      */
     public GenerationStatusResponse pollStatus(Long siteId, Long generationId,
                                                 CustomAdminDetails adminDetails) {
         validatePlatformAdmin(adminDetails);
 
-        // 1. 읽기 전용 트랜잭션: 로드 + IDOR 검증
         MascotGeneration gen = persistService.loadAndValidate(siteId, generationId);
 
-        // 이미 완료 or 실패면 바로 반환
         if (gen.isFullyCompleted() || gen.isFailed()) {
             return GenerationStatusResponse.from(gen);
         }
 
         // Phase 1: model 생성 중
         if (gen.getModelStatus() == GenerationStatus.PROCESSING) {
-            // 외부 API 호출 (트랜잭션 밖)
             TripoApiService.TripoTaskStatus status = tripoApiService.getTaskStatus(gen.getModelTaskId());
 
             if (status.isFailed()) {
@@ -102,10 +101,8 @@ public class MascotGenerationService {
             }
 
             if (status.isSuccess()) {
-                log.info("마스코트 model 생성 완료, rigging 시작: generationId={}", generationId);
-                // 외부 API 호출 (트랜잭션 밖)
+                log.info("마스코트 model 완료, rigging 시작: generationId={}", generationId);
                 String rigTaskId = tripoApiService.createAnimateRigTask(gen.getModelTaskId());
-                // DB 업데이트 (별도 트랜잭션)
                 gen = persistService.applyModelComplete(generationId, rigTaskId);
             }
 
@@ -114,7 +111,6 @@ public class MascotGenerationService {
 
         // Phase 2: rigging 중
         if (gen.getRigStatus() == GenerationStatus.PROCESSING) {
-            // 외부 API 호출 (트랜잭션 밖)
             TripoApiService.TripoTaskStatus status = tripoApiService.getTaskStatus(gen.getRigTaskId());
 
             if (status.isFailed()) {
@@ -124,13 +120,50 @@ public class MascotGenerationService {
             }
 
             if (status.isSuccess() && status.modelUrl() != null) {
-                // 외부 IO (트랜잭션 밖): GLB 다운로드 → 로컬 저장
+                // base GLB 다운로드 → 저장
                 byte[] glbBytes = tripoApiService.downloadModel(status.modelUrl());
                 String glbHash = FileValidator.computeFileHash(glbBytes);
                 String modelUrl = fileStorageService.store(siteId, glbHash, glbBytes, "mascot.glb");
-                // DB 업데이트 (별도 트랜잭션)
                 gen = persistService.applyRigComplete(siteId, generationId, modelUrl);
-                log.info("마스코트 3D 생성 완전 완료: generationId={}, modelUrl={}", generationId, modelUrl);
+                log.info("base GLB 저장 완료, retarget 시작: generationId={}", generationId);
+
+                // animate_retarget: 5클립 배열 1개 task
+                String retargetTaskId = tripoApiService.createAnimateRetargetTask(
+                        gen.getRigTaskId(), MascotMotion.presetList());
+                gen = persistService.applyRetargetStarted(generationId, retargetTaskId);
+            }
+
+            return GenerationStatusResponse.from(gen);
+        }
+
+        // 복구 분기: rig=SUCCESS & retarget=PENDING → retarget task 생성 중 예외로 정체된 케이스
+        // 다음 폴링 시 retarget task를 재생성해 파이프라인을 재개한다. base GLB 재다운로드 없음.
+        if (gen.getRigStatus() == GenerationStatus.SUCCESS
+                && gen.getRetargetStatus() == GenerationStatus.PENDING) {
+            log.warn("retarget 정체 감지, retarget task 재시도: generationId={}", generationId);
+            String retargetTaskId = tripoApiService.createAnimateRetargetTask(
+                    gen.getRigTaskId(), MascotMotion.presetList());
+            gen = persistService.applyRetargetStarted(generationId, retargetTaskId);
+            return GenerationStatusResponse.from(gen);
+        }
+
+        // Phase 3: retarget 중 (단일 task 폴링)
+        if (gen.getRetargetStatus() == GenerationStatus.PROCESSING) {
+            TripoApiService.TripoTaskStatus status = tripoApiService.getTaskStatus(gen.getRetargetTaskId());
+
+            if (status.isFailed()) {
+                gen = persistService.applyRetargetFailed(generationId, "Tripo retarget 실패");
+                return GenerationStatusResponse.from(gen);
+            }
+
+            if (status.isSuccess() && status.modelUrl() != null) {
+                // anim GLB(5클립 내장) 다운로드 → 저장
+                byte[] animBytes = tripoApiService.downloadModel(status.modelUrl());
+                String animHash = FileValidator.computeFileHash(animBytes);
+                String animModelUrl = fileStorageService.store(siteId, animHash, animBytes, "mascot_anim.glb");
+                gen = persistService.applyRetargetComplete(
+                        siteId, generationId, animModelUrl, MascotMotion.clipMap());
+                log.info("마스코트 생성 완전 완료: generationId={}, animModelUrl={}", generationId, animModelUrl);
             }
 
             return GenerationStatusResponse.from(gen);

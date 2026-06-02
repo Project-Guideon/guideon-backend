@@ -54,6 +54,8 @@ public class KioskService {
                         .greetingMsg(m.getGreetingMsg())
                         .ttsVoiceId(m.getTtsVoiceId())
                         .ttsVoiceJson(m.getTtsVoiceJson())
+                        .animModelUrl(m.getAnimModelUrl())
+                        .animClips(m.getAnimClips())
                         .build())
                 .orElse(null);
 

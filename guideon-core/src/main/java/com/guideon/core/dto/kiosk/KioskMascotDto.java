@@ -25,6 +25,8 @@ public class KioskMascotDto {
     private Map<String, Object> promptConfig;
     private String ttsVoiceId;
     private Map<String, Object> ttsVoiceJson;
+    private String animModelUrl;           // 5클립 내장 GLB URL (없으면 프로시저럴 폴백)
+    private Map<String, String> animClips; // 상태→클립명 (Unity Animation.Play 키)
 
     public static KioskMascotDto from(Mascot mascot) {
         return KioskMascotDto.builder()
@@ -39,6 +41,8 @@ public class KioskMascotDto {
                 .promptConfig(mascot.getPromptConfig())
                 .ttsVoiceId(mascot.getTtsVoiceId())
                 .ttsVoiceJson(mascot.getTtsVoiceJson())
+                .animModelUrl(mascot.getAnimModelUrl())
+                .animClips(mascot.getAnimClips())
                 .build();
     }
 }

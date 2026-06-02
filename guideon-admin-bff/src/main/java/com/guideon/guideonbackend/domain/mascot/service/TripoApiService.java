@@ -12,6 +12,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -116,6 +117,30 @@ public class TripoApiService {
         String taskId = (String) data.get("task_id");
 
         log.info("Tripo animate_rig task 생성: taskId={}", taskId);
+        return taskId;
+    }
+
+    /**
+     * Step 4: animate_retarget task 생성 (리깅된 모델 + 5클립 배열 → GLB 1개) → task_id 반환
+     *
+     * @param rigTaskId animate_rig 완료된 task_id
+     * @param presets   Tripo preset 식별자 목록 ({@link MascotMotion#presetList()}, 최대 5개)
+     */
+    public String createAnimateRetargetTask(String rigTaskId, List<String> presets) {
+        String url = baseUrl + "/task";
+
+        Map<String, Object> requestBody = Map.of(
+                "type", "animate_retarget",
+                "original_model_task_id", rigTaskId,
+                "out_format", "glb",
+                "animations", presets
+        );
+
+        Map<String, Object> response = postJson(url, requestBody);
+        Map<String, Object> data = extractData(response);
+        String taskId = (String) data.get("task_id");
+
+        log.info("Tripo animate_retarget task 생성: presets={}, taskId={}", presets, taskId);
         return taskId;
     }
 
