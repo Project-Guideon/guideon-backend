@@ -39,5 +39,7 @@ public class KioskBootstrapDto {
         private String greetingMsg;
         private String ttsVoiceId;
         private Map<String, Object> ttsVoiceJson;
+        private String animModelUrl;           // 5클립 내장 GLB URL (없으면 프로시저럴 폴백)
+        private Map<String, String> animClips; // 상태→클립명 (Unity Animation.Play 키)
     }
 }
