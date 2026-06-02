@@ -136,6 +136,17 @@ public class MascotGenerationService {
             return GenerationStatusResponse.from(gen);
         }
 
+        // 복구 분기: rig=SUCCESS & retarget=PENDING → retarget task 생성 중 예외로 정체된 케이스
+        // 다음 폴링 시 retarget task를 재생성해 파이프라인을 재개한다. base GLB 재다운로드 없음.
+        if (gen.getRigStatus() == GenerationStatus.SUCCESS
+                && gen.getRetargetStatus() == GenerationStatus.PENDING) {
+            log.warn("retarget 정체 감지, retarget task 재시도: generationId={}", generationId);
+            String retargetTaskId = tripoApiService.createAnimateRetargetTask(
+                    gen.getRigTaskId(), MascotMotion.presetList());
+            gen = persistService.applyRetargetStarted(generationId, retargetTaskId);
+            return GenerationStatusResponse.from(gen);
+        }
+
         // Phase 3: retarget 중 (단일 task 폴링)
         if (gen.getRetargetStatus() == GenerationStatus.PROCESSING) {
             TripoApiService.TripoTaskStatus status = tripoApiService.getTaskStatus(gen.getRetargetTaskId());
