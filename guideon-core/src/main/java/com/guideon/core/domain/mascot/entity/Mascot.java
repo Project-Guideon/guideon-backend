@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @Entity
@@ -62,6 +63,15 @@ public class Mascot extends BaseEntity {
     @Column(name = "model_format", length = 10)
     private String modelFormat;
 
+    /** retarget 완료 GLB (5클립 내장). Unity 노출 소스. */
+    @Column(name = "anim_model_url", length = 500)
+    private String animModelUrl;
+
+    /** 상태→클립명 매핑 (예: {idle:"preset:biped:idle", ...}). Unity가 상태별 Animation.Play() 호출에 사용. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "anim_clips", nullable = false, columnDefinition = "jsonb")
+    private Map<String, String> animClips;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "generation_id", unique = true)
     private MascotGeneration generation;
@@ -83,6 +93,7 @@ public class Mascot extends BaseEntity {
         this.ttsVoiceId = ttsVoiceId;
         this.ttsVoiceJson = ttsVoiceJson;
         this.imageUrl = imageUrl;
+        this.animClips = new HashMap<>();
         this.isActive = true;
     }
 
@@ -106,5 +117,11 @@ public class Mascot extends BaseEntity {
         this.modelUrl = modelUrl;
         this.modelFormat = (modelFormat != null && !modelFormat.isBlank()) ? modelFormat : "glb";
         this.generation = generation;
+    }
+
+    /** retarget 완료 시 animModelUrl(5클립 GLB) + animClips(상태→클립명 맵) 반영. */
+    public void updateAnimation(String animModelUrl, Map<String, String> animClips) {
+        this.animModelUrl = animModelUrl;
+        this.animClips = animClips != null ? animClips : new HashMap<>();
     }
 }
