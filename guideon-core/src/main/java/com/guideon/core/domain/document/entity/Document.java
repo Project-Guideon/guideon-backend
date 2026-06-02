@@ -90,7 +90,7 @@ public class Document extends BaseEntity {
     }
 
     public void reprocess() {
-        this.status = DocStatus.PENDING;
+        this.status = DocStatus.PROCESSING;
         this.failedReason = null;
         this.processedAt = null;
     }

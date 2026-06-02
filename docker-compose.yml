@@ -76,6 +76,7 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       CORE_SERVICE_URL: http://core:8080
       FASTAPI_SERVICE_URL: http://fastapi:8000
+      FILE_BASE_URL: http://admin-bff:8081
       JWT_SECRET: ${JWT_SECRET}
       INIT_ADMIN_EMAIL: ${INIT_ADMIN_EMAIL}
       INIT_ADMIN_PASSWORD: ${INIT_ADMIN_PASSWORD}

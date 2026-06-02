@@ -15,6 +15,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+
 @RestController
 @RequestMapping("/internal/v1/sites/{siteId}/documents")
 @RequiredArgsConstructor

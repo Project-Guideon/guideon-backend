@@ -10,6 +10,9 @@ import com.guideon.core.domain.document.entity.DocStatus;
 import com.guideon.core.dto.document.CreateDocumentCommand;
 import com.guideon.core.dto.document.DocumentDto;
 import com.guideon.core.dto.document.UpdateDocumentStatusCommand;
+
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -107,5 +110,13 @@ public class DocumentService {
                 .orElseThrow(() -> new CustomException(ErrorCode.DOC_NOT_FOUND));
         documentRepository.delete(document);
         log.info("문서 삭제 완료: docId={}, siteId={}", docId, siteId);
+    }
+
+    public List<DocumentDto> getPendingDocumentsOlderThan(int minutes) {
+        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(minutes);
+        return documentRepository.findByStatusAndCreatedAtBefore(DocStatus.PENDING, cutoff)
+                .stream()
+                .map(DocumentDto::from)
+                .toList();
     }
 }
