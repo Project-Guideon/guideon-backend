@@ -69,9 +69,10 @@ public class MascotGenerationPersistService {
                 .orElseThrow(() -> new CustomException(ErrorCode.MASCOT_GENERATION_NOT_FOUND));
         gen.completeRigging(modelUrl);
 
-        // tb_mascot에 base model_url 자동 업데이트
+        // tb_mascot에 base model_url 업데이트 (재생성 시 옛 anim 메타데이터 먼저 초기화)
         mascotRepository.findBySite_SiteId(siteId).ifPresentOrElse(
                 mascot -> {
+                    mascot.clearAnimation();
                     mascot.updateModelUrl(modelUrl, "glb", gen);
                     log.info("tb_mascot model_url 업데이트: siteId={}", siteId);
                 },

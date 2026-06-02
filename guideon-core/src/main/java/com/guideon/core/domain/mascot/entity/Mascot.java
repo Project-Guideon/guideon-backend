@@ -124,4 +124,13 @@ public class Mascot extends BaseEntity {
         this.animModelUrl = animModelUrl;
         this.animClips = animClips != null ? animClips : new HashMap<>();
     }
+
+    /**
+     * rig 재생성 시작 시 이전 애니메이션 메타데이터 초기화.
+     * 새 base GLB와 옛 animModelUrl이 함께 서빙되는 스켈레톤 불일치를 방지.
+     */
+    public void clearAnimation() {
+        this.animModelUrl = null;
+        this.animClips = new HashMap<>();
+    }
 }
