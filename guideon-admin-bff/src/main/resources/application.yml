@@ -114,6 +114,12 @@ fastapi:
     connect-timeout: 10000    # 연결 타임아웃 (ms)
     read-timeout: 120000      # Cartesia 처리 시간 고려
 
+# Mesh Processor (Node.js GLB 병합 서비스)
+mesh-processor:
+  url: ${MESH_PROCESSOR_URL:http://mesh-processor:3001}
+  connect-timeout: 5000
+  read-timeout: 120000   # GLB 병합 작업 최대 2분
+
 # Tripo AI (3D Model Generation)
 tripo:
   api-key: ${TRIPO_API_KEY}

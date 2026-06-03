@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -120,6 +121,28 @@ public class LocalFileStorageService implements FileStorageService {
         } catch (IOException e) {
             log.warn("파일 삭제 실패 (무시): storageUrl={}, error={}", storageUrl, e.getMessage());
         }
+    }
+
+    @Override
+    public Path toLocalPath(String storageUrl) {
+        // "http://admin-bff:8081/internal/files/1/abc.glb" → uploadDir/1/abc.glb
+        String prefix = "/internal/files/";
+        int idx = Objects.requireNonNull(storageUrl, "storageUrl").indexOf(prefix);
+        if (idx < 0) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                    "toLocalPath: 올바른 /internal/files/ URL이 아닙니다: " + storageUrl);
+        }
+        String relative = storageUrl.substring(idx + prefix.length()); // "1/abc.glb"
+        Path resolved = uploadDir.resolve(relative).normalize();
+        if (!resolved.startsWith(uploadDir)) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "허용되지 않은 파일 경로입니다.");
+        }
+        return resolved;
+    }
+
+    @Override
+    public String resolveUrl(Long siteId, String filename) {
+        return fileBaseUrl + "/internal/files/" + siteId + "/" + filename;
     }
 
     private String extractExtension(String filename) {
