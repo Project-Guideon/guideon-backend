@@ -12,7 +12,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,15 +27,24 @@ public class TripoApiService {
 
     private final String apiKey;
     private final String baseUrl;
+    private final String imageModelVersion;
+    private final String rigModelVersion;
+    private final String rigSpec;
     private final RestTemplate restTemplate;
 
     public TripoApiService(
             @Value("${tripo.api-key}") String apiKey,
             @Value("${tripo.base-url}") String baseUrl,
             @Value("${tripo.connect-timeout:10000}") int connectTimeout,
-            @Value("${tripo.read-timeout:60000}") int readTimeout) {
+            @Value("${tripo.read-timeout:60000}") int readTimeout,
+            @Value("${tripo.image-model-version:v3.1-20260211}") String imageModelVersion,
+            @Value("${tripo.rig-model-version:v2.0-20250506}") String rigModelVersion,
+            @Value("${tripo.rig-spec:mixamo}") String rigSpec) {
         this.apiKey = apiKey;
         this.baseUrl = baseUrl;
+        this.imageModelVersion = imageModelVersion;
+        this.rigModelVersion = rigModelVersion;
+        this.rigSpec = rigSpec;
 
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(connectTimeout);
@@ -81,17 +89,20 @@ public class TripoApiService {
 
     /**
      * Step 2: image_to_model task 생성 → task_id 반환
+     *
+     * model_version/pbr/quad/texture_quality는 application.yml로 외부화.
+     * quad:true → 캐릭터 리깅/스키닝 변형에 유리한 토폴로지.
      */
     public String createImageToModelTask(String imageToken) {
         String url = baseUrl + "/task";
 
-        Map<String, Object> requestBody = Map.of(
-                "type", "image_to_model",
-                "file", Map.of(
-                        "type", "image",
-                        "file_token", imageToken
-                )
-        );
+        Map<String, Object> requestBody = new java.util.LinkedHashMap<>();
+        requestBody.put("type", "image_to_model");
+        requestBody.put("file", Map.of("type", "image", "file_token", imageToken));
+        requestBody.put("model_version", imageModelVersion);
+        requestBody.put("pbr", true);
+        requestBody.put("quad", true);
+        requestBody.put("texture_quality", "detailed");
 
         Map<String, Object> response = postJson(url, requestBody);
         Map<String, Object> data = extractData(response);
@@ -103,44 +114,26 @@ public class TripoApiService {
 
     /**
      * Step 3: animate_rig task 생성 (3D 모델에 리깅 적용) → task_id 반환
+     *
+     * spec:"mixamo" → Mixamo 호환 본 이름(mixamorig:Hips 등) 생성.
+     * out_format:"glb" → Kiosk BFF/Unity가 직접 사용.
      */
     public String createAnimateRigTask(String originalModelTaskId) {
         String url = baseUrl + "/task";
 
-        Map<String, Object> requestBody = Map.of(
-                "type", "animate_rig",
-                "original_model_task_id", originalModelTaskId
-        );
+        Map<String, Object> requestBody = new java.util.LinkedHashMap<>();
+        requestBody.put("type", "animate_rig");
+        requestBody.put("original_model_task_id", originalModelTaskId);
+        requestBody.put("model_version", rigModelVersion);
+        requestBody.put("out_format", "glb");
+        requestBody.put("spec", rigSpec);
+        requestBody.put("rig_type", "biped");
 
         Map<String, Object> response = postJson(url, requestBody);
         Map<String, Object> data = extractData(response);
         String taskId = (String) data.get("task_id");
 
         log.info("Tripo animate_rig task 생성: taskId={}", taskId);
-        return taskId;
-    }
-
-    /**
-     * Step 4: animate_retarget task 생성 (리깅된 모델 + 5클립 배열 → GLB 1개) → task_id 반환
-     *
-     * @param rigTaskId animate_rig 완료된 task_id
-     * @param presets   Tripo preset 식별자 목록 ({@link MascotMotion#presetList()}, 최대 5개)
-     */
-    public String createAnimateRetargetTask(String rigTaskId, List<String> presets) {
-        String url = baseUrl + "/task";
-
-        Map<String, Object> requestBody = Map.of(
-                "type", "animate_retarget",
-                "original_model_task_id", rigTaskId,
-                "out_format", "glb",
-                "animations", presets
-        );
-
-        Map<String, Object> response = postJson(url, requestBody);
-        Map<String, Object> data = extractData(response);
-        String taskId = (String) data.get("task_id");
-
-        log.info("Tripo animate_retarget task 생성: presets={}, taskId={}", presets, taskId);
         return taskId;
     }
 

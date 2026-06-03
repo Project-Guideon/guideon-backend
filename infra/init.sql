@@ -229,11 +229,6 @@ CREATE TABLE IF NOT EXISTS tb_mascot_generation (
   rig_task_id        VARCHAR(100) NULL,
   rig_status         VARCHAR(20) NOT NULL DEFAULT 'PENDING',
 
-  -- animate_retarget task 추적 (animations 배열 1개 task → GLB 1개에 5클립)
-  retarget_status    VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-  retarget_task_id   VARCHAR(100) NULL,            -- retarget 단일 task_id
-  anim_model_url     VARCHAR(500) NULL,            -- retarget 완료 GLB URL
-
   -- 결과
   result_model_url   VARCHAR(500) NULL,
   failed_reason      TEXT NULL,
@@ -242,8 +237,7 @@ CREATE TABLE IF NOT EXISTS tb_mascot_generation (
   updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
   CONSTRAINT ck_model_status CHECK (model_status IN ('PENDING','PROCESSING','SUCCESS','FAILED')),
-  CONSTRAINT ck_rig_status CHECK (rig_status IN ('PENDING','PROCESSING','SUCCESS','FAILED')),
-  CONSTRAINT ck_retarget_status CHECK (retarget_status IN ('PENDING','PROCESSING','SUCCESS','FAILED'))
+  CONSTRAINT ck_rig_status CHECK (rig_status IN ('PENDING','PROCESSING','SUCCESS','FAILED'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_mascot_gen_site ON tb_mascot_generation (site_id, model_status);
@@ -261,16 +255,6 @@ ALTER TABLE tb_mascot ADD COLUMN IF NOT EXISTS generation_id BIGINT NULL UNIQUE 
 -- 상태별 애니메이션 (5클립 GLB 단일 URL + 상태→클립명 매핑). Unity 노출 소스
 ALTER TABLE tb_mascot ADD COLUMN IF NOT EXISTS anim_model_url VARCHAR(500) NULL;
 ALTER TABLE tb_mascot ADD COLUMN IF NOT EXISTS anim_clips JSONB NOT NULL DEFAULT '{}';
-
--- 기존 운영 DB용 멱등 컬럼 추가 (tb_mascot_generation retarget 추적)
-ALTER TABLE tb_mascot_generation ADD COLUMN IF NOT EXISTS retarget_status VARCHAR(20) NOT NULL DEFAULT 'PENDING';
-ALTER TABLE tb_mascot_generation ADD COLUMN IF NOT EXISTS retarget_task_id VARCHAR(100) NULL;
-ALTER TABLE tb_mascot_generation ADD COLUMN IF NOT EXISTS anim_model_url VARCHAR(500) NULL;
-
-DO $$ BEGIN
-  ALTER TABLE tb_mascot_generation ADD CONSTRAINT ck_retarget_status
-    CHECK (retarget_status IN ('PENDING','PROCESSING','SUCCESS','FAILED'));
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- tb_document
 CREATE TABLE IF NOT EXISTS tb_document (
