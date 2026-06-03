@@ -33,6 +33,9 @@ public class SiteService {
     public SiteDto createSite(CreateSiteCommand command) {
         Site site = Site.builder()
                 .name(command.getName())
+                .latitude(command.getLatitude())
+                .longitude(command.getLongitude())
+                .mapLevel(command.getMapLevel())
                 .build();
 
         siteRepository.save(site);
@@ -65,6 +68,7 @@ public class SiteService {
     public SiteDto updateSite(Long siteId, UpdateSiteCommand command) {
         Site site = findSiteById(siteId);
         site.updateName(command.getName());
+        site.updateMapLocation(command.getLatitude(), command.getLongitude(), command.getMapLevel());
         log.info("관광지 수정 완료: siteId={}, name={}", site.getSiteId(), site.getName());
 
         return SiteDto.from(site);
