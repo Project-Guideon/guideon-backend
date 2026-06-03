@@ -63,11 +63,11 @@ public class Mascot extends BaseEntity {
     @Column(name = "model_format", length = 10)
     private String modelFormat;
 
-    /** retarget 완료 GLB (5클립 내장). Unity 노출 소스. */
+    /** Mixamo+Blender로 제작한 anim GLB URL. POST /mascot/animation 수동 업로드 후 갱신. Unity 노출 소스. */
     @Column(name = "anim_model_url", length = 500)
     private String animModelUrl;
 
-    /** 상태→클립명 매핑 (예: {idle:"preset:biped:idle", ...}). Unity가 상태별 Animation.Play() 호출에 사용. */
+    /** 상태→클립명 매핑. Unity Animation.Play() 호출에 사용. 예: {idle:"Idle", speaking:"Talking", greeting:"Waving"} */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "anim_clips", nullable = false, columnDefinition = "jsonb")
     private Map<String, String> animClips;

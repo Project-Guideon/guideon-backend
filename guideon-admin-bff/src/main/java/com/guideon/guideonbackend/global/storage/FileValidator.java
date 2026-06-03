@@ -163,8 +163,9 @@ public class FileValidator {
     }
 
     /**
-     * GLB(glTF Binary) 파일 검증: 매직바이트 + 크기 상한(100MB).
+     * GLB(glTF Binary) 파일 검증: 매직바이트 + 크기 상한(50MB).
      * GLB 매직: 0x67 0x6C 0x54 0x46 ("glTF")
+     * 50MB는 spring.servlet.multipart.max-file-size와 동일 — 그 이상은 Spring이 먼저 거부.
      */
     public static void validateGlb(MultipartFile file) {
         if (file == null || file.isEmpty()) {
@@ -174,8 +175,8 @@ public class FileValidator {
         if (originalName == null || !originalName.toLowerCase().endsWith(".glb")) {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "GLB 파일만 업로드 가능합니다. (.glb 확장자 필요)");
         }
-        if (file.getSize() > 100L * 1024 * 1024) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR, "GLB 파일은 100MB 이하만 업로드 가능합니다.");
+        if (file.getSize() > 50L * 1024 * 1024) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "GLB 파일은 50MB 이하만 업로드 가능합니다.");
         }
         try (InputStream is = file.getInputStream()) {
             byte[] header = is.readNBytes(4);

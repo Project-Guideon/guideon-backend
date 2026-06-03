@@ -118,17 +118,18 @@ public class MascotService {
                                                     String animClipsJson,
                                                     CustomAdminDetails adminDetails) {
         validatePlatformAdmin(adminDetails);
-        FileValidator.validateGlb(file);
 
+        // 마스코트 존재 여부를 파일 저장 전에 확인 — 실패 시 고아 파일 방지
+        var mascot = mascotRepository.findBySite_SiteId(siteId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND,
+                        "마스코트를 찾을 수 없습니다. 먼저 마스코트를 생성해주세요. siteId=" + siteId));
+
+        FileValidator.validateGlb(file);
         String fileHash = FileValidator.computeFileHash(file);
         String animModelUrl = fileStorageService.store(siteId, fileHash, file);
 
         Map<String, String> animClips = parseAnimClips(animClipsJson);
-
-        mascotRepository.findBySite_SiteId(siteId)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND,
-                        "마스코트를 찾을 수 없습니다. 먼저 마스코트를 생성해주세요. siteId=" + siteId))
-                .updateAnimation(animModelUrl, animClips);
+        mascot.updateAnimation(animModelUrl, animClips);
 
         log.info("마스코트 anim GLB 업로드 완료: siteId={}, animModelUrl={}, clips={}",
                 siteId, animModelUrl, animClips.keySet());

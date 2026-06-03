@@ -95,7 +95,7 @@ public class MascotGeneration extends BaseEntity {
                 && rigStatus == GenerationStatus.SUCCESS;
     }
 
-    /** model/rig 실패만 전체 실패 — retarget 실패는 폴백 허용. */
+    /** modelStatus 또는 rigStatus가 FAILED면 전체 실패. */
     public boolean isFailed() {
         return modelStatus == GenerationStatus.FAILED || rigStatus == GenerationStatus.FAILED;
     }
