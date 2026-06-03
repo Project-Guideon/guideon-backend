@@ -20,6 +20,9 @@ public class SiteDto {
     private Long siteId;
     private String name;
     private Boolean isActive;
+    private Double latitude;
+    private Double longitude;
+    private Integer mapLevel;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -28,6 +31,9 @@ public class SiteDto {
                 .siteId(site.getSiteId())
                 .name(site.getName())
                 .isActive(site.getIsActive())
+                .latitude(site.getLatitude())
+                .longitude(site.getLongitude())
+                .mapLevel(site.getMapLevel())
                 .createdAt(site.getCreatedAt())
                 .updatedAt(site.getUpdatedAt())
                 .build();

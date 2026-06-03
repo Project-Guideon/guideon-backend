@@ -30,6 +30,9 @@ public class SiteService {
     public SiteResponse createSite(CreateSiteRequest request) {
         CreateSiteCommand command = CreateSiteCommand.builder()
                 .name(request.getName())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
+                .mapLevel(request.getMapLevel())
                 .build();
 
         SiteDto siteDto = coreSiteClient.createSite(command);
@@ -61,6 +64,9 @@ public class SiteService {
     public SiteResponse updateSite(Long siteId, UpdateSiteRequest request) {
         UpdateSiteCommand command = UpdateSiteCommand.builder()
                 .name(request.getName())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
+                .mapLevel(request.getMapLevel())
                 .build();
 
         SiteDto siteDto = coreSiteClient.updateSite(siteId, command);

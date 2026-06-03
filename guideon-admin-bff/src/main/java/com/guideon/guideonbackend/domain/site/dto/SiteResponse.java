@@ -13,6 +13,9 @@ public class SiteResponse {
     private Long siteId;
     private String name;
     private Boolean isActive;
+    private Double latitude;
+    private Double longitude;
+    private Integer mapLevel;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -21,6 +24,9 @@ public class SiteResponse {
                 .siteId(dto.getSiteId())
                 .name(dto.getName())
                 .isActive(dto.getIsActive())
+                .latitude(dto.getLatitude())
+                .longitude(dto.getLongitude())
+                .mapLevel(dto.getMapLevel())
                 .createdAt(dto.getCreatedAt())
                 .updatedAt(dto.getUpdatedAt())
                 .build();

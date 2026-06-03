@@ -14,4 +14,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CreateSiteCommand {
     private String name;
+    private Double latitude;
+    private Double longitude;
+    private Integer mapLevel;
 }

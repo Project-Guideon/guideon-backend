@@ -14,4 +14,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UpdateSiteCommand {
     private String name;
+    private Double latitude;
+    private Double longitude;
+    private Integer mapLevel;
 }
