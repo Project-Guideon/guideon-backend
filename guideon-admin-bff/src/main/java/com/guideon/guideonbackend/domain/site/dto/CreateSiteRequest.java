@@ -32,10 +32,14 @@ public class CreateSiteRequest {
     @Max(value = 14, message = "지도 줌 레벨은 14 이하여야 합니다")
     private Integer mapLevel;
 
-    /** 위도·경도는 반드시 함께 입력 (반쪽 좌표 방지) */
+    /** 위도·경도·줌 레벨은 반드시 함께 입력 (반쪽 좌표 방지) */
     @JsonIgnore
-    @AssertTrue(message = "위도와 경도는 함께 입력해야 합니다")
+    @AssertTrue(message = "위도, 경도, 줌 레벨은 함께 입력해야 합니다")
     public boolean isCoordinatesPaired() {
-        return (latitude == null) == (longitude == null);
+        boolean latPresent = latitude != null;
+        boolean lonPresent = longitude != null;
+        boolean lvlPresent = mapLevel != null;
+        // 셋 다 null 이거나, 셋 다 non-null 이어야 함
+        return (latPresent == lonPresent) && (lonPresent == lvlPresent);
     }
 }
