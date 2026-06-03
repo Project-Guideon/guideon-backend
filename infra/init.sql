@@ -419,3 +419,16 @@ CREATE INDEX IF NOT EXISTS idx_pairing_status_expires ON tb_pairing_request (sta
 CREATE OR REPLACE TRIGGER trg_pairing_request_updated_at
 BEFORE UPDATE ON tb_pairing_request
 FOR EACH ROW EXECUTE FUNCTION guideon_set_updated_at();
+
+-- tb_mascot_anim_config: 사이트별 state→클립명+GLB URL (1회 설정 후 마스코트 생성마다 재활용)
+CREATE TABLE IF NOT EXISTS tb_mascot_anim_config (
+  id          BIGSERIAL PRIMARY KEY,
+  site_id     BIGINT NOT NULL REFERENCES tb_site(site_id) ON DELETE CASCADE,
+  state_key   VARCHAR(20) NOT NULL,    -- idle | speaking | listening | thinking | greeting
+  clip_name   VARCHAR(50) NOT NULL,    -- GLB 내부 클립명 (combiner.js가 이 이름으로 임베드)
+  glb_url     VARCHAR(500) NOT NULL,   -- http://.../internal/files/... (admin-bff 서빙 URL)
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT uk_anim_config_site_state UNIQUE (site_id, state_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_anim_config_site ON tb_mascot_anim_config (site_id);
