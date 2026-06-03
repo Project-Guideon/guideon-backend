@@ -119,7 +119,7 @@ public class Mascot extends BaseEntity {
         this.generation = generation;
     }
 
-    /** retarget 완료 시 animModelUrl(5클립 GLB) + animClips(상태→클립명 맵) 반영. */
+    /** anim GLB 업로드 시 animModelUrl + animClips(상태→클립명 맵) 반영. */
     public void updateAnimation(String animModelUrl, Map<String, String> animClips) {
         this.animModelUrl = animModelUrl;
         this.animClips = animClips != null ? animClips : new HashMap<>();
