@@ -11,8 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Map;
-
 /**
  * MascotGeneration DB 저장/업데이트 전담.
  * 외부 API 호출 없이 트랜잭션 범위를 최소화.
@@ -90,45 +88,4 @@ public class MascotGenerationPersistService {
         return gen;
     }
 
-    /** retarget task 1개 생성 후 PROCESSING 전환. */
-    @Transactional
-    public MascotGeneration applyRetargetStarted(Long generationId, String retargetTaskId) {
-        MascotGeneration gen = generationRepository.findById(generationId)
-                .orElseThrow(() -> new CustomException(ErrorCode.MASCOT_GENERATION_NOT_FOUND));
-        gen.startRetarget(retargetTaskId);
-        return gen;
-    }
-
-    /**
-     * retarget GLB 다운로드 완료: generation.animModelUrl 저장 + tb_mascot.animModelUrl/animClips 반영.
-     *
-     * @param animClips MascotMotion.clipMap() — 상태→클립명 (Unity용)
-     */
-    @Transactional
-    public MascotGeneration applyRetargetComplete(Long siteId, Long generationId,
-                                                   String animModelUrl, Map<String, String> animClips) {
-        MascotGeneration gen = generationRepository.findById(generationId)
-                .orElseThrow(() -> new CustomException(ErrorCode.MASCOT_GENERATION_NOT_FOUND));
-        gen.completeRetarget(animModelUrl);
-
-        mascotRepository.findBySite_SiteId(siteId).ifPresentOrElse(
-                mascot -> {
-                    mascot.updateAnimation(animModelUrl, animClips);
-                    log.info("tb_mascot animModelUrl 업데이트: siteId={}, animClips={}", siteId, animClips.keySet());
-                },
-                () -> log.warn("tb_mascot 미존재 — animModelUrl 업데이트 생략: siteId={}, generationId={}",
-                        siteId, generationId)
-        );
-        return gen;
-    }
-
-    /** retarget 실패 — generation을 FAILED로 마킹하지 않음(base GLB는 확보됨). */
-    @Transactional
-    public MascotGeneration applyRetargetFailed(Long generationId, String reason) {
-        MascotGeneration gen = generationRepository.findById(generationId)
-                .orElseThrow(() -> new CustomException(ErrorCode.MASCOT_GENERATION_NOT_FOUND));
-        gen.failRetarget(reason);
-        log.warn("retarget 실패(base GLB 유지): generationId={}, reason={}", generationId, reason);
-        return gen;
-    }
 }

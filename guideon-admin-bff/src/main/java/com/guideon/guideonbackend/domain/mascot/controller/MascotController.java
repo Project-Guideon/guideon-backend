@@ -4,6 +4,7 @@ import com.guideon.common.exception.CustomException;
 import com.guideon.common.exception.ErrorCode;
 import com.guideon.common.response.ApiResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.*;
+import org.springframework.lang.Nullable;
 import com.guideon.guideonbackend.domain.mascot.service.MascotGenerationService;
 import com.guideon.guideonbackend.domain.mascot.service.MascotService;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
@@ -79,6 +80,26 @@ public class MascotController {
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
 
+    // ── 애니메이션 GLB 업로드 ──
+
+    @Operation(
+            summary = "Mixamo 애니메이션 GLB 업로드",
+            description = "Mixamo + Blender로 제작한 통합 anim GLB를 업로드하고 마스코트에 연결합니다. " +
+                    "animClips를 함께 전달하지 않으면 기본 매핑(Idle/Talking/Waving)이 사용됩니다. " +
+                    "PLATFORM_ADMIN 권한 필요")
+    @PostMapping(value = "/animation", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<AnimationUploadResponse>> uploadAnimation(
+            @PathVariable Long siteId,
+            @RequestPart("file") MultipartFile file,
+            @RequestParam(value = "animClips", required = false) @Nullable String animClipsJson,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        AnimationUploadResponse response = mascotService.uploadAnimation(siteId, file, animClipsJson, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
     // ── 음성 클로닝 (Cartesia) ──
 
     @Operation(
@@ -108,7 +129,8 @@ public class MascotController {
     // ── 3D 모델 생성 (Tripo AI) ──
 
     @Operation(summary = "3D 모델 생성 시작",
-            description = "선업로드된 이미지 URL(POST /mascot/image 응답)을 받아 Tripo AI 3D 모델 생성을 시작합니다. PLATFORM_ADMIN 권한 필요")
+            description = "선업로드된 이미지 URL(POST /mascot/image 응답)을 받아 Tripo AI 3D 모델 생성 및 리깅을 시작합니다. " +
+                    "완료 후 resultModelUrl로 리깅 GLB를 다운로드하여 Mixamo 애니메이션 작업에 사용합니다. PLATFORM_ADMIN 권한 필요")
     @PostMapping("/generate")
     public ResponseEntity<ApiResponse<StartGenerationResponse>> startGeneration(
             @PathVariable Long siteId,
@@ -121,7 +143,9 @@ public class MascotController {
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
 
-    @Operation(summary = "3D 모델 생성 상태 폴링", description = "생성 진행 상태를 확인합니다. model 완료 시 자동으로 rigging이 시작됩니다.")
+    @Operation(summary = "3D 모델 생성 상태 폴링",
+            description = "생성 진행 상태를 확인합니다. model 완료 시 자동으로 rigging(spec:mixamo)이 시작됩니다. " +
+                    "completed=true가 되면 resultModelUrl에서 리깅 GLB를 다운로드할 수 있습니다.")
     @GetMapping("/generate/{generationId}/status")
     public ResponseEntity<ApiResponse<GenerationStatusResponse>> pollGenerationStatus(
             @PathVariable Long siteId,

@@ -120,3 +120,6 @@ tripo:
   base-url: https://api.tripo3d.ai/v2/openapi
   connect-timeout: 10000   # 연결 타임아웃 (ms)
   read-timeout: 60000      # 읽기 타임아웃 (ms)
+  image-model-version: ${TRIPO_IMAGE_MODEL_VERSION:v3.1-20260211}  # image_to_model 버전 (env로 교체 가능)
+  rig-model-version:   ${TRIPO_RIG_MODEL_VERSION:v2.0-20250506}    # animate_rig 엔진 버전
+  rig-spec:            ${TRIPO_RIG_SPEC:mixamo}                     # mixamo 호환 본 이름 생성
