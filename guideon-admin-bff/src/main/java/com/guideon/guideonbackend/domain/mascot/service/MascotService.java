@@ -1,12 +1,16 @@
 package com.guideon.guideonbackend.domain.mascot.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guideon.common.exception.CustomException;
 import com.guideon.common.exception.ErrorCode;
 import com.guideon.core.domain.admin.entity.AdminRole;
+import com.guideon.core.domain.mascot.repository.MascotRepository;
 import com.guideon.core.dto.mascot.CreateMascotCommand;
 import com.guideon.core.dto.mascot.MascotDto;
 import com.guideon.core.dto.mascot.UpdateMascotCommand;
 import com.guideon.guideonbackend.client.CoreMascotClient;
+import com.guideon.guideonbackend.domain.mascot.dto.AnimationUploadResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.CreateMascotRequest;
 import com.guideon.guideonbackend.domain.mascot.dto.MascotImageUploadResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.MascotResponse;
@@ -18,18 +22,31 @@ import com.guideon.guideonbackend.global.storage.FileValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Map;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class MascotService {
 
+    /** 상태→클립명 기본 매핑 (animClips 미전송 시 폴백). Blender action 이름 기준. */
+    private static final Map<String, String> DEFAULT_ANIM_CLIPS = Map.of(
+            "idle",      "Idle",
+            "speaking",  "Talking",
+            "listening", "Idle",
+            "thinking",  "Idle",
+            "greeting",  "Waving"
+    );
+
     private final CoreMascotClient coreMascotClient;
     private final FileStorageService fileStorageService;
     private final FastApiVoiceService fastApiVoiceService;
+    private final MascotRepository mascotRepository;
+    private final ObjectMapper objectMapper;
 
     public MascotResponse createMascot(Long siteId, CreateMascotRequest request,
                                        CustomAdminDetails adminDetails) {
@@ -88,6 +105,51 @@ public class MascotService {
         return MascotImageUploadResponse.builder()
                 .imageUrl(storageUrl)
                 .build();
+    }
+
+    /**
+     * Mixamo + Blender로 제작한 통합 anim GLB 업로드 → tb_mascot.animModelUrl/animClips 갱신.
+     *
+     * @param animClipsJson 상태→클립명 JSON (nullable). 누락 시 {@link #DEFAULT_ANIM_CLIPS} 사용.
+     *                      예: {"idle":"Idle","speaking":"Talking","listening":"Idle","greeting":"Waving"}
+     */
+    @Transactional
+    public AnimationUploadResponse uploadAnimation(Long siteId, MultipartFile file,
+                                                    String animClipsJson,
+                                                    CustomAdminDetails adminDetails) {
+        validatePlatformAdmin(adminDetails);
+        FileValidator.validateGlb(file);
+
+        String fileHash = FileValidator.computeFileHash(file);
+        String animModelUrl = fileStorageService.store(siteId, fileHash, file);
+
+        Map<String, String> animClips = parseAnimClips(animClipsJson);
+
+        mascotRepository.findBySite_SiteId(siteId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND,
+                        "마스코트를 찾을 수 없습니다. 먼저 마스코트를 생성해주세요. siteId=" + siteId))
+                .updateAnimation(animModelUrl, animClips);
+
+        log.info("마스코트 anim GLB 업로드 완료: siteId={}, animModelUrl={}, clips={}",
+                siteId, animModelUrl, animClips.keySet());
+        return AnimationUploadResponse.builder()
+                .animModelUrl(animModelUrl)
+                .animClips(animClips)
+                .build();
+    }
+
+    private Map<String, String> parseAnimClips(String animClipsJson) {
+        if (animClipsJson == null || animClipsJson.isBlank()) {
+            return DEFAULT_ANIM_CLIPS;
+        }
+        try {
+            Map<String, String> parsed = objectMapper.readValue(
+                    animClipsJson, new TypeReference<>() {});
+            return (parsed == null || parsed.isEmpty()) ? DEFAULT_ANIM_CLIPS : parsed;
+        } catch (Exception e) {
+            log.warn("animClips JSON 파싱 실패, 기본 매핑 사용: {}", e.getMessage());
+            return DEFAULT_ANIM_CLIPS;
+        }
     }
 
     /**
