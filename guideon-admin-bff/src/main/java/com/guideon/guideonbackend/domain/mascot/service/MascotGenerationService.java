@@ -4,7 +4,9 @@ import com.guideon.common.exception.CustomException;
 import com.guideon.common.exception.ErrorCode;
 import com.guideon.core.domain.admin.entity.AdminRole;
 import com.guideon.core.domain.mascot.entity.GenerationStatus;
+import com.guideon.core.domain.mascot.entity.MascotAnimConfig;
 import com.guideon.core.domain.mascot.entity.MascotGeneration;
+import com.guideon.core.domain.mascot.repository.MascotAnimConfigRepository;
 import com.guideon.core.domain.mascot.repository.MascotGenerationRepository;
 import com.guideon.core.domain.site.entity.Site;
 import com.guideon.core.domain.site.repository.SiteRepository;
@@ -18,11 +20,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 /**
  * 마스코트 3D 모델 생성 파이프라인 오케스트레이션.
  *
  * 파이프라인: image_to_model → animate_rig(spec:mixamo) → 리깅 GLB 저장
- * 애니메이션은 담당자가 Mixamo + Blender로 제작 후 POST /mascot/animation으로 별도 업로드.
+ *            → (anim_config 설정 시) mesh-processor 자동 병합 → animModelUrl 저장
  *
  * 외부 API 호출은 트랜잭션 밖에서 수행하고,
  * DB 저장/업데이트는 MascotGenerationPersistService를 통해 별도 트랜잭션으로 처리.
@@ -37,6 +43,8 @@ public class MascotGenerationService {
     private final MascotGenerationRepository generationRepository;
     private final SiteRepository siteRepository;
     private final FileStorageService fileStorageService;
+    private final MascotAnimConfigRepository animConfigRepository;
+    private final MeshProcessorClient meshProcessorClient;
 
     /**
      * Step 1: 선업로드된 이미지 URL을 받아 Tripo 3D 생성 task 시작
@@ -120,12 +128,15 @@ public class MascotGenerationService {
             }
 
             if (status.isSuccess() && status.modelUrl() != null) {
-                // 리깅 GLB 다운로드 → 저장 → 파이프라인 완료
+                // 리깅 GLB 다운로드 → 저장
                 byte[] glbBytes = tripoApiService.downloadModel(status.modelUrl());
                 String glbHash = FileValidator.computeFileHash(glbBytes);
                 String modelUrl = fileStorageService.store(siteId, glbHash, glbBytes, "mascot.glb");
                 gen = persistService.applyRigComplete(siteId, generationId, modelUrl);
-                log.info("리깅 GLB 저장 완료(파이프라인 완료): generationId={}", generationId);
+                log.info("리깅 GLB 저장 완료: generationId={}", generationId);
+
+                // anim_config가 설정되어 있으면 mesh-processor로 자동 병합
+                triggerAnimationMerge(siteId, generationId, modelUrl);
             }
 
             return GenerationStatusResponse.from(gen);
@@ -145,6 +156,44 @@ public class MascotGenerationService {
                 .orElseThrow(() -> new CustomException(ErrorCode.MASCOT_GENERATION_NOT_FOUND));
 
         return GenerationStatusResponse.from(gen);
+    }
+
+    /**
+     * rig 완료 후 anim_config가 있으면 mesh-processor에 병합을 요청한다.
+     * 실패해도 파이프라인 완료 처리는 유지 (base GLB 확보됨, animModelUrl만 null로 남음).
+     */
+    private void triggerAnimationMerge(Long siteId, Long generationId, String riggedModelUrl) {
+        List<MascotAnimConfig> animConfigs = animConfigRepository.findBySiteId(siteId);
+        if (animConfigs.isEmpty()) {
+            log.info("anim_config 미설정 — anim 병합 skip: siteId={}", siteId);
+            return;
+        }
+
+        try {
+            // { "Idle": "/app/uploads/1/abc.glb", "Talking": "/app/uploads/1/def.glb", ... }
+            Map<String, String> animGlbs = animConfigs.stream().collect(Collectors.toMap(
+                    MascotAnimConfig::getClipName,
+                    c -> fileStorageService.toLocalPath(c.getGlbUrl()).toString()
+            ));
+
+            String riggedLocalPath = fileStorageService.toLocalPath(riggedModelUrl).toString();
+            String animFilename    = "anim_" + generationId + ".glb";
+            String animModelUrl    = fileStorageService.resolveUrl(siteId, animFilename);
+            String animLocalPath   = fileStorageService.toLocalPath(animModelUrl).toString();
+
+            meshProcessorClient.combine(riggedLocalPath, animGlbs, animLocalPath);
+
+            Map<String, String> animClips = animConfigs.stream().collect(Collectors.toMap(
+                    MascotAnimConfig::getStateKey,
+                    MascotAnimConfig::getClipName
+            ));
+            persistService.applyAnimationComplete(siteId, generationId, animModelUrl, animClips);
+            log.info("anim GLB 자동 병합 완료: generationId={}, animModelUrl={}", generationId, animModelUrl);
+
+        } catch (Exception e) {
+            log.warn("mesh-processor 실패 — animModelUrl 없이 완료: generationId={}, err={}",
+                    generationId, e.getMessage());
+        }
     }
 
     private void validatePlatformAdmin(CustomAdminDetails adminDetails) {
