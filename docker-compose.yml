@@ -147,6 +147,22 @@ services:
       - guideon-net
     restart: always
 
+  # 6. mesh-processor (gltf-transform 기반 GLB 병합)
+  mesh-processor:
+    build:
+      context: ./mesh-processor
+      dockerfile: Dockerfile
+    container_name: guideon-mesh-processor
+    volumes:
+      - ./uploads:/app/uploads   # admin-bff와 동일 볼륨 공유 (파일 경로 직접 접근)
+    environment:
+      - PORT=3001
+      - STORAGE_PATH=/app/uploads
+    networks:
+      - guideon-net
+    restart: unless-stopped
+    # 외부 포트 노출 없음 — admin-bff에서만 http://mesh-processor:3001 로 접근
+
 volumes:
   postgres_data:
 

@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
+
 /**
  * MascotGeneration DB 저장/업데이트 전담.
  * 외부 API 호출 없이 트랜잭션 범위를 최소화.
@@ -86,6 +88,24 @@ public class MascotGenerationPersistService {
                 .orElseThrow(() -> new CustomException(ErrorCode.MASCOT_GENERATION_NOT_FOUND));
         gen.failRigging(reason);
         return gen;
+    }
+
+    /**
+     * mesh-processor 병합 완료: tb_mascot.animModelUrl + animClips 반영.
+     * rig 완료 후 별도 트랜잭션으로 실행 (외부 호출 결과).
+     */
+    @Transactional
+    public void applyAnimationComplete(Long siteId, Long generationId,
+                                       String animModelUrl, Map<String, String> animClips) {
+        mascotRepository.findBySite_SiteId(siteId).ifPresentOrElse(
+                mascot -> {
+                    mascot.updateAnimation(animModelUrl, animClips);
+                    log.info("tb_mascot animModelUrl 자동 업데이트: siteId={}, clips={}",
+                            siteId, animClips.keySet());
+                },
+                () -> log.warn("tb_mascot 미존재 — animModelUrl 업데이트 생략: siteId={}, generationId={}",
+                        siteId, generationId)
+        );
     }
 
 }

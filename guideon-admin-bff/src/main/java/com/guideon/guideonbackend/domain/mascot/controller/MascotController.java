@@ -5,6 +5,7 @@ import com.guideon.common.exception.ErrorCode;
 import com.guideon.common.response.ApiResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.*;
 import org.springframework.lang.Nullable;
+import com.guideon.guideonbackend.domain.mascot.service.MascotAnimConfigService;
 import com.guideon.guideonbackend.domain.mascot.service.MascotGenerationService;
 import com.guideon.guideonbackend.domain.mascot.service.MascotService;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
@@ -28,6 +29,7 @@ public class MascotController {
 
     private final MascotService mascotService;
     private final MascotGenerationService generationService;
+    private final MascotAnimConfigService animConfigService;
 
     @Operation(summary = "마스코트 이미지 업로드", description = "마스코트 이미지를 업로드하고 URL을 반환합니다. PLATFORM_ADMIN 권한 필요")
     @PostMapping(value = "/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -122,6 +124,63 @@ public class MascotController {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "언어 코드는 필수입니다.");
         }
         VoiceCloneResponse response = mascotService.cloneVoice(siteId, audioFile, name, language, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    // ── 애니메이션 설정 (Mixamo GLB 업로드 / 매핑 관리) ──
+
+    @Operation(
+            summary = "상태별 애니메이션 GLB 업로드",
+            description = "Mixamo에서 준비한 state별 GLB 파일을 업로드합니다. " +
+                    "업로드 후 마스코트 생성(rig 완료) 시 자동으로 anim GLB가 병합됩니다. " +
+                    "각 state 파트명: idle / speaking / listening / thinking / greeting. " +
+                    "PLATFORM_ADMIN 권한 필요")
+    @PostMapping(value = "/animations", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<AnimationGlbsUploadResponse>> uploadAnimationGlbs(
+            @PathVariable Long siteId,
+            @RequestPart(value = "idle",      required = false) MultipartFile idle,
+            @RequestPart(value = "speaking",  required = false) MultipartFile speaking,
+            @RequestPart(value = "listening", required = false) MultipartFile listening,
+            @RequestPart(value = "thinking",  required = false) MultipartFile thinking,
+            @RequestPart(value = "greeting",  required = false) MultipartFile greeting,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        java.util.Map<String, MultipartFile> files = new java.util.LinkedHashMap<>();
+        if (idle      != null) files.put("idle",      idle);
+        if (speaking  != null) files.put("speaking",  speaking);
+        if (listening != null) files.put("listening", listening);
+        if (thinking  != null) files.put("thinking",  thinking);
+        if (greeting  != null) files.put("greeting",  greeting);
+
+        AnimationGlbsUploadResponse response = animConfigService.uploadAnimationGlbs(siteId, files, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    @Operation(summary = "애니메이션 설정 조회", description = "현재 상태→클립명 매핑과 GLB URL을 조회합니다.")
+    @GetMapping("/anim-config")
+    public ResponseEntity<ApiResponse<AnimConfigResponse>> getAnimConfig(
+            @PathVariable Long siteId,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        AnimConfigResponse response = animConfigService.getAnimConfig(siteId, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    @Operation(summary = "애니메이션 클립명 수정",
+            description = "GLB 파일 변경 없이 상태→클립명 매핑만 수정합니다.")
+    @PutMapping("/anim-config")
+    public ResponseEntity<ApiResponse<AnimConfigResponse>> updateAnimConfig(
+            @PathVariable Long siteId,
+            @RequestBody AnimConfigRequest request,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        AnimConfigResponse response = animConfigService.updateAnimConfig(siteId, request, adminDetails);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
