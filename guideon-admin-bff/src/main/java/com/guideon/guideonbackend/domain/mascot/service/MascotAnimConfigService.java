@@ -171,16 +171,17 @@ public class MascotAnimConfigService {
     /**
      * 해당 site의 최신 rig 완료 이력이 있으면 병합을 동기 실행하고 animModelUrl 반환.
      * 없으면 null 반환 (이후 rig 완료 시점에 자동 병합됨).
+     *
+     * findTop 대신 전체 목록 스트림으로 첫 번째 완료건을 선택 —
+     * 최신 생성이 FAILED/진행중이어도 이전 완료 이력을 정확히 찾는다.
      */
     private String triggerMergeIfAvailable(Long siteId) {
-        return generationRepository.findTopBySite_SiteIdOrderByCreatedAtDesc(siteId)
+        return generationRepository.findBySite_SiteIdOrderByCreatedAtDesc(siteId).stream()
                 .filter(MascotGeneration::isFullyCompleted)
                 .filter(gen -> gen.getResultModelUrl() != null)
-                .map(gen -> {
-                    animationMergeService.mergeIfRiggedMascotExists(
-                            siteId, gen.getGenerationId(), gen.getResultModelUrl());
-                    return fileStorageService.resolveUrl(siteId, "anim_" + gen.getGenerationId() + ".glb");
-                })
+                .findFirst()
+                .map(gen -> animationMergeService.mergeIfRiggedMascotExists(
+                        siteId, gen.getGenerationId(), gen.getResultModelUrl()))
                 .orElse(null);
     }
 

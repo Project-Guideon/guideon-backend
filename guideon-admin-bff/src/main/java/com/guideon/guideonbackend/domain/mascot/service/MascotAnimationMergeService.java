@@ -30,25 +30,24 @@ public class MascotAnimationMergeService {
     /**
      * anim_config가 설정돼 있고 rig GLB가 존재하면 mesh-processor에 병합을 요청한다.
      *
-     * 실패해도 예외를 전파하지 않는다 — rig base GLB는 이미 확보된 상태이므로
-     * animModelUrl만 null로 남고 파이프라인 완료는 유지된다.
-     *
      * @param siteId          사이트 ID
      * @param generationId    MascotGeneration PK (출력 파일명 + DB 업데이트에 사용)
      * @param riggedModelUrl  Tripo rig 결과 GLB 서빙 URL
+     * @return 병합 성공 시 animModelUrl, anim_config 미설정 또는 병합 실패 시 null
      */
-    public void mergeIfRiggedMascotExists(Long siteId, Long generationId, String riggedModelUrl) {
+    public String mergeIfRiggedMascotExists(Long siteId, Long generationId, String riggedModelUrl) {
         List<MascotAnimConfig> animConfigs = animConfigRepository.findBySiteId(siteId);
         if (animConfigs.isEmpty()) {
             log.info("anim_config 미설정 — anim 병합 skip: siteId={}", siteId);
-            return;
+            return null;
         }
 
         try {
-            // { "Idle": "/app/uploads/1/abc.glb", "Talking": "/app/uploads/1/def.glb", ... }
+            // clipName이 중복일 때 IllegalStateException 방지 — 첫 번째 값 유지 (a, b) -> a
             Map<String, String> animGlbs = animConfigs.stream().collect(Collectors.toMap(
                     MascotAnimConfig::getClipName,
-                    c -> fileStorageService.toLocalPath(c.getGlbUrl()).toString()
+                    c -> fileStorageService.toLocalPath(c.getGlbUrl()).toString(),
+                    (a, b) -> a
             ));
 
             String riggedLocalPath = fileStorageService.toLocalPath(riggedModelUrl).toString();
@@ -64,10 +63,12 @@ public class MascotAnimationMergeService {
             ));
             persistService.applyAnimationComplete(siteId, generationId, animModelUrl, animClips);
             log.info("anim GLB 병합 완료: generationId={}, animModelUrl={}", generationId, animModelUrl);
+            return animModelUrl;
 
         } catch (Exception e) {
             log.warn("mesh-processor 실패 — animModelUrl 없이 완료: generationId={}, err={}",
                     generationId, e.getMessage());
+            return null;
         }
     }
 }
