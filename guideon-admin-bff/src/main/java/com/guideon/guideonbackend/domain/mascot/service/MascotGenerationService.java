@@ -9,6 +9,7 @@ import com.guideon.core.domain.mascot.repository.MascotGenerationRepository;
 import com.guideon.core.domain.site.entity.Site;
 import com.guideon.core.domain.site.repository.SiteRepository;
 import com.guideon.guideonbackend.domain.mascot.dto.GenerationStatusResponse;
+import com.guideon.guideonbackend.domain.mascot.dto.ModelUploadResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.StartGenerationResponse;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import com.guideon.guideonbackend.global.storage.FileStorageService;
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 
 /**
@@ -187,6 +189,35 @@ public class MascotGenerationService {
         }
 
         return GenerationStatusResponse.from(gen);
+    }
+
+    /**
+     * 수동 GLB 업로드: 기존 model_url 교체 + anim_config 기준 anim 자동 병합.
+     * Tripo 생성 파이프라인을 거치지 않고 외부에서 만든 GLB를 직접 마스코트에 연결할 때 사용.
+     */
+    public ModelUploadResponse uploadMascotModel(Long siteId, MultipartFile file,
+                                                  CustomAdminDetails adminDetails) {
+        validatePlatformAdmin(adminDetails);
+
+        FileValidator.validateGlb(file);
+        String fileHash  = FileValidator.computeFileHash(file);
+        byte[] fileBytes;
+        try {
+            fileBytes = file.getBytes();
+        } catch (java.io.IOException e) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "파일을 읽을 수 없습니다.");
+        }
+        String modelUrl = fileStorageService.store(siteId, fileHash, fileBytes, "mascot.glb");
+
+        persistService.applyManualModelUpload(siteId, modelUrl);
+        log.info("수동 마스코트 GLB 업로드 완료: siteId={}, modelUrl={}", siteId, modelUrl);
+
+        String animModelUrl = animationMergeService.mergeForManualUpload(siteId, modelUrl);
+
+        return ModelUploadResponse.builder()
+                .modelUrl(modelUrl)
+                .animModelUrl(animModelUrl)
+                .build();
     }
 
     /**

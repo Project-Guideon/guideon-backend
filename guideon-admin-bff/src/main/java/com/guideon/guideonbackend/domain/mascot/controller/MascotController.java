@@ -4,6 +4,7 @@ import com.guideon.common.exception.CustomException;
 import com.guideon.common.exception.ErrorCode;
 import com.guideon.common.response.ApiResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.CleanMeshResponse;
+import com.guideon.guideonbackend.domain.mascot.dto.ModelUploadResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.*;
 import org.springframework.lang.Nullable;
 import com.guideon.guideonbackend.domain.mascot.service.MascotAnimConfigService;
@@ -197,6 +198,25 @@ public class MascotController {
             HttpServletRequest httpRequest
     ) {
         AnimConfigResponse response = animConfigService.updateAnimConfig(siteId, request, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    // ── 수동 GLB 업로드 ──
+
+    @Operation(
+            summary = "마스코트 GLB 수동 업로드 (모델 교체)",
+            description = "외부에서 준비한 GLB를 업로드해 마스코트 model_url을 교체합니다. " +
+                    "anim_config가 설정되어 있으면 anim 병합도 자동 실행됩니다. " +
+                    "Tripo 생성 파이프라인 없이 직접 모델을 교체할 때 사용. PLATFORM_ADMIN 권한 필요")
+    @PostMapping(value = "/model", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<ModelUploadResponse>> uploadMascotModel(
+            @PathVariable Long siteId,
+            @RequestPart("file") MultipartFile file,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        ModelUploadResponse response = generationService.uploadMascotModel(siteId, file, adminDetails);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }

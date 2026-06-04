@@ -76,6 +76,51 @@ public class MascotAnimationMergeService {
     }
 
     /**
+     * 수동 GLB 업로드 시 anim 병합.
+     * generationId가 없으므로 타임스탬프 기반 토큰으로 출력 파일명 생성.
+     *
+     * @param siteId         사이트 ID
+     * @param riggedModelUrl 수동 업로드된 리깅 완료 GLB 서빙 URL
+     * @return 병합 성공 시 animModelUrl, anim_config 미설정 또는 병합 실패 시 null
+     */
+    public String mergeForManualUpload(Long siteId, String riggedModelUrl) {
+        List<MascotAnimConfig> animConfigs = animConfigRepository.findBySiteId(siteId);
+        if (animConfigs.isEmpty()) {
+            log.info("anim_config 미설정 — anim 병합 skip (수동 업로드): siteId={}", siteId);
+            return null;
+        }
+
+        try {
+            Map<String, String> animGlbs = animConfigs.stream().collect(Collectors.toMap(
+                    MascotAnimConfig::getClipName,
+                    c -> fileStorageService.toLocalPath(c.getGlbUrl()).toString(),
+                    (a, b) -> a
+            ));
+
+            String token           = "manual_" + System.currentTimeMillis();
+            String riggedLocalPath = fileStorageService.toLocalPath(riggedModelUrl).toString();
+            String animFilename    = "anim_" + token + ".glb";
+            String animModelUrl    = fileStorageService.resolveUrl(siteId, animFilename);
+            String animLocalPath   = fileStorageService.toLocalPath(animModelUrl).toString();
+
+            meshProcessorClient.combine(riggedLocalPath, animGlbs, animLocalPath);
+
+            Map<String, String> animClips = animConfigs.stream().collect(Collectors.toMap(
+                    MascotAnimConfig::getStateKey,
+                    MascotAnimConfig::getClipName
+            ));
+            persistService.applyAnimationComplete(siteId, null, animModelUrl, animClips);
+            log.info("anim GLB 병합 완료 (수동 업로드): token={}, siteId={}", token, siteId);
+            return animModelUrl;
+
+        } catch (Exception e) {
+            log.warn("mesh-processor 실패 — animModelUrl 없이 완료 (수동): siteId={}, err={}",
+                    siteId, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * rig 완료 후 스켈레톤을 제거한 Mixamo-ready FBX를 비동기 생성.
      * 실패해도 예외를 전파하지 않는다 — clean mesh는 부가 기능이므로 파이프라인 완료에 영향 없음.
      *
