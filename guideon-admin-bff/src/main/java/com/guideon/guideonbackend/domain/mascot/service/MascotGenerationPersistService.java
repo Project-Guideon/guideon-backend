@@ -94,6 +94,33 @@ public class MascotGenerationPersistService {
      * mesh-processor 병합 완료: tb_mascot.animModelUrl + animClips 반영.
      * rig 완료 후 별도 트랜잭션으로 실행 (외부 호출 결과).
      */
+    /**
+     * 수동 GLB 업로드: tb_mascot의 model_url 교체 + 애니메이션 메타데이터 초기화.
+     * generation이 없는 수동 업로드이므로 generation 연결은 null로 설정.
+     */
+    @Transactional
+    public void applyManualModelUpload(Long siteId, String modelUrl) {
+        mascotRepository.findBySite_SiteId(siteId).ifPresentOrElse(
+                mascot -> {
+                    mascot.clearAnimation();
+                    mascot.updateModelUrl(modelUrl, "glb", null);
+                    log.info("tb_mascot 수동 model_url 업데이트: siteId={}, modelUrl={}", siteId, modelUrl);
+                },
+                () -> log.warn("tb_mascot 미존재 — 수동 model_url 업데이트 생략: siteId={}", siteId)
+        );
+    }
+
+    /**
+     * clean mesh FBX URL을 tb_mascot에 직접 저장.
+     * Tripo pre-rig 결과가 FBX인 경우(GLB→FBX 변환 불필요) 사용.
+     */
+    @Transactional
+    public void saveCleanMeshUrl(Long siteId, String cleanMeshUrl) {
+        mascotRepository.findBySite_SiteId(siteId).ifPresent(
+                mascot -> mascot.updateCleanMeshUrl(cleanMeshUrl)
+        );
+    }
+
     @Transactional
     public void applyAnimationComplete(Long siteId, Long generationId,
                                        String animModelUrl, Map<String, String> animClips) {

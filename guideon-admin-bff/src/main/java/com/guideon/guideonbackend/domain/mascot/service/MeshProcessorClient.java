@@ -52,6 +52,42 @@ public class MeshProcessorClient {
      * @param riggedGlbPath  Tripo rig 결과 GLB 로컬 경로
      * @param outputFbxPath  출력 FBX 로컬 경로
      */
+    /**
+     * 포맷 변환 요청 (assimp 확장자 추론).
+     * 주 용도: Tripo rig 결과 FBX → GLB 변환.
+     *
+     * @param inputPath  입력 파일 로컬 경로 (예: /app/uploads/1/rig_raw_42.fbx)
+     * @param outputPath 출력 파일 로컬 경로 (예: /app/uploads/1/mascot.glb)
+     */
+    @SuppressWarnings("unchecked")
+    public void convert(String inputPath, String outputPath) {
+        Map<String, Object> body = Map.of(
+                "input",  inputPath,
+                "output", outputPath
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        try {
+            Map<String, Object> response = restTemplate.postForObject(
+                    baseUrl + "/convert",
+                    new HttpEntity<>(body, headers),
+                    Map.class
+            );
+            log.info("mesh-processor convert 완료: output={}", outputPath);
+            if (response != null && Boolean.FALSE.equals(response.get("success"))) {
+                throw new CustomException(ErrorCode.UPSTREAM_TIMEOUT,
+                        "mesh-processor convert 실패: " + response.get("error"));
+            }
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.UPSTREAM_TIMEOUT,
+                    "mesh-processor convert 호출 실패: " + e.getMessage());
+        }
+    }
+
     @SuppressWarnings("unchecked")
     public void stripRig(String riggedGlbPath, String outputFbxPath) {
         Map<String, Object> body = Map.of(

@@ -164,6 +164,16 @@ public class FileValidator {
     }
 
     /**
+     * GLB 여부를 boolean으로 반환 (예외 없음).
+     * Tripo 반환 포맷 분기 처리에 사용.
+     */
+    public static boolean isGlb(byte[] fileBytes) {
+        return fileBytes != null
+                && fileBytes.length >= 4
+                && hasGlbSignature(Arrays.copyOf(fileBytes, 4));
+    }
+
+    /**
      * GLB(glTF Binary) 바이트 배열 검증: 매직바이트만 확인.
      * Tripo API 다운로드 결과처럼 MultipartFile이 아닌 byte[] 경우에 사용.
      * FBX(Kaydara) 등 잘못된 포맷이 반환됐을 때 빠르게 실패시킨다.

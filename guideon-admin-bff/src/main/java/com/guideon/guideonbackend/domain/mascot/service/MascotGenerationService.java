@@ -9,6 +9,7 @@ import com.guideon.core.domain.mascot.repository.MascotGenerationRepository;
 import com.guideon.core.domain.site.entity.Site;
 import com.guideon.core.domain.site.repository.SiteRepository;
 import com.guideon.guideonbackend.domain.mascot.dto.GenerationStatusResponse;
+import com.guideon.guideonbackend.domain.mascot.dto.ModelUploadResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.StartGenerationResponse;
 import com.guideon.guideonbackend.global.security.CustomAdminDetails;
 import com.guideon.guideonbackend.global.storage.FileStorageService;
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 
 /**
@@ -39,6 +41,7 @@ public class MascotGenerationService {
     private final SiteRepository siteRepository;
     private final FileStorageService fileStorageService;
     private final MascotAnimationMergeService animationMergeService;
+    private final MeshProcessorClient meshProcessorClient;
 
     /**
      * Step 1: 선업로드된 이미지 URL을 받아 Tripo 3D 생성 task 시작
@@ -107,16 +110,26 @@ public class MascotGenerationService {
                 String rigTaskId = tripoApiService.createAnimateRigTask(gen.getModelTaskId());
                 gen = persistService.applyModelComplete(generationId, rigTaskId);
 
-                // pre-rig 모델 = 뼈대 없는 clean mesh → assimp로 FBX 변환 (Mixamo 업로드용)
+                // pre-rig 모델 = 뼈대 없는 clean mesh → Mixamo 업로드용 FBX 확보
+                // Tripo 반환 포맷(GLB/FBX) 무관하게 항상 clean_mesh_{id}.fbx가 생성되도록 처리.
                 if (status.modelUrl() != null) {
                     try {
                         byte[] preRigBytes = tripoApiService.downloadModel(status.modelUrl());
-                        FileValidator.validateGlb(preRigBytes); // FBX 반환 시 skip
-                        String preRigHash  = FileValidator.computeFileHash(preRigBytes);
-                        String preRigUrl   = fileStorageService.store(siteId, preRigHash, preRigBytes, "pre_rig_mascot.glb");
-                        animationMergeService.stripRigAsync(siteId, generationId, preRigUrl);
+                        if (FileValidator.isGlb(preRigBytes)) {
+                            // GLB 반환: 저장 후 assimp로 FBX 변환 (stripRigAsync)
+                            String preRigHash = FileValidator.computeFileHash(preRigBytes);
+                            String preRigUrl  = fileStorageService.store(siteId, preRigHash, preRigBytes, "pre_rig_mascot.glb");
+                            animationMergeService.stripRigAsync(siteId, generationId, preRigUrl);
+                        } else {
+                            // FBX 직접 반환: 변환 없이 clean_mesh FBX로 저장
+                            log.info("pre-rig 결과 FBX 반환 — clean_mesh FBX 직접 저장: generationId={}", generationId);
+                            String fbxFilename = "clean_mesh_" + generationId + ".fbx";
+                            String fbxHash     = FileValidator.computeFileHash(preRigBytes);
+                            String fbxUrl      = fileStorageService.store(siteId, fbxHash, preRigBytes, fbxFilename);
+                            persistService.saveCleanMeshUrl(siteId, fbxUrl);
+                        }
                     } catch (Exception e) {
-                        log.warn("pre-rig 모델 GLB 검증/FBX 변환 실패 (무시): generationId={}, err={}", generationId, e.getMessage());
+                        log.warn("pre-rig 모델 처리 실패 (무시): generationId={}, err={}", generationId, e.getMessage());
                     }
                 }
             }
@@ -135,19 +148,38 @@ public class MascotGenerationService {
             }
 
             if (status.isSuccess() && status.modelUrl() != null) {
-                // 리깅 GLB 다운로드 → GLB 포맷 검증 → 저장
-                byte[] glbBytes = tripoApiService.downloadModel(status.modelUrl());
-                try {
-                    FileValidator.validateGlb(glbBytes);
-                } catch (com.guideon.common.exception.CustomException e) {
-                    log.error("Tripo rig 결과가 GLB 아님 (FBX 반환 의심) — rig 실패 처리: generationId={}", generationId);
-                    gen = persistService.applyRigFailed(generationId, "Tripo rig 결과 GLB 검증 실패 (FBX 반환 의심)");
-                    return GenerationStatusResponse.from(gen);
+                // 리깅 결과 다운로드 → GLB/FBX 포맷 판별
+                byte[] rigBytes = tripoApiService.downloadModel(status.modelUrl());
+                String modelUrl;
+
+                if (FileValidator.isGlb(rigBytes)) {
+                    // 정상 케이스: GLB 그대로 저장
+                    String glbHash = FileValidator.computeFileHash(rigBytes);
+                    modelUrl = fileStorageService.store(siteId, glbHash, rigBytes, "mascot.glb");
+                    log.info("리깅 GLB 저장 완료: generationId={}", generationId);
+                } else {
+                    // Tripo FBX 반환 케이스: mesh-processor /convert 로 GLB 변환
+                    log.warn("Tripo rig 결과 FBX 반환 — /convert로 GLB 변환 시도: generationId={}", generationId);
+                    try {
+                        String fbxHash     = FileValidator.computeFileHash(rigBytes);
+                        String fbxUrl      = fileStorageService.store(siteId, fbxHash, rigBytes,
+                                                "rig_raw_" + generationId + ".fbx");
+                        String fbxLocalPath = fileStorageService.toLocalPath(fbxUrl).toString();
+                        String glbFilename  = "mascot.glb";
+                        String glbUrl       = fileStorageService.resolveUrl(siteId, glbFilename);
+                        String glbLocalPath = fileStorageService.toLocalPath(glbUrl).toString();
+                        meshProcessorClient.convert(fbxLocalPath, glbLocalPath);
+                        modelUrl = glbUrl;
+                        log.info("FBX→GLB 변환 완료: generationId={}", generationId);
+                    } catch (Exception e) {
+                        log.error("FBX→GLB 변환 실패 — rig 실패 처리: generationId={}, err={}", generationId, e.getMessage());
+                        gen = persistService.applyRigFailed(generationId,
+                                "FBX→GLB 변환 실패: " + e.getMessage());
+                        return GenerationStatusResponse.from(gen);
+                    }
                 }
-                String glbHash = FileValidator.computeFileHash(glbBytes);
-                String modelUrl = fileStorageService.store(siteId, glbHash, glbBytes, "mascot.glb");
+
                 gen = persistService.applyRigComplete(siteId, generationId, modelUrl);
-                log.info("리깅 GLB 저장 완료: generationId={}", generationId);
 
                 // anim_config가 설정되어 있으면 mesh-processor로 자동 병합
                 animationMergeService.mergeIfRiggedMascotExists(siteId, generationId, modelUrl);
@@ -157,6 +189,35 @@ public class MascotGenerationService {
         }
 
         return GenerationStatusResponse.from(gen);
+    }
+
+    /**
+     * 수동 GLB 업로드: 기존 model_url 교체 + anim_config 기준 anim 자동 병합.
+     * Tripo 생성 파이프라인을 거치지 않고 외부에서 만든 GLB를 직접 마스코트에 연결할 때 사용.
+     */
+    public ModelUploadResponse uploadMascotModel(Long siteId, MultipartFile file,
+                                                  CustomAdminDetails adminDetails) {
+        validatePlatformAdmin(adminDetails);
+
+        FileValidator.validateGlb(file);
+        String fileHash  = FileValidator.computeFileHash(file);
+        byte[] fileBytes;
+        try {
+            fileBytes = file.getBytes();
+        } catch (java.io.IOException e) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "파일을 읽을 수 없습니다.");
+        }
+        String modelUrl = fileStorageService.store(siteId, fileHash, fileBytes, "mascot.glb");
+
+        persistService.applyManualModelUpload(siteId, modelUrl);
+        log.info("수동 마스코트 GLB 업로드 완료: siteId={}, modelUrl={}", siteId, modelUrl);
+
+        String animModelUrl = animationMergeService.mergeForManualUpload(siteId, modelUrl);
+
+        return ModelUploadResponse.builder()
+                .modelUrl(modelUrl)
+                .animModelUrl(animModelUrl)
+                .build();
     }
 
     /**

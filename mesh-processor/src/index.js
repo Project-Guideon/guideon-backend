@@ -1,6 +1,7 @@
 import express from 'express';
 import { combine }   from './combiner.js';
 import { stripRig }  from './stripRig.js';
+import { convert }   from './convert.js';
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -64,6 +65,32 @@ app.post('/strip-rig', async (req, res) => {
     res.json({ success: true, outputFbx });
   } catch (e) {
     console.error('[strip-rig] 실패:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * POST /convert
+ * {
+ *   "input":  "/app/uploads/{siteId}/rig_raw_{generationId}.fbx",  — Tripo rig_model FBX
+ *   "output": "/app/uploads/{siteId}/mascot.glb"
+ * }
+ *
+ * assimp 확장자 자동 추론으로 FBX→GLB 변환.
+ * 응답: { "success": true, "output": "..." }
+ */
+app.post('/convert', async (req, res) => {
+  const { input, output } = req.body;
+
+  if (!input || !output) {
+    return res.status(400).json({ error: 'input, output 필수' });
+  }
+
+  try {
+    await convert(input, output);
+    res.json({ success: true, output });
+  } catch (e) {
+    console.error('[convert] 실패:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
