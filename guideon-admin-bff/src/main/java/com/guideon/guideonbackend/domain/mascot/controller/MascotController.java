@@ -3,6 +3,7 @@ package com.guideon.guideonbackend.domain.mascot.controller;
 import com.guideon.common.exception.CustomException;
 import com.guideon.common.exception.ErrorCode;
 import com.guideon.common.response.ApiResponse;
+import com.guideon.guideonbackend.domain.mascot.dto.CleanMeshResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.*;
 import org.springframework.lang.Nullable;
 import com.guideon.guideonbackend.domain.mascot.service.MascotAnimConfigService;
@@ -78,6 +79,21 @@ public class MascotController {
             HttpServletRequest httpRequest
     ) {
         MascotResponse response = mascotService.updateMascot(siteId, request, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    @Operation(summary = "Mixamo 업로드용 Clean Mesh 조회",
+            description = "스켈레톤 제거된 T-포즈 FBX URL을 반환합니다. " +
+                    "이 파일을 Mixamo에 업로드하면 자동 리깅 후 애니메이션을 다운로드할 수 있습니다. " +
+                    "rig 완료 후 자동 생성됩니다. PLATFORM_ADMIN 권한 필요")
+    @GetMapping("/clean-mesh")
+    public ResponseEntity<ApiResponse<CleanMeshResponse>> getCleanMesh(
+            @PathVariable Long siteId,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        CleanMeshResponse response = mascotService.getCleanMesh(siteId, adminDetails);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }

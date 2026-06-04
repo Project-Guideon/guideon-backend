@@ -11,6 +11,7 @@ import com.guideon.core.dto.mascot.MascotDto;
 import com.guideon.core.dto.mascot.UpdateMascotCommand;
 import com.guideon.guideonbackend.client.CoreMascotClient;
 import com.guideon.guideonbackend.domain.mascot.dto.AnimationUploadResponse;
+import com.guideon.guideonbackend.domain.mascot.dto.CleanMeshResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.CreateMascotRequest;
 import com.guideon.guideonbackend.domain.mascot.dto.MascotImageUploadResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.MascotResponse;
@@ -196,6 +197,16 @@ public class MascotService {
         return VoiceCloneResponse.builder()
                 .voiceId(result.voiceId())
                 .name(result.name())
+                .build();
+    }
+
+    public CleanMeshResponse getCleanMesh(Long siteId, CustomAdminDetails adminDetails) {
+        validatePlatformAdmin(adminDetails);
+        MascotDto dto = coreMascotClient.getMascot(siteId);
+        String url = dto.getCleanMeshUrl();
+        return CleanMeshResponse.builder()
+                .cleanMeshUrl(url)
+                .status(url != null ? "ready" : "not_available")
                 .build();
     }
 
