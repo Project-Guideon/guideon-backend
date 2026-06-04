@@ -106,6 +106,18 @@ public class MascotGenerationService {
                 log.info("마스코트 model 완료, rigging 시작: generationId={}", generationId);
                 String rigTaskId = tripoApiService.createAnimateRigTask(gen.getModelTaskId());
                 gen = persistService.applyModelComplete(generationId, rigTaskId);
+
+                // pre-rig 모델 = 뼈대 없는 clean mesh → assimp로 FBX 변환 (Mixamo 업로드용)
+                if (status.modelUrl() != null) {
+                    try {
+                        byte[] preRigBytes = tripoApiService.downloadModel(status.modelUrl());
+                        String preRigHash  = FileValidator.computeFileHash(preRigBytes);
+                        String preRigUrl   = fileStorageService.store(siteId, preRigHash, preRigBytes, "pre_rig_mascot.glb");
+                        animationMergeService.stripRigAsync(siteId, generationId, preRigUrl);
+                    } catch (Exception e) {
+                        log.warn("pre-rig 모델 다운로드/FBX 변환 실패 (무시): generationId={}, err={}", generationId, e.getMessage());
+                    }
+                }
             }
 
             return GenerationStatusResponse.from(gen);
@@ -131,8 +143,6 @@ public class MascotGenerationService {
 
                 // anim_config가 설정되어 있으면 mesh-processor로 자동 병합
                 animationMergeService.mergeIfRiggedMascotExists(siteId, generationId, modelUrl);
-                // Mixamo 업로드용 clean mesh(FBX) 비동기 생성
-                animationMergeService.stripRigAsync(siteId, generationId, modelUrl);
             }
 
             return GenerationStatusResponse.from(gen);
