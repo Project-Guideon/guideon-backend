@@ -39,6 +39,7 @@ public class MascotGenerationService {
     private final SiteRepository siteRepository;
     private final FileStorageService fileStorageService;
     private final MascotAnimationMergeService animationMergeService;
+    private final MeshProcessorClient meshProcessorClient;
 
     /**
      * Step 1: 선업로드된 이미지 URL을 받아 Tripo 3D 생성 task 시작
@@ -135,19 +136,38 @@ public class MascotGenerationService {
             }
 
             if (status.isSuccess() && status.modelUrl() != null) {
-                // 리깅 GLB 다운로드 → GLB 포맷 검증 → 저장
-                byte[] glbBytes = tripoApiService.downloadModel(status.modelUrl());
-                try {
-                    FileValidator.validateGlb(glbBytes);
-                } catch (com.guideon.common.exception.CustomException e) {
-                    log.error("Tripo rig 결과가 GLB 아님 (FBX 반환 의심) — rig 실패 처리: generationId={}", generationId);
-                    gen = persistService.applyRigFailed(generationId, "Tripo rig 결과 GLB 검증 실패 (FBX 반환 의심)");
-                    return GenerationStatusResponse.from(gen);
+                // 리깅 결과 다운로드 → GLB/FBX 포맷 판별
+                byte[] rigBytes = tripoApiService.downloadModel(status.modelUrl());
+                String modelUrl;
+
+                if (FileValidator.isGlb(rigBytes)) {
+                    // 정상 케이스: GLB 그대로 저장
+                    String glbHash = FileValidator.computeFileHash(rigBytes);
+                    modelUrl = fileStorageService.store(siteId, glbHash, rigBytes, "mascot.glb");
+                    log.info("리깅 GLB 저장 완료: generationId={}", generationId);
+                } else {
+                    // Tripo FBX 반환 케이스: mesh-processor /convert 로 GLB 변환
+                    log.warn("Tripo rig 결과 FBX 반환 — /convert로 GLB 변환 시도: generationId={}", generationId);
+                    try {
+                        String fbxHash     = FileValidator.computeFileHash(rigBytes);
+                        String fbxUrl      = fileStorageService.store(siteId, fbxHash, rigBytes,
+                                                "rig_raw_" + generationId + ".fbx");
+                        String fbxLocalPath = fileStorageService.toLocalPath(fbxUrl).toString();
+                        String glbFilename  = "mascot.glb";
+                        String glbUrl       = fileStorageService.resolveUrl(siteId, glbFilename);
+                        String glbLocalPath = fileStorageService.toLocalPath(glbUrl).toString();
+                        meshProcessorClient.convert(fbxLocalPath, glbLocalPath);
+                        modelUrl = glbUrl;
+                        log.info("FBX→GLB 변환 완료: generationId={}", generationId);
+                    } catch (Exception e) {
+                        log.error("FBX→GLB 변환 실패 — rig 실패 처리: generationId={}, err={}", generationId, e.getMessage());
+                        gen = persistService.applyRigFailed(generationId,
+                                "FBX→GLB 변환 실패: " + e.getMessage());
+                        return GenerationStatusResponse.from(gen);
+                    }
                 }
-                String glbHash = FileValidator.computeFileHash(glbBytes);
-                String modelUrl = fileStorageService.store(siteId, glbHash, glbBytes, "mascot.glb");
+
                 gen = persistService.applyRigComplete(siteId, generationId, modelUrl);
-                log.info("리깅 GLB 저장 완료: generationId={}", generationId);
 
                 // anim_config가 설정되어 있으면 mesh-processor로 자동 병합
                 animationMergeService.mergeIfRiggedMascotExists(siteId, generationId, modelUrl);
