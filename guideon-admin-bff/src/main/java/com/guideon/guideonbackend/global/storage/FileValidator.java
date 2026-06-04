@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.Set;
 
@@ -159,6 +160,21 @@ public class FileValidator {
             }
         } catch (IOException e) {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "파일을 읽을 수 없습니다.");
+        }
+    }
+
+    /**
+     * GLB(glTF Binary) 바이트 배열 검증: 매직바이트만 확인.
+     * Tripo API 다운로드 결과처럼 MultipartFile이 아닌 byte[] 경우에 사용.
+     * FBX(Kaydara) 등 잘못된 포맷이 반환됐을 때 빠르게 실패시킨다.
+     */
+    public static void validateGlb(byte[] fileBytes) {
+        if (fileBytes == null || fileBytes.length < 4) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "GLB 파일이 비어있거나 너무 작습니다.");
+        }
+        if (!hasGlbSignature(Arrays.copyOf(fileBytes, 4))) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                    "유효하지 않은 GLB 파일입니다. Tripo가 FBX를 반환했을 수 있습니다.");
         }
     }
 

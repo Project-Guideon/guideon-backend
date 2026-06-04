@@ -106,6 +106,19 @@ public class MascotGenerationService {
                 log.info("마스코트 model 완료, rigging 시작: generationId={}", generationId);
                 String rigTaskId = tripoApiService.createAnimateRigTask(gen.getModelTaskId());
                 gen = persistService.applyModelComplete(generationId, rigTaskId);
+
+                // pre-rig 모델 = 뼈대 없는 clean mesh → assimp로 FBX 변환 (Mixamo 업로드용)
+                if (status.modelUrl() != null) {
+                    try {
+                        byte[] preRigBytes = tripoApiService.downloadModel(status.modelUrl());
+                        FileValidator.validateGlb(preRigBytes); // FBX 반환 시 skip
+                        String preRigHash  = FileValidator.computeFileHash(preRigBytes);
+                        String preRigUrl   = fileStorageService.store(siteId, preRigHash, preRigBytes, "pre_rig_mascot.glb");
+                        animationMergeService.stripRigAsync(siteId, generationId, preRigUrl);
+                    } catch (Exception e) {
+                        log.warn("pre-rig 모델 GLB 검증/FBX 변환 실패 (무시): generationId={}, err={}", generationId, e.getMessage());
+                    }
+                }
             }
 
             return GenerationStatusResponse.from(gen);
@@ -122,8 +135,15 @@ public class MascotGenerationService {
             }
 
             if (status.isSuccess() && status.modelUrl() != null) {
-                // 리깅 GLB 다운로드 → 저장
+                // 리깅 GLB 다운로드 → GLB 포맷 검증 → 저장
                 byte[] glbBytes = tripoApiService.downloadModel(status.modelUrl());
+                try {
+                    FileValidator.validateGlb(glbBytes);
+                } catch (com.guideon.common.exception.CustomException e) {
+                    log.error("Tripo rig 결과가 GLB 아님 (FBX 반환 의심) — rig 실패 처리: generationId={}", generationId);
+                    gen = persistService.applyRigFailed(generationId, "Tripo rig 결과 GLB 검증 실패 (FBX 반환 의심)");
+                    return GenerationStatusResponse.from(gen);
+                }
                 String glbHash = FileValidator.computeFileHash(glbBytes);
                 String modelUrl = fileStorageService.store(siteId, glbHash, glbBytes, "mascot.glb");
                 gen = persistService.applyRigComplete(siteId, generationId, modelUrl);
@@ -131,8 +151,6 @@ public class MascotGenerationService {
 
                 // anim_config가 설정되어 있으면 mesh-processor로 자동 병합
                 animationMergeService.mergeIfRiggedMascotExists(siteId, generationId, modelUrl);
-                // Mixamo 업로드용 clean mesh(FBX) 비동기 생성
-                animationMergeService.stripRigAsync(siteId, generationId, modelUrl);
             }
 
             return GenerationStatusResponse.from(gen);

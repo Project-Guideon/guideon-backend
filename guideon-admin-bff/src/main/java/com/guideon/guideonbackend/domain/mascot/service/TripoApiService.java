@@ -103,6 +103,7 @@ public class TripoApiService {
         requestBody.put("pbr", true);
         requestBody.put("quad", true);
         requestBody.put("texture_quality", "detailed");
+        requestBody.put("out_format", "glb");
 
         Map<String, Object> response = postJson(url, requestBody);
         Map<String, Object> data = extractData(response);
