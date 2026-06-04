@@ -94,6 +94,17 @@ public class MascotGenerationPersistService {
      * mesh-processor 병합 완료: tb_mascot.animModelUrl + animClips 반영.
      * rig 완료 후 별도 트랜잭션으로 실행 (외부 호출 결과).
      */
+    /**
+     * clean mesh FBX URL을 tb_mascot에 직접 저장.
+     * Tripo pre-rig 결과가 FBX인 경우(GLB→FBX 변환 불필요) 사용.
+     */
+    @Transactional
+    public void saveCleanMeshUrl(Long siteId, String cleanMeshUrl) {
+        mascotRepository.findBySite_SiteId(siteId).ifPresent(
+                mascot -> mascot.updateCleanMeshUrl(cleanMeshUrl)
+        );
+    }
+
     @Transactional
     public void applyAnimationComplete(Long siteId, Long generationId,
                                        String animModelUrl, Map<String, String> animClips) {

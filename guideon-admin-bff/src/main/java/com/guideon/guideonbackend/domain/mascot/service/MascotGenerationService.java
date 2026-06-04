@@ -108,16 +108,26 @@ public class MascotGenerationService {
                 String rigTaskId = tripoApiService.createAnimateRigTask(gen.getModelTaskId());
                 gen = persistService.applyModelComplete(generationId, rigTaskId);
 
-                // pre-rig 모델 = 뼈대 없는 clean mesh → assimp로 FBX 변환 (Mixamo 업로드용)
+                // pre-rig 모델 = 뼈대 없는 clean mesh → Mixamo 업로드용 FBX 확보
+                // Tripo 반환 포맷(GLB/FBX) 무관하게 항상 clean_mesh_{id}.fbx가 생성되도록 처리.
                 if (status.modelUrl() != null) {
                     try {
                         byte[] preRigBytes = tripoApiService.downloadModel(status.modelUrl());
-                        FileValidator.validateGlb(preRigBytes); // FBX 반환 시 skip
-                        String preRigHash  = FileValidator.computeFileHash(preRigBytes);
-                        String preRigUrl   = fileStorageService.store(siteId, preRigHash, preRigBytes, "pre_rig_mascot.glb");
-                        animationMergeService.stripRigAsync(siteId, generationId, preRigUrl);
+                        if (FileValidator.isGlb(preRigBytes)) {
+                            // GLB 반환: 저장 후 assimp로 FBX 변환 (stripRigAsync)
+                            String preRigHash = FileValidator.computeFileHash(preRigBytes);
+                            String preRigUrl  = fileStorageService.store(siteId, preRigHash, preRigBytes, "pre_rig_mascot.glb");
+                            animationMergeService.stripRigAsync(siteId, generationId, preRigUrl);
+                        } else {
+                            // FBX 직접 반환: 변환 없이 clean_mesh FBX로 저장
+                            log.info("pre-rig 결과 FBX 반환 — clean_mesh FBX 직접 저장: generationId={}", generationId);
+                            String fbxFilename = "clean_mesh_" + generationId + ".fbx";
+                            String fbxHash     = FileValidator.computeFileHash(preRigBytes);
+                            String fbxUrl      = fileStorageService.store(siteId, fbxHash, preRigBytes, fbxFilename);
+                            persistService.saveCleanMeshUrl(siteId, fbxUrl);
+                        }
                     } catch (Exception e) {
-                        log.warn("pre-rig 모델 GLB 검증/FBX 변환 실패 (무시): generationId={}, err={}", generationId, e.getMessage());
+                        log.warn("pre-rig 모델 처리 실패 (무시): generationId={}, err={}", generationId, e.getMessage());
                     }
                 }
             }
