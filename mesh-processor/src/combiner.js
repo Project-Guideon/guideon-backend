@@ -3,13 +3,40 @@ import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
 
+// Mixamo "Without Skin" 본 이름 → Tripo spec:mixamo 본 이름 매핑.
+// Mixamo는 "mixamorig:" 접두어를 사용하고 Tripo는 자체 이름 규칙을 따르므로
+// 직접 이름 일치가 안 되는 경우 이 테이블로 폴백한다.
+const MIXAMO_TO_TRIPO = {
+  'mixamorig:Hips':         'Pelvis',
+  'mixamorig:Spine':        'Waist',
+  'mixamorig:Spine1':       'Spine01',
+  'mixamorig:Spine2':       'Spine02',
+  'mixamorig:Neck':         'NeckTwist01',
+  'mixamorig:Head':         'Head',
+  'mixamorig:LeftUpLeg':    'L_Thigh',
+  'mixamorig:LeftLeg':      'L_Calf',
+  'mixamorig:LeftFoot':     'L_Foot',
+  'mixamorig:LeftToeBase':  'L_ToeBase',
+  'mixamorig:RightUpLeg':   'R_Thigh',
+  'mixamorig:RightLeg':     'R_Calf',
+  'mixamorig:RightFoot':    'R_Foot',
+  'mixamorig:RightToeBase': 'R_ToeBase',
+  'mixamorig:LeftShoulder': 'L_Clavicle',
+  'mixamorig:LeftArm':      'L_Upperarm',
+  'mixamorig:LeftForeArm':  'L_Forearm',
+  'mixamorig:LeftHand':     'L_Hand',
+  'mixamorig:RightShoulder':'R_Clavicle',
+  'mixamorig:RightArm':     'R_Upperarm',
+  'mixamorig:RightForeArm': 'R_Forearm',
+  'mixamorig:RightHand':    'R_Hand',
+};
+
 /**
  * Tripo rigged GLB + Mixamo 애니메이션 GLB 5개 → 통합 anim GLB
  *
- * 핵심 원리:
- *   Mixamo "Without Skin" GLB의 본 이름(mixamorig:Hips 등)이
- *   Tripo spec:mixamo GLB의 본 이름과 동일하므로,
- *   이름 기준으로 채널 타깃을 remapping하여 베이스 문서에 붙인다.
+ * 채널 타깃 매핑 우선순위:
+ *   1. 직접 이름 일치 (base 본 이름 = anim 본 이름)
+ *   2. MIXAMO_TO_TRIPO 테이블 폴백 (mixamorig:X → Tripo 이름)
  *
  * @param {string} baseGlbPath  Tripo rig_model 결과 GLB 경로
  * @param {Object} animGlbs     { "Idle": "/path/idle.glb", "Talking": "/path/talking.glb", ... }
@@ -19,18 +46,14 @@ const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
 export async function combine(baseGlbPath, animGlbs, outputPath) {
   console.log(`[combine] base: ${baseGlbPath}`);
 
-  // 1. 베이스 문서 로드 (Tripo 리깅 GLB — 메쉬 + 스켈레톤 포함)
   const baseDoc  = await io.read(baseGlbPath);
   const baseRoot = baseDoc.getRoot();
 
-  // 2. 베이스 스켈레톤의 본 이름 → 노드 맵 구성
   const nodeByName = new Map();
-  for (const node of baseRoot.listNodes()) {
+  for (const node of baseRoot.listNodes())
     nodeByName.set(node.getName(), node);
-  }
   console.log(`[combine] 베이스 본 ${nodeByName.size}개 인식`);
 
-  // 3. 각 애니메이션 GLB에서 클립 추출 → 베이스에 이식
   for (const [clipName, animPath] of Object.entries(animGlbs)) {
     console.log(`[combine] 클립 병합: ${clipName} ← ${animPath}`);
 
@@ -45,34 +68,41 @@ export async function combine(baseGlbPath, animGlbs, outputPath) {
         const srcTarget = channel.getTargetNode();
         if (!srcTarget) continue;
 
-        // 본 이름으로 베이스 문서의 동일한 본 찾기
-        const baseTarget = nodeByName.get(srcTarget.getName());
-        if (!baseTarget) continue; // 매칭 본 없으면 skip
+        const srcName = srcTarget.getName();
+
+        // 1. 직접 이름 일치
+        let baseTarget = nodeByName.get(srcName);
+
+        // 2. Mixamo → Tripo 이름 변환 폴백
+        if (!baseTarget) {
+          const tripoName = MIXAMO_TO_TRIPO[srcName];
+          if (tripoName) baseTarget = nodeByName.get(tripoName);
+        }
+
+        if (!baseTarget) continue;
 
         const srcSampler = channel.getSampler();
         const srcInput   = srcSampler.getInput();
         const srcOutput  = srcSampler.getOutput();
 
-        // Accessor 데이터 복사 (참조가 아닌 deep copy — 문서 간 공유 불가)
-        const newInput = baseDoc.createAccessor()
-          .setType(srcInput.getType())
-          .setComponentType(srcInput.getComponentType())
-          .setArray(srcInput.getArray().slice());
+        // gltf-transform v4: setComponentType 제거됨 — TypedArray 타입이 컴포넌트 타입을 결정
+        const newInput = baseDoc.createAccessor();
+        newInput.setType(srcInput.getType());
+        newInput.setArray(srcInput.getArray().slice());
 
-        const newOutput = baseDoc.createAccessor()
-          .setType(srcOutput.getType())
-          .setComponentType(srcOutput.getComponentType())
-          .setArray(srcOutput.getArray().slice());
+        const newOutput = baseDoc.createAccessor();
+        newOutput.setType(srcOutput.getType());
+        newOutput.setArray(srcOutput.getArray().slice());
 
-        const newSampler = baseDoc.createAnimationSampler()
-          .setInput(newInput)
-          .setOutput(newOutput)
-          .setInterpolation(srcSampler.getInterpolation());
+        const newSampler = baseDoc.createAnimationSampler();
+        newSampler.setInput(newInput);
+        newSampler.setOutput(newOutput);
+        newSampler.setInterpolation(srcSampler.getInterpolation());
 
-        const newChannel = baseDoc.createAnimationChannel()
-          .setSampler(newSampler)
-          .setTargetNode(baseTarget)          // ← 베이스 문서의 본으로 교체
-          .setTargetPath(channel.getTargetPath());
+        const newChannel = baseDoc.createAnimationChannel();
+        newChannel.setSampler(newSampler);
+        newChannel.setTargetNode(baseTarget);
+        newChannel.setTargetPath(channel.getTargetPath());
 
         newAnim.addSampler(newSampler);
         newAnim.addChannel(newChannel);
@@ -83,7 +113,6 @@ export async function combine(baseGlbPath, animGlbs, outputPath) {
     }
   }
 
-  // 4. 통합 GLB 출력
   await io.write(outputPath, baseDoc);
   console.log(`[combine] 완료: ${outputPath}`);
 }
