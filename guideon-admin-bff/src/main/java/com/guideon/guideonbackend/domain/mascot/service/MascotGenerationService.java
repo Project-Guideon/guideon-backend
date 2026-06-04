@@ -8,6 +8,8 @@ import com.guideon.core.domain.mascot.entity.MascotGeneration;
 import com.guideon.core.domain.mascot.repository.MascotGenerationRepository;
 import com.guideon.core.domain.site.entity.Site;
 import com.guideon.core.domain.site.repository.SiteRepository;
+import com.guideon.guideonbackend.domain.mascot.dto.CleanMeshGenerateResponse;
+import com.guideon.guideonbackend.domain.mascot.dto.CleanMeshJobStatusResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.GenerationStatusResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.ModelUploadResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.StartGenerationResponse;
@@ -231,6 +233,74 @@ public class MascotGenerationService {
                 .orElseThrow(() -> new CustomException(ErrorCode.MASCOT_GENERATION_NOT_FOUND));
 
         return GenerationStatusResponse.from(gen);
+    }
+
+    /**
+     * 독립 clean-mesh 파이프라인 Step 1: 이미지 업로드 → Tripo image_to_model 시작 → taskId 반환.
+     * rig(animate_rig) 없이 리깅 없는 모델만 생성. Mixamo 수동 리깅 전용.
+     */
+    public CleanMeshGenerateResponse startCleanMeshGeneration(Long siteId, MultipartFile file,
+                                                               CustomAdminDetails adminDetails) {
+        validatePlatformAdmin(adminDetails);
+
+        FileValidator.validateImage(file);
+        String fileHash = FileValidator.computeFileHash(file);
+        String imageUrl = fileStorageService.store(siteId, fileHash, file);
+
+        byte[] imageBytes = fileStorageService.loadBytes(siteId, imageUrl);
+        String filename   = file.getOriginalFilename() != null ? file.getOriginalFilename() : "mascot.jpg";
+
+        String imageToken = tripoApiService.uploadImage(imageBytes, filename);
+        String taskId     = tripoApiService.createImageToModelTask(imageToken);
+
+        log.info("독립 clean-mesh 생성 시작: siteId={}, taskId={}", siteId, taskId);
+        return CleanMeshGenerateResponse.builder().taskId(taskId).build();
+    }
+
+    /**
+     * 독립 clean-mesh 파이프라인 Step 2: Tripo 상태 폴링 → 완료 시 FBX 저장 + cleanMeshUrl 갱신.
+     */
+    public CleanMeshJobStatusResponse pollCleanMeshStatus(Long siteId, String taskId,
+                                                           CustomAdminDetails adminDetails) {
+        validatePlatformAdmin(adminDetails);
+
+        TripoApiService.TripoTaskStatus status = tripoApiService.getTaskStatus(taskId);
+
+        if (status.isProcessing()) {
+            return CleanMeshJobStatusResponse.builder().taskId(taskId).status("processing").build();
+        }
+        if (status.isFailed()) {
+            log.warn("독립 clean-mesh Tripo 실패: siteId={}, taskId={}", siteId, taskId);
+            return CleanMeshJobStatusResponse.builder().taskId(taskId).status("failed").build();
+        }
+
+        // success — 다운로드 → FBX 확보 → 저장
+        byte[] modelBytes = tripoApiService.downloadModel(status.modelUrl());
+        String taskShort  = taskId.substring(0, Math.min(12, taskId.length()));
+        String fbxUrl;
+
+        try {
+            if (FileValidator.isGlb(modelBytes)) {
+                // GLB → assimp로 FBX 변환
+                String glbHash     = FileValidator.computeFileHash(modelBytes);
+                String glbUrl      = fileStorageService.store(siteId, glbHash, modelBytes, "cm_raw_" + taskShort + ".glb");
+                String glbLocal    = fileStorageService.toLocalPath(glbUrl).toString();
+                fbxUrl             = fileStorageService.resolveUrl(siteId, "cm_" + taskShort + ".fbx");
+                String fbxLocal    = fileStorageService.toLocalPath(fbxUrl).toString();
+                meshProcessorClient.stripRig(glbLocal, fbxLocal);
+            } else {
+                // Tripo가 FBX 직접 반환 → 바로 저장
+                String fbxHash = FileValidator.computeFileHash(modelBytes);
+                fbxUrl = fileStorageService.store(siteId, fbxHash, modelBytes, "cm_" + taskShort + ".fbx");
+            }
+        } catch (Exception e) {
+            log.error("독립 clean-mesh FBX 변환/저장 실패: siteId={}, taskId={}, err={}", siteId, taskId, e.getMessage());
+            return CleanMeshJobStatusResponse.builder().taskId(taskId).status("failed").build();
+        }
+
+        persistService.saveCleanMeshUrl(siteId, fbxUrl);
+        log.info("독립 clean-mesh 완료: siteId={}, fbxUrl={}", siteId, fbxUrl);
+        return CleanMeshJobStatusResponse.builder().taskId(taskId).status("ready").cleanMeshUrl(fbxUrl).build();
     }
 
     private void validatePlatformAdmin(CustomAdminDetails adminDetails) {

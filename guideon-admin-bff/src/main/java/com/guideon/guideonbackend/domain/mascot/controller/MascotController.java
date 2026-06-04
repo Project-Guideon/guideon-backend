@@ -3,6 +3,8 @@ package com.guideon.guideonbackend.domain.mascot.controller;
 import com.guideon.common.exception.CustomException;
 import com.guideon.common.exception.ErrorCode;
 import com.guideon.common.response.ApiResponse;
+import com.guideon.guideonbackend.domain.mascot.dto.CleanMeshGenerateResponse;
+import com.guideon.guideonbackend.domain.mascot.dto.CleanMeshJobStatusResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.CleanMeshResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.ModelUploadResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.*;
@@ -80,6 +82,36 @@ public class MascotController {
             HttpServletRequest httpRequest
     ) {
         MascotResponse response = mascotService.updateMascot(siteId, request, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    @Operation(summary = "리깅 없는 FBX 독립 생성 시작",
+            description = "이미지를 업로드하면 Tripo image_to_model만 실행해 리깅 없는 FBX를 생성합니다. " +
+                    "animate_rig 없이 Mixamo 업로드용 clean mesh만 뽑는 독립 파이프라인. " +
+                    "반환된 taskId로 /clean-mesh/generate/{taskId}/status를 폴링하세요. PLATFORM_ADMIN 권한 필요")
+    @PostMapping(value = "/clean-mesh/generate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<CleanMeshGenerateResponse>> startCleanMeshGeneration(
+            @PathVariable Long siteId,
+            @RequestPart("file") MultipartFile file,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        CleanMeshGenerateResponse response = generationService.startCleanMeshGeneration(siteId, file, adminDetails);
+        String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
+        return ResponseEntity.ok(ApiResponse.success(response, traceId));
+    }
+
+    @Operation(summary = "리깅 없는 FBX 생성 상태 폴링",
+            description = "status=ready 시 cleanMeshUrl에서 FBX를 다운로드할 수 있습니다.")
+    @GetMapping("/clean-mesh/generate/{taskId}/status")
+    public ResponseEntity<ApiResponse<CleanMeshJobStatusResponse>> pollCleanMeshStatus(
+            @PathVariable Long siteId,
+            @PathVariable String taskId,
+            @AuthenticationPrincipal CustomAdminDetails adminDetails,
+            HttpServletRequest httpRequest
+    ) {
+        CleanMeshJobStatusResponse response = generationService.pollCleanMeshStatus(siteId, taskId, adminDetails);
         String traceId = (String) httpRequest.getAttribute(TraceIdUtil.TRACE_ID_ATTR);
         return ResponseEntity.ok(ApiResponse.success(response, traceId));
     }
