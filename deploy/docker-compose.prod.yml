@@ -164,6 +164,25 @@ services:
       - internal
     restart: always
 
+  # ===== mesh-processor (GLB 병합) =====
+
+  mesh-processor:
+    image: ghcr.io/project-guideon/mesh-processor:latest
+    container_name: guideon-mesh-processor
+    environment:
+      PORT: "3001"
+      STORAGE_PATH: /app/uploads
+    volumes:
+      - uploads:/app/uploads
+    networks:
+      - internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
   # Let's Encrypt 인증서 자동 갱신
   certbot:
     image: certbot/certbot

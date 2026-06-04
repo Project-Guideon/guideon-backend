@@ -32,6 +32,9 @@ jobs:
           - service: db
             dockerfile: infra/Dockerfile
             context: infra
+          - service: mesh-processor
+            dockerfile: mesh-processor/Dockerfile
+            context: mesh-processor
 
     steps:
       - uses: actions/checkout@v4
