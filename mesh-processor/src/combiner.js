@@ -31,6 +31,21 @@ const MIXAMO_TO_TRIPO = {
   'mixamorig:RightHand':    'R_Hand',
 };
 
+// ── 쿼터니언 헬퍼 ──────────────────────────────────────────────────────────
+// unit quaternion이므로 inverse = conjugate
+function quatInvert([x, y, z, w]) {
+  return [-x, -y, -z, w];
+}
+
+function quatMultiply([ax, ay, az, aw], [bx, by, bz, bw]) {
+  return [
+    aw*bx + ax*bw + ay*bz - az*by,
+    aw*by - ax*bz + ay*bw + az*bx,
+    aw*bz + ax*by - ay*bx + az*bw,
+    aw*bw - ax*bx - ay*by - az*bz,
+  ];
+}
+
 /**
  * Tripo rigged GLB + Mixamo 애니메이션 GLB 5개 → 통합 anim GLB
  *
@@ -38,8 +53,11 @@ const MIXAMO_TO_TRIPO = {
  *   1. 직접 이름 일치 (base 본 이름 = anim 본 이름)
  *   2. MIXAMO_TO_TRIPO 테이블 폴백 (mixamorig:X → Tripo 이름)
  *
+ * rotation 채널은 바인드 포즈 보정(리타게팅) 적용:
+ *   dstAnimRot = dstBindRot × inv(srcBindRot) × srcAnimRot
+ *
  * @param {string} baseGlbPath  Tripo rig_model 결과 GLB 경로
- * @param {Object} animGlbs     { "Idle": "/path/idle.glb", "Talking": "/path/talking.glb", ... }
+ * @param {Object} animGlbs     { "Idle": "/path/idle.glb", ... }
  *                              KEY = GLB에 임베드될 클립명, VALUE = 파일 경로
  * @param {string} outputPath   출력 GLB 경로
  */
@@ -84,6 +102,30 @@ export async function combine(baseGlbPath, animGlbs, outputPath) {
         const srcSampler = channel.getSampler();
         const srcInput   = srcSampler.getInput();
         const srcOutput  = srcSampler.getOutput();
+        const targetPath = channel.getTargetPath();
+
+        let outputArray = srcOutput.getArray().slice();
+
+        // ── rotation 채널: 바인드 포즈 보정 (리타게팅) ──────────────
+        // 두 스켈레톤의 로컬 좌표계가 달라 절댓값 그대로 복사하면 뒤틀림.
+        // dstAnimRot = dstBindRot × inv(srcBindRot) × srcAnimRot
+        if (targetPath === 'rotation') {
+          const srcBind = srcTarget.getRotation();   // Mixamo 바인드 포즈 [x,y,z,w]
+          const dstBind = baseTarget.getRotation();  // Tripo 바인드 포즈 [x,y,z,w]
+          const invSrc  = quatInvert(srcBind);
+
+          const retargeted = new Float32Array(outputArray.length);
+          for (let i = 0; i < outputArray.length; i += 4) {
+            const srcRot = [outputArray[i], outputArray[i+1], outputArray[i+2], outputArray[i+3]];
+            const delta  = quatMultiply(invSrc, srcRot);   // Mixamo 델타 회전
+            const dstRot = quatMultiply(dstBind, delta);   // Tripo 로컬 적용
+            retargeted[i]   = dstRot[0];
+            retargeted[i+1] = dstRot[1];
+            retargeted[i+2] = dstRot[2];
+            retargeted[i+3] = dstRot[3];
+          }
+          outputArray = retargeted;
+        }
 
         // gltf-transform v4: setComponentType 제거됨 — TypedArray 타입이 컴포넌트 타입을 결정
         const newInput = baseDoc.createAccessor();
@@ -92,7 +134,7 @@ export async function combine(baseGlbPath, animGlbs, outputPath) {
 
         const newOutput = baseDoc.createAccessor();
         newOutput.setType(srcOutput.getType());
-        newOutput.setArray(srcOutput.getArray().slice());
+        newOutput.setArray(outputArray);
 
         const newSampler = baseDoc.createAnimationSampler();
         newSampler.setInput(newInput);
@@ -102,7 +144,7 @@ export async function combine(baseGlbPath, animGlbs, outputPath) {
         const newChannel = baseDoc.createAnimationChannel();
         newChannel.setSampler(newSampler);
         newChannel.setTargetNode(baseTarget);
-        newChannel.setTargetPath(channel.getTargetPath());
+        newChannel.setTargetPath(targetPath);
 
         newAnim.addSampler(newSampler);
         newAnim.addChannel(newChannel);
