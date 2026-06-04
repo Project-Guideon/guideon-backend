@@ -67,6 +67,10 @@ public class Mascot extends BaseEntity {
     @Column(name = "anim_model_url", length = 500)
     private String animModelUrl;
 
+    /** 스켈레톤 제거된 T-포즈 FBX URL. Mixamo 업로드용 clean mesh. */
+    @Column(name = "clean_mesh_url", length = 500)
+    private String cleanMeshUrl;
+
     /** 상태→클립명 매핑. Unity Animation.Play() 호출에 사용. 예: {idle:"Idle", speaking:"Talking", greeting:"Waving"} */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "anim_clips", nullable = false, columnDefinition = "jsonb")
@@ -125,6 +129,11 @@ public class Mascot extends BaseEntity {
         this.animClips = animClips != null ? animClips : new HashMap<>();
     }
 
+    /** Mixamo 업로드용 clean mesh URL 설정. */
+    public void updateCleanMeshUrl(String cleanMeshUrl) {
+        this.cleanMeshUrl = cleanMeshUrl;
+    }
+
     /**
      * rig 재생성 시작 시 이전 애니메이션 메타데이터 초기화.
      * 새 base GLB와 옛 animModelUrl이 함께 서빙되는 스켈레톤 불일치를 방지.
@@ -132,5 +141,6 @@ public class Mascot extends BaseEntity {
     public void clearAnimation() {
         this.animModelUrl = null;
         this.animClips = new HashMap<>();
+        this.cleanMeshUrl = null;
     }
 }

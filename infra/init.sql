@@ -255,6 +255,8 @@ ALTER TABLE tb_mascot ADD COLUMN IF NOT EXISTS generation_id BIGINT NULL UNIQUE 
 -- 상태별 애니메이션 (5클립 GLB 단일 URL + 상태→클립명 매핑). Unity 노출 소스
 ALTER TABLE tb_mascot ADD COLUMN IF NOT EXISTS anim_model_url VARCHAR(500) NULL;
 ALTER TABLE tb_mascot ADD COLUMN IF NOT EXISTS anim_clips JSONB NOT NULL DEFAULT '{}';
+-- Mixamo 업로드용 clean mesh (스켈레톤 제거된 T-포즈 FBX)
+ALTER TABLE tb_mascot ADD COLUMN IF NOT EXISTS clean_mesh_url VARCHAR(500) NULL;
 
 -- tb_document
 CREATE TABLE IF NOT EXISTS tb_document (

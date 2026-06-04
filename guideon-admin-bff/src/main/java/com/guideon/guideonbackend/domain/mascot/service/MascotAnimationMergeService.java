@@ -2,6 +2,7 @@ package com.guideon.guideonbackend.domain.mascot.service;
 
 import com.guideon.core.domain.mascot.entity.MascotAnimConfig;
 import com.guideon.core.domain.mascot.repository.MascotAnimConfigRepository;
+import com.guideon.core.domain.mascot.repository.MascotRepository;
 import com.guideon.guideonbackend.global.storage.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -23,6 +25,7 @@ import java.util.stream.Collectors;
 public class MascotAnimationMergeService {
 
     private final MascotAnimConfigRepository animConfigRepository;
+    private final MascotRepository mascotRepository;
     private final FileStorageService fileStorageService;
     private final MeshProcessorClient meshProcessorClient;
     private final MascotGenerationPersistService persistService;
@@ -70,5 +73,35 @@ public class MascotAnimationMergeService {
                     generationId, e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * rig 완료 후 스켈레톤을 제거한 Mixamo-ready FBX를 비동기 생성.
+     * 실패해도 예외를 전파하지 않는다 — clean mesh는 부가 기능이므로 파이프라인 완료에 영향 없음.
+     *
+     * @param siteId         사이트 ID
+     * @param generationId   MascotGeneration PK (파일명에 사용)
+     * @param riggedModelUrl Tripo rig 결과 GLB 서빙 URL
+     */
+    public void stripRigAsync(Long siteId, Long generationId, String riggedModelUrl) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                String riggedLocalPath = fileStorageService.toLocalPath(riggedModelUrl).toString();
+                String fbxFilename     = "clean_mesh_" + generationId + ".fbx";
+                String fbxUrl          = fileStorageService.resolveUrl(siteId, fbxFilename);
+                String fbxLocalPath    = fileStorageService.toLocalPath(fbxUrl).toString();
+
+                meshProcessorClient.stripRig(riggedLocalPath, fbxLocalPath);
+
+                mascotRepository.findBySite_SiteId(siteId).ifPresent(
+                        mascot -> mascot.updateCleanMeshUrl(fbxUrl)
+                );
+                log.info("clean mesh 생성 완료: generationId={}, url={}", generationId, fbxUrl);
+
+            } catch (Exception e) {
+                log.warn("strip-rig 실패 — cleanMeshUrl 없이 완료: generationId={}, err={}",
+                        generationId, e.getMessage());
+            }
+        });
     }
 }

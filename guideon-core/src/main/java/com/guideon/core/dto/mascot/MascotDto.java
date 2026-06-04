@@ -24,6 +24,7 @@ public class MascotDto {
     private String imageUrl;
     private String modelUrl;
     private String modelFormat;
+    private String cleanMeshUrl;
     private Long generationId;
     private Boolean isActive;
     private LocalDateTime createdAt;
@@ -44,6 +45,7 @@ public class MascotDto {
                 .imageUrl(mascot.getImageUrl())
                 .modelUrl(mascot.getModelUrl())
                 .modelFormat(mascot.getModelFormat())
+                .cleanMeshUrl(mascot.getCleanMeshUrl())
                 .generationId(mascot.getGeneration() != null ? mascot.getGeneration().getGenerationId() : null)
                 .isActive(mascot.getIsActive())
                 .createdAt(mascot.getCreatedAt())

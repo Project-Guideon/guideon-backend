@@ -131,6 +131,8 @@ public class MascotGenerationService {
 
                 // anim_config가 설정되어 있으면 mesh-processor로 자동 병합
                 animationMergeService.mergeIfRiggedMascotExists(siteId, generationId, modelUrl);
+                // Mixamo 업로드용 clean mesh(FBX) 비동기 생성
+                animationMergeService.stripRigAsync(siteId, generationId, modelUrl);
             }
 
             return GenerationStatusResponse.from(gen);

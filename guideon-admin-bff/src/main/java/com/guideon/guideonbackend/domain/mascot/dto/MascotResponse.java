@@ -24,6 +24,7 @@ public class MascotResponse {
     private String imageUrl;
     private String modelUrl;
     private String modelFormat;
+    private String cleanMeshUrl;
     private Long generationId;
     private Boolean isActive;
     private LocalDateTime createdAt;
@@ -44,6 +45,7 @@ public class MascotResponse {
                 .imageUrl(dto.getImageUrl())
                 .modelUrl(dto.getModelUrl())
                 .modelFormat(dto.getModelFormat())
+                .cleanMeshUrl(dto.getCleanMeshUrl())
                 .generationId(dto.getGenerationId())
                 .isActive(dto.getIsActive())
                 .createdAt(dto.getCreatedAt())
