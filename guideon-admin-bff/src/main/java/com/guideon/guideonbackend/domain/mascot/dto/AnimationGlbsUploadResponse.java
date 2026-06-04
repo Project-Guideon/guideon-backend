@@ -12,6 +12,9 @@ public class AnimationGlbsUploadResponse {
 
     private List<UploadedClip> uploaded;
 
+    /** 병합 완료 시 animModelUrl, 마스코트 미생성 또는 병합 실패 시 null */
+    private String animModelUrl;
+
     @Getter
     @Builder
     public static class UploadedClip {
