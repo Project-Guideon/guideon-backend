@@ -111,11 +111,12 @@ public class MascotGenerationService {
                 if (status.modelUrl() != null) {
                     try {
                         byte[] preRigBytes = tripoApiService.downloadModel(status.modelUrl());
+                        FileValidator.validateGlb(preRigBytes); // FBX 반환 시 skip
                         String preRigHash  = FileValidator.computeFileHash(preRigBytes);
                         String preRigUrl   = fileStorageService.store(siteId, preRigHash, preRigBytes, "pre_rig_mascot.glb");
                         animationMergeService.stripRigAsync(siteId, generationId, preRigUrl);
                     } catch (Exception e) {
-                        log.warn("pre-rig 모델 다운로드/FBX 변환 실패 (무시): generationId={}, err={}", generationId, e.getMessage());
+                        log.warn("pre-rig 모델 GLB 검증/FBX 변환 실패 (무시): generationId={}, err={}", generationId, e.getMessage());
                     }
                 }
             }
@@ -134,8 +135,15 @@ public class MascotGenerationService {
             }
 
             if (status.isSuccess() && status.modelUrl() != null) {
-                // 리깅 GLB 다운로드 → 저장
+                // 리깅 GLB 다운로드 → GLB 포맷 검증 → 저장
                 byte[] glbBytes = tripoApiService.downloadModel(status.modelUrl());
+                try {
+                    FileValidator.validateGlb(glbBytes);
+                } catch (com.guideon.common.exception.CustomException e) {
+                    log.error("Tripo rig 결과가 GLB 아님 (FBX 반환 의심) — rig 실패 처리: generationId={}", generationId);
+                    gen = persistService.applyRigFailed(generationId, "Tripo rig 결과 GLB 검증 실패 (FBX 반환 의심)");
+                    return GenerationStatusResponse.from(gen);
+                }
                 String glbHash = FileValidator.computeFileHash(glbBytes);
                 String modelUrl = fileStorageService.store(siteId, glbHash, glbBytes, "mascot.glb");
                 gen = persistService.applyRigComplete(siteId, generationId, modelUrl);
