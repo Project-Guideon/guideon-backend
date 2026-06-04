@@ -4,7 +4,9 @@ import com.guideon.common.exception.CustomException;
 import com.guideon.common.exception.ErrorCode;
 import com.guideon.core.domain.admin.entity.AdminRole;
 import com.guideon.core.domain.mascot.entity.MascotAnimConfig;
+import com.guideon.core.domain.mascot.entity.MascotGeneration;
 import com.guideon.core.domain.mascot.repository.MascotAnimConfigRepository;
+import com.guideon.core.domain.mascot.repository.MascotGenerationRepository;
 import com.guideon.guideonbackend.domain.mascot.dto.AnimConfigRequest;
 import com.guideon.guideonbackend.domain.mascot.dto.AnimConfigResponse;
 import com.guideon.guideonbackend.domain.mascot.dto.AnimationGlbsUploadResponse;
@@ -41,7 +43,9 @@ public class MascotAnimConfigService {
     );
 
     private final MascotAnimConfigRepository animConfigRepository;
+    private final MascotGenerationRepository generationRepository;
     private final FileStorageService fileStorageService;
+    private final MascotAnimationMergeService animationMergeService;
 
     /**
      * state별 GLB 파일 업로드.
@@ -106,7 +110,13 @@ public class MascotAnimConfigService {
                     .build());
         }
 
-        return AnimationGlbsUploadResponse.builder().uploaded(uploaded).build();
+        // rig가 완료된 마스코트가 있으면 즉시 병합 — animModelUrl을 응답에 반영
+        String animModelUrl = triggerMergeIfAvailable(siteId);
+
+        return AnimationGlbsUploadResponse.builder()
+                .uploaded(uploaded)
+                .animModelUrl(animModelUrl)
+                .build();
     }
 
     /**
@@ -156,6 +166,22 @@ public class MascotAnimConfigService {
         }
 
         return getAnimConfig(siteId, adminDetails);
+    }
+
+    /**
+     * 해당 site의 최신 rig 완료 이력이 있으면 병합을 동기 실행하고 animModelUrl 반환.
+     * 없으면 null 반환 (이후 rig 완료 시점에 자동 병합됨).
+     */
+    private String triggerMergeIfAvailable(Long siteId) {
+        return generationRepository.findTopBySite_SiteIdOrderByCreatedAtDesc(siteId)
+                .filter(MascotGeneration::isFullyCompleted)
+                .filter(gen -> gen.getResultModelUrl() != null)
+                .map(gen -> {
+                    animationMergeService.mergeIfRiggedMascotExists(
+                            siteId, gen.getGenerationId(), gen.getResultModelUrl());
+                    return fileStorageService.resolveUrl(siteId, "anim_" + gen.getGenerationId() + ".glb");
+                })
+                .orElse(null);
     }
 
     private void validatePlatformAdmin(CustomAdminDetails adminDetails) {
