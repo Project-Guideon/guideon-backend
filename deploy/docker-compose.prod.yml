@@ -157,6 +157,7 @@ services:
       - ./nginx.conf.template:/etc/nginx/templates/default.conf.template
       - /var/www/certbot:/var/www/certbot
       - /etc/letsencrypt:/etc/letsencrypt:ro
+      - uploads:/srv/files:ro  # admin-bff 업로드 볼륨 읽기전용 — static 파일 직접 서빙
     depends_on:
       - admin-bff
       - kiosk-bff
