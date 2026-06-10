@@ -42,25 +42,13 @@ server {
         # CORS는 Spring Security에서 처리 (중복 방지)
     }
 
-    # ===== 업로드 파일 서빙 (GLB / 이미지 / PDF) =====
-    # nginx가 디스크에서 직접 sendfile — admin-bff JVM/Tomcat 경유 없음.
-    # JVM GC 멈춤·스왑 압력으로 인한 GLB 다운로드 중간 끊김(잘린 200 응답)을 근본 해소.
+    # ===== 업로드 파일 서빙 (이미지/PDF) =====
     location /internal/files/ {
-        alias /srv/files/;
-
-        types {
-            model/gltf-binary  glb;
-            application/pdf    pdf;
-            image/png          png;
-            image/jpeg         jpg jpeg;
-            image/webp         webp;
-        }
-        default_type application/octet-stream;
-
-        sendfile    on;
-        tcp_nopush  on;
-        add_header  Accept-Ranges bytes;  # 클라이언트 Range 요청 허용 (재개 가능)
-        access_log  off;
+        proxy_pass http://admin-bff:8081;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # ===== Kiosk BFF (REST) =====
