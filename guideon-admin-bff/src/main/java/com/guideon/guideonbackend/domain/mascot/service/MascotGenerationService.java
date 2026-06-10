@@ -245,21 +245,13 @@ public class MascotGenerationService {
 
         FileValidator.validateImage(file);
         String fileHash = FileValidator.computeFileHash(file);
+        String imageUrl = fileStorageService.store(siteId, fileHash, file);
 
-        byte[] imageBytes;
-        try {
-            imageBytes = file.getBytes();
-        } catch (java.io.IOException e) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR, "파일을 읽을 수 없습니다.");
-        }
-        String filename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "mascot.jpg";
+        byte[] imageBytes = fileStorageService.loadBytes(siteId, imageUrl);
+        String filename   = file.getOriginalFilename() != null ? file.getOriginalFilename() : "mascot.jpg";
 
         String imageToken = tripoApiService.uploadImage(imageBytes, filename);
-
-        // Tripo 업로드 성공 후 원본 이미지 영속화 (실패 시 불필요한 디스크 쓰기 방지)
-        fileStorageService.store(siteId, fileHash, imageBytes, filename);
-
-        String taskId = tripoApiService.createImageToModelTask(imageToken);
+        String taskId     = tripoApiService.createImageToModelTask(imageToken);
 
         log.info("독립 clean-mesh 생성 시작: siteId={}, taskId={}", siteId, taskId);
         return CleanMeshGenerateResponse.builder().taskId(taskId).build();
