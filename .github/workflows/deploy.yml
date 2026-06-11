@@ -92,6 +92,6 @@ jobs:
             docker compose pull
             docker compose up -d
             docker exec guideon-nginx nginx -s reload
-            docker image prune -af --filter "until=168h"
+            docker image prune -af
             echo "=== Deploy complete ==="
             docker compose ps
